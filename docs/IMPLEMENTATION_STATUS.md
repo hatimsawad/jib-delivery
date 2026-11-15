@@ -18,7 +18,7 @@ Last updated: 2026-11-15
 - Seven public application tables have Row Level Security enabled: profiles, stores, products, addresses, orders, order_items and order_events.
 - A confirmed Supabase Auth user with the `admin` profile role exists.
 - Supabase URL and publishable key are configured in Vercel for production, preview and development.
-- Vercel project `jib-admin` is connected to `hatimsawad/jib-delivery`. The previous production deployment was READY. New admin views were subsequently committed and are awaiting their latest deployment verification.
+- Vercel project `jib-admin` is connected to `hatimsawad/jib-delivery`. The admin overview and read-only operational routes for orders, stores, products and users built successfully and are published on the production alias `https://jib-admin-two.vercel.app`.
 - Checkout RPC validates the signed-in customer, address ownership, active/open store, product availability and quantities; it reads prices from the database and creates the order and items transactionally.
 - Direct client writes to order/order-item/order-event tables are revoked. Client TRUNCATE privileges are removed; profile role changes and profile inserts are server-managed, while users may update only their own permitted profile fields.
 - Trigger-only SECURITY DEFINER functions have direct API execution revoked.
