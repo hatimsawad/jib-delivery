@@ -2,46 +2,48 @@
 
 Last updated: 2026-11-15
 
-## Confirmed in GitHub
+## Confirmed in GitHub and Vercel
 
 - Product specification, architecture, roadmap and setup documentation.
 - Flutter starter projects for customer, courier and merchant roles.
-- Next.js Arabic RTL admin app with Supabase SSR authentication, login, password-reset request, callback and password-update routes.
-- Admin dashboard routes for overview, orders, stores, products and users. These are read-only operational views backed by Supabase and require an admin session.
+- Next.js Arabic RTL admin app with Supabase SSR authentication, password recovery, callback and password-update routes.
+- Admin dashboard with live Supabase-backed overview counts and read-only pages for orders, stores, products and users.
+- Latest verified production deployment: Vercel project `jib-admin`, deployment state `READY`; deployed commit includes the four admin list pages and row-type fixes.
+- Admin route build output confirmed: `/`, `/login`, `/login/forgot-password`, `/auth/callback`, `/update-password`, `/orders`, `/stores`, `/products`, `/users`.
 - GitHub Actions CI workflow. A previously verified run passed the admin build and all three Flutter analyze/widget-test jobs.
-- Seven ordered Supabase migrations, including client table-grant hardening, checkout hardening, role protection, admin read policies, auth profile trigger, trigger-function grants and foreign-key indexes.
+- Six original Supabase migrations plus the new client-grants hardening migration. The current Supabase migration history contains eight entries; the `tighten_client_table_grants` name appears twice under separate versions (idempotent SQL).
 
-## Live hosting and Supabase
+## Live Supabase project
 
-- Supabase project: JIB, ref `emvleaghjsmzjmzgguvu`, region `eu-west-3` (Paris).
-- All seven migrations are present in Supabase migration history.
+- Project: JIB; ref: `emvleaghjsmzjmzgguvu`; region: `eu-west-3` (Paris).
 - Seven public application tables have Row Level Security enabled: profiles, stores, products, addresses, orders, order_items and order_events.
 - A confirmed Supabase Auth user with the `admin` profile role exists.
 - Supabase URL and publishable key are configured in Vercel for production, preview and development.
-- Vercel project `jib-admin` is connected to `hatimsawad/jib-delivery`. The admin overview and read-only operational routes for orders, stores, products and users built successfully and are published on the production alias `https://jib-admin-two.vercel.app`.
-- Checkout RPC validates the signed-in customer, address ownership, active/open store, product availability and quantities; it reads prices from the database and creates the order and items transactionally.
-- Direct client writes to order/order-item/order-event tables are revoked. Client TRUNCATE privileges are removed; profile role changes and profile inserts are server-managed, while users may update only their own permitted profile fields.
+- Checkout RPC validates the signed-in customer, address ownership, active/open store, product availability and quantities; it reads prices from the database and creates order and item records transactionally.
+- Direct client writes to orders/order_items/order_events are not allowed.
+- Client table grants were hardened: authenticated users can read RLS-filtered rows; merchants can write stores/products only through owner-scoped RLS; customers can manage their own addresses; users can update only profile name, phone and language.
+- Verified database privileges: authenticated cannot update profile role, cannot insert orders directly, and anonymous users cannot read stores. Authenticated profile-name edits, store/product inserts and address inserts are permitted subject to RLS.
 - Trigger-only SECURITY DEFINER functions have direct API execution revoked.
 
 ## Confirmed blockers and security review
 
-- Password recovery email is intermittent. Gmail contains Supabase recovery messages delivered at 09:35 and 09:36 UTC on 2026-11-15, but later Supabase Auth requests hit `429 email rate limit exceeded` and a Google SMTP authentication failure `535 5.7.8 Username and Password not accepted` at 10:18 UTC. The recovery form and callback routes exist; SMTP must be corrected and a fresh recovery flow verified end-to-end.
-- Google SMTP app passwords must be managed privately by the account owner; credentials must never be committed to Git or pasted into chat. A previously shared app-password-like value should be revoked and replaced.
-- Supabase Security Advisor reports two authenticated-callable SECURITY DEFINER functions: `checkout_order` (intended authenticated checkout endpoint) and `is_jib_admin` (used by admin RLS policies). Review and test these before public launch.
+- Password recovery email is not reliable yet. Supabase Auth logs on 2026-11-15 show Google SMTP authentication failure `535 5.7.8 Username and Password not accepted`. Earlier attempts hit `429 email rate limit exceeded` on the built-in sender. The recovery form and callback routes exist; mail transport must be corrected before recovery is verified end-to-end.
+- A Google App Password-like value was previously exposed in chat. Revoke it in Google Account security settings and create a replacement. Never commit SMTP credentials to Git or paste them into chat.
+- Supabase Security Advisor still reports two authenticated-callable SECURITY DEFINER functions: `checkout_order` (intended authenticated checkout endpoint) and `is_jib_admin` (used by admin RLS policies). Review and adversarially test these before public launch.
 - Supabase Security Advisor reports leaked-password protection disabled.
 - Performance Advisor reports RLS init-plan and multiple permissive-policy optimization opportunities. These are performance warnings, not by themselves evidence of a data leak.
 - The checkout function currently uses a temporary 15 MAD delivery fee. This must be replaced with a validated pricing and service-area model.
 - Current application data is empty for stores, products and orders. A public customer launch would therefore have no merchant inventory to serve.
-- Customer, merchant and courier Flutter apps remain visual starters with placeholder/sample content; live authentication, API integration, cart, order processing, availability, dispatch and tracking are not complete.
-- No signed production APK/AAB, payment gateway, production map provider, push notifications, courier dispatch or live tracking is complete.
+- Customer, merchant and courier Flutter apps remain visual starters with placeholder/sample content; live authentication, API integration, cart, order processing, merchant order management, courier dispatch and tracking are not complete.
+- No signed production APK/AAB, payment gateway, production maps, push notifications, courier dispatch or live tracking is complete.
 
 ## Next engineering tasks
 
-1. Resolve Supabase Auth SMTP using a valid private credential; confirm the deployed callback URL is allow-listed and test one recovery email.
-2. Verify the new admin routes in the latest Vercel deployment and test admin login using the already-provisioned admin profile.
-3. Connect the three Flutter apps to Supabase Auth and the live schema, replacing all placeholder stores and sample data.
-4. Add safe admin/merchant product and store management, order-state transitions and courier assignment with database-side authorization and audit events.
-5. Decide the delivery fee and Rabat service zones; remove the temporary fee from checkout.
-6. Add maps, notifications, payment integration (after provider agreement), automated tests, Android builds and a controlled field pilot before public launch.
+1. Correct Supabase Auth SMTP and URL allow-list, then test one recovery email and password-reset session end-to-end.
+2. Test deployed admin login and each admin list route using the already-provisioned admin account.
+3. Connect the three Flutter apps to Supabase Auth and the live schema, replacing placeholder stores and sample data.
+4. Add safe, database-authorized merchant order acceptance/state transitions and courier assignment/availability operations with audit events.
+5. Decide the delivery fee and Rabat service zones; remove the temporary 15 MAD fee from checkout.
+6. Add maps, notifications, payment integration after provider approval, automated tests, Android builds and a controlled field pilot before public launch.
 
-This project is a working foundation, not yet a production-ready delivery service. Mark a task complete only after implementation and verification.
+This project is an implemented foundation with a deployed admin console, not yet a production-ready delivery service. Mark a task complete only after implementation and verification.
