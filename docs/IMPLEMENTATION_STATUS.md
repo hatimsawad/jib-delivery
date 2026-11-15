@@ -9,23 +9,23 @@ Last updated: 2026-11-15
 - Next.js Arabic RTL admin app with Supabase SSR authentication, login, password-reset request, callback and password-update routes.
 - Admin dashboard routes for overview, orders, stores, products and users. These are read-only operational views backed by Supabase and require an admin session.
 - GitHub Actions CI workflow. A previously verified run passed the admin build and all three Flutter analyze/widget-test jobs.
-- Six ordered Supabase migrations, including the initial schema, checkout hardening, role protection, admin read policies, auth profile trigger, trigger-function grants and foreign-key indexes.
+- Seven ordered Supabase migrations, including client table-grant hardening, checkout hardening, role protection, admin read policies, auth profile trigger, trigger-function grants and foreign-key indexes.
 
 ## Live hosting and Supabase
 
 - Supabase project: JIB, ref `emvleaghjsmzjmzgguvu`, region `eu-west-3` (Paris).
-- All six migrations are present in Supabase migration history.
+- All seven migrations are present in Supabase migration history.
 - Seven public application tables have Row Level Security enabled: profiles, stores, products, addresses, orders, order_items and order_events.
 - A confirmed Supabase Auth user with the `admin` profile role exists.
 - Supabase URL and publishable key are configured in Vercel for production, preview and development.
 - Vercel project `jib-admin` is connected to `hatimsawad/jib-delivery`. The previous production deployment was READY. New admin views were subsequently committed and are awaiting their latest deployment verification.
 - Checkout RPC validates the signed-in customer, address ownership, active/open store, product availability and quantities; it reads prices from the database and creates the order and items transactionally.
-- Direct client writes to order/order-item/order-event tables are revoked.
+- Direct client writes to order/order-item/order-event tables are revoked. Client TRUNCATE privileges are removed; profile role changes and profile inserts are server-managed, while users may update only their own permitted profile fields.
 - Trigger-only SECURITY DEFINER functions have direct API execution revoked.
 
 ## Confirmed blockers and security review
 
-- Password recovery email is not currently reliable. Supabase Auth logs on 2026-11-15 show Google SMTP authentication failure `535 5.7.8 Username and Password not accepted` at 10:18 UTC. Earlier attempts hit `429 email rate limit exceeded` on the built-in sender. The recovery form and callback routes exist; the mail transport must be corrected before recovery can be verified end-to-end.
+- Password recovery email is intermittent. Gmail contains Supabase recovery messages delivered at 09:35 and 09:36 UTC on 2026-11-15, but later Supabase Auth requests hit `429 email rate limit exceeded` and a Google SMTP authentication failure `535 5.7.8 Username and Password not accepted` at 10:18 UTC. The recovery form and callback routes exist; SMTP must be corrected and a fresh recovery flow verified end-to-end.
 - Google SMTP app passwords must be managed privately by the account owner; credentials must never be committed to Git or pasted into chat. A previously shared app-password-like value should be revoked and replaced.
 - Supabase Security Advisor reports two authenticated-callable SECURITY DEFINER functions: `checkout_order` (intended authenticated checkout endpoint) and `is_jib_admin` (used by admin RLS policies). Review and test these before public launch.
 - Supabase Security Advisor reports leaked-password protection disabled.
