@@ -1,0 +1,44 @@
+name: JIB Android APKs
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/customer/**'
+      - 'apps/merchant/**'
+      - '.github/workflows/android-apks.yml'
+jobs:
+  build:
+    name: Build ${{ matrix.app }} APK
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [customer, merchant]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Generate Android project files
+        working-directory: apps/${{ matrix.app }}
+        run: flutter create --platforms=android --org com.jib --project-name jib_${{ matrix.app }} --no-pub .
+      - name: Install dependencies
+        working-directory: apps/${{ matrix.app }}
+        run: flutter pub get
+      - name: Analyze
+        working-directory: apps/${{ matrix.app }}
+        run: flutter analyze --no-fatal-infos
+      - name: Run tests
+        working-directory: apps/${{ matrix.app }}
+        run: flutter test
+      - name: Build release APK
+        working-directory: apps/${{ matrix.app }}
+        run: flutter build apk --release
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: jib-${{ matrix.app }}-android-apk
+          path: apps/${{ matrix.app }}/build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
+          retention-days: 30
