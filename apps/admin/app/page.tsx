@@ -9,7 +9,8 @@ export default async function Home() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase.from("profiles").select("full_name, role").eq("id", user.id).maybeSingle();
+  const { data: profileData } = await supabase.from("profiles").select("full_name, role").eq("id", user.id).maybeSingle();
+  const profile = profileData as { full_name: string | null; role: string } | null;
   if (profile?.role !== "admin") {
     return <main className="shell"><header className="topbar"><div className="brand"><span className="mark">J</span><div><strong>جيب JIB</strong><small>لوحة الإدارة</small></div></div><LogoutButton /></header><section className="access-denied"><h1>لا تملك صلاحية الدخول</h1><p>هذا الحساب غير مسجل كمدير لمنصة JIB. تواصل مع مسؤول النظام لمنح الصلاحية.</p></section></main>;
   }
