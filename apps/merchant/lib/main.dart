@@ -175,6 +175,52 @@ class _MerchantHomeState extends State<MerchantHome> {
     if (mounted) setState(() => loading = false);
   }
 
+  String statusLabel(String status) => const {
+    'pending': 'طلب جديد', 'accepted': 'تم القبول', 'rejected': 'مرفوض',
+    'preparing': 'قيد التحضير', 'ready_for_pickup': 'جاهز للاستلام',
+    'picked_up': 'استلمه الموصّل', 'delivering': 'في الطريق', 'delivered': 'تم التسليم', 'cancelled': 'ملغى',
+  }[status] ?? status;
+
+  Future<void> updateOrder(Map<String, dynamic> order, String status) async {
+    try {
+      await db.rpc('merchant_update_order_status', params: {
+        'p_order_id': order['id'], 'p_new_status': status,
+      });
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم تحديث حالة الطلب')));
+      await load();
+    } on PostgrestException catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تعذر تحديث الطلب. حاول مجدداً.')));
+    }
+  }
+
+  Widget orderCard(Map<String, dynamic> order) {
+    final status = order['status'].toString();
+    final actions = <Widget>[];
+    if (status == 'pending') {
+      actions.add(OutlinedButton(onPressed: () => updateOrder(order, 'rejected'), child: const Text('رفض')));
+      actions.add(FilledButton(onPressed: () => updateOrder(order, 'accepted'), child: const Text('قبول الطلب')));
+    } else if (status == 'accepted') {
+      actions.add(FilledButton(onPressed: () => updateOrder(order, 'preparing'), child: const Text('بدء التحضير')));
+    } else if (status == 'preparing') {
+      actions.add(FilledButton(onPressed: () => updateOrder(order, 'ready_for_pickup'), child: const Text('جاهز للاستلام')));
+    }
+    return Card(child: Padding(padding: const EdgeInsets.all(14), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        const Icon(Icons.receipt_long, color: jibRed),
+        const SizedBox(width: 8),
+        Expanded(child: Text('طلب #${order['id'].toString().substring(0, 8)}', style: const TextStyle(fontWeight: FontWeight.w900))),
+        Text('${order['total_mad']} د.م', style: const TextStyle(fontWeight: FontWeight.w900)),
+      ]),
+      const SizedBox(height: 8),
+      Text(statusLabel(status), style: const TextStyle(color: jibRed, fontWeight: FontWeight.bold)),
+      if ((order['customer_note'] ?? '').toString().trim().isNotEmpty)
+        Padding(padding: const EdgeInsets.only(top: 6), child: Text('ملاحظة الزبون: ${order['customer_note']}')),
+      if (actions.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 10), child: Wrap(spacing: 8, runSpacing: 8, children: actions)),
+    ])));
+  }
+
   Future<void> toggleOpen(bool value) async {
     if (store == null) return;
     try {
@@ -230,8 +276,9 @@ class _MerchantHomeState extends State<MerchantHome> {
         const SizedBox(width: 10), Expanded(child: _Metric(title: 'المنتجات', value: '${products.length}')),
       ]),
       const SizedBox(height: 20), const Text('الطلبات الأخيرة', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900)),
+      const Text('يمكنك قبول الطلب أو رفضه، ثم تحديثه أثناء التحضير.', style: TextStyle(color: Colors.black54, fontSize: 12)),
       if (orders.isEmpty) const Card(child: ListTile(title: Text('لا توجد طلبات بعد'), subtitle: Text('ستظهر طلبات زبنائك هنا.')))
-      else ...orders.take(10).map((o) => Card(child: ListTile(leading: const Icon(Icons.receipt_long), title: Text('طلب #${o['id'].toString().substring(0, 8)}'), subtitle: Text('${o['status']} · ${o['created_at'].toString().substring(0, 10)}'), trailing: Text('${o['total_mad']} د.م', style: const TextStyle(fontWeight: FontWeight.bold))))),
+      else ...orders.take(10).map(orderCard),
       const SizedBox(height: 20), const Text('المنتجات', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900)),
       if (products.isEmpty) const Card(child: ListTile(title: Text('أضف أول منتج لمتجرك'), subtitle: Text('استعمل زر «منتج جديد» أسفل الشاشة.')))
       else ...products.map((p) => Card(child: ListTile(
