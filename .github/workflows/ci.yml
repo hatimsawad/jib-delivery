@@ -33,3 +33,6 @@ jobs:
       - name: Analyze
         working-directory: apps/${{ matrix.app }}
         run: flutter analyze
+      - name: Widget tests
+        working-directory: apps/${{ matrix.app }}
+        run: flutter test
