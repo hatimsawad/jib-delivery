@@ -23,6 +23,19 @@ jobs:
       - name: Generate Android project files
         working-directory: apps/${{ matrix.app }}
         run: flutter create --platforms=android --org com.jib --project-name jib_${{ matrix.app }} --no-pub .
+      - name: Ensure release APK has internet permission
+        working-directory: apps/${{ matrix.app }}
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path("android/app/src/main/AndroidManifest.xml")
+          content = path.read_text()
+          permission = '<uses-permission android:name="android.permission.INTERNET"/>'
+          if permission not in content:
+              end = content.find(">", content.find("<manifest"))
+              content = content[:end + 1] + "\n    " + permission + content[end + 1:]
+              path.write_text(content)
+          PY
       - name: Install dependencies
         working-directory: apps/${{ matrix.app }}
         run: flutter pub get
