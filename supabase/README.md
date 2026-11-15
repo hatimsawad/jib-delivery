@@ -1,14 +1,21 @@
-# Supabase setup for JIB
+# Supabase for JIB
 
-1. Create a Supabase project in a region suitable for Morocco and keep its database credentials private.
-2. Apply migrations in timestamp order from `supabase/migrations/` using the Supabase CLI or SQL editor.
-3. Do not enable public signups for merchant, courier or admin roles. New profiles must begin as customers; privileged role assignment is a trusted administrative operation.
-4. Configure Auth redirect URLs only for the deployed app domains.
-5. Test policies with separate customer, merchant, courier and admin accounts before real data is used.
+## Connected project
+
+- Project name: JIB
+- Project ref: emvleaghjsmzjmzgguvu
+- Region: eu-west-3 (Paris)
+- The project was created on the free plan with a $0/month creation quote. Free-plan limits and any future paid usage still apply.
+
+## Database status
+
+The six SQL migrations in `supabase/migrations/` have been applied successfully to the live JIB project. They create the initial marketplace schema, RLS policies, trusted checkout RPC, role guard, admin read policies, auth profile trigger and additional function grants/indexes.
+
+Seven application tables have RLS enabled: profiles, stores, products, addresses, orders, order_items and order_events.
 
 ## Checkout RPC
 
-Call `public.checkout_order(p_store_id, p_address_id, p_items, p_customer_note)` using the authenticated Supabase session. Each item is an object containing only `product_id` and `quantity`. The function reads prices from the database and returns the new order UUID. Never send a client-calculated total as authoritative data.
+Call `public.checkout_order(p_store_id, p_address_id, p_items, p_customer_note)` using the authenticated Supabase session. Each item contains only `product_id` and `quantity`. The function reads prices from the database and returns the new order UUID. Never send a client-calculated total as authoritative data.
 
 Example payload:
 
@@ -23,8 +30,13 @@ Example payload:
 }
 ```
 
-The 15 MAD delivery fee in the migration is a temporary placeholder, not a final pricing policy. Replace it with validated zone/distance pricing before launch.
+The 15 MAD delivery fee is temporary and must be replaced with validated zone/distance pricing before launch.
 
-## Important
+## Security notes
 
-Migrations are committed to GitHub but have not been applied to a live Supabase project. No Supabase URL or keys are stored in this repository.
+- New Auth users receive a customer profile automatically.
+- Trigger-only privileged functions cannot be called directly through the Data API.
+- Checkout is an authenticated SECURITY DEFINER RPC with an explicit auth.uid() check; it remains subject to further security testing.
+- Do not expose a service-role/secret key in mobile or browser applications.
+- The first admin has not yet been provisioned.
+- Test with separate customer, merchant, courier and admin accounts before public use.
