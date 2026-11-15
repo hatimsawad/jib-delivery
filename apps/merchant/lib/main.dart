@@ -41,28 +41,93 @@ class MerchantLogin extends StatefulWidget {
 
 class _MerchantLoginState extends State<MerchantLogin> {
   final email = TextEditingController(), password = TextEditingController();
-  bool busy = false;
-  String? error;
+  final storeName = TextEditingController(), fullName = TextEditingController();
+  final phone = TextEditingController(), address = TextEditingController(), description = TextEditingController();
+  String category = 'restaurant';
+  bool busy = false, creating = false;
+  String? error, notice;
   @override
-  void dispose() { email.dispose(); password.dispose(); super.dispose(); }
+  void dispose() {
+    email.dispose(); password.dispose(); storeName.dispose(); fullName.dispose();
+    phone.dispose(); address.dispose(); description.dispose(); super.dispose();
+  }
+
   Future<void> submit() async {
-    setState(() { busy = true; error = null; });
+    setState(() { busy = true; error = null; notice = null; });
     try {
-      await db.auth.signInWithPassword(email: email.text.trim(), password: password.text);
+      if (creating) {
+        if (storeName.text.trim().isEmpty || fullName.text.trim().isEmpty) {
+          throw const AuthException('يرجى إدخال اسم التاجر واسم المتجر.');
+        }
+        final result = await db.auth.signUp(
+          email: email.text.trim(),
+          password: password.text,
+          data: {
+            'full_name': fullName.text.trim(),
+            'merchant_store_name': storeName.text.trim(),
+            'merchant_category': category,
+            'merchant_phone': phone.text.trim(),
+            'merchant_address': address.text.trim(),
+            'merchant_description': description.text.trim(),
+          },
+        );
+        if (result.session == null) {
+          setState(() => notice = 'تم إرسال طلب إنشاء الحساب. افتح بريدك الإلكتروني وأكّد الحساب، ثم ارجع إلى هنا وسجّل الدخول بنفس البريد وكلمة المرور لإكمال إعداد المتجر.');
+        } else {
+          setState(() => notice = 'تم إنشاء الحساب. جارٍ إعداد متجرك...');
+        }
+      } else {
+        await db.auth.signInWithPassword(email: email.text.trim(), password: password.text);
+      }
     } on AuthException catch (e) { if (mounted) setState(() => error = e.message); }
-      catch (_) { if (mounted) setState(() => error = 'تعذر الاتصال. حاول مجدداً.'); }
+      catch (e) { if (mounted) setState(() => error = 'تعذر إكمال العملية: $e'); }
     finally { if (mounted) setState(() => busy = false); }
   }
+
+  Widget field(TextEditingController c, String label, {bool secret = false, TextInputType? type}) =>
+    Padding(padding: const EdgeInsets.only(top: 12), child: TextField(
+      controller: c, obscureText: secret, keyboardType: type,
+      decoration: InputDecoration(labelText: label, border: const OutlineInputBorder()),
+    ));
+
   @override
-  Widget build(BuildContext context) => Scaffold(body: Center(child: SingleChildScrollView(padding: const EdgeInsets.all(24), child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 440), child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-    const CircleAvatar(radius: 38, backgroundColor: jibRed, child: Text('J', style: TextStyle(color: Colors.white, fontSize: 38, fontWeight: FontWeight.w900))),
-    const SizedBox(height: 18), const Text('JIB · فضاء التاجر', textAlign: TextAlign.center, style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900)),
-    const Text('سجّل الدخول لإدارة متجرك وطلباتك', textAlign: TextAlign.center, style: TextStyle(color: Colors.black54)),
-    const SizedBox(height: 28), TextField(controller: email, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'البريد الإلكتروني', border: OutlineInputBorder())),
-    const SizedBox(height: 12), TextField(controller: password, obscureText: true, decoration: const InputDecoration(labelText: 'كلمة المرور', border: OutlineInputBorder())),
-    if (error != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text(error!, style: const TextStyle(color: jibRed))),
-    const SizedBox(height: 18), FilledButton(onPressed: busy ? null : submit, style: FilledButton.styleFrom(backgroundColor: jibRed, padding: const EdgeInsets.all(15)), child: Text(busy ? 'يرجى الانتظار...' : 'تسجيل الدخول')),
-  ])))));
+  Widget build(BuildContext context) => Scaffold(body: Center(child: SingleChildScrollView(
+    padding: const EdgeInsets.all(24), child: ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 440), child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          const CircleAvatar(radius: 38, backgroundColor: jibRed, child: Text('J', style: TextStyle(color: Colors.white, fontSize: 38, fontWeight: FontWeight.w900))),
+          const SizedBox(height: 18),
+          const Text('JIB · فضاء التاجر', textAlign: TextAlign.center, style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900)),
+          Text(creating ? 'أنشئ حساب التاجر ومتجرك على JIB' : 'سجّل الدخول لإدارة متجرك وطلباتك', textAlign: TextAlign.center, style: const TextStyle(color: Colors.black54)),
+          const SizedBox(height: 20),
+          if (creating) ...[
+            field(fullName, 'اسم التاجر'),
+            field(storeName, 'اسم المتجر'),
+            Padding(padding: const EdgeInsets.only(top: 12), child: DropdownButtonFormField<String>(
+              value: category, decoration: const InputDecoration(labelText: 'نوع المتجر', border: OutlineInputBorder()),
+              items: const [
+                DropdownMenuItem(value: 'restaurant', child: Text('مطعم')),
+                DropdownMenuItem(value: 'grocery', child: Text('بقالة')),
+                DropdownMenuItem(value: 'shop', child: Text('متجر')),
+              ], onChanged: busy ? null : (v) { if (v != null) setState(() => category = v); },
+            )),
+            field(phone, 'رقم الهاتف', type: TextInputType.phone),
+            field(address, 'عنوان المتجر'),
+            field(description, 'وصف المتجر'),
+          ],
+          field(email, 'البريد الإلكتروني', type: TextInputType.emailAddress),
+          field(password, 'كلمة المرور', secret: true),
+          if (error != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text(error!, style: const TextStyle(color: jibRed))),
+          if (notice != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text(notice!, style: const TextStyle(color: Colors.green, fontWeight: FontWeight.w600))),
+          const SizedBox(height: 18),
+          FilledButton(onPressed: busy ? null : submit, style: FilledButton.styleFrom(backgroundColor: jibRed, padding: const EdgeInsets.all(15)),
+            child: Text(busy ? 'يرجى الانتظار...' : creating ? 'إنشاء حساب التاجر' : 'تسجيل الدخول')),
+          TextButton(onPressed: busy ? null : () => setState(() { creating = !creating; error = null; notice = null; }),
+            child: Text(creating ? 'لدي حساب بالفعل — تسجيل الدخول' : 'ليس لديك حساب؟ إنشاء حساب تاجر جديد')),
+        ],
+      ),
+    ),
+  )));
 }
 
 class MerchantHome extends StatefulWidget {
@@ -83,7 +148,21 @@ class _MerchantHomeState extends State<MerchantHome> {
     setState(() { loading = true; error = null; });
     try {
       final uid = db.auth.currentUser!.id;
-      final stores = await db.from('stores').select().eq('owner_id', uid).limit(1);
+      var stores = await db.from('stores').select().eq('owner_id', uid).limit(1);
+      if (stores.isEmpty) {
+        final meta = db.auth.currentUser?.userMetadata ?? {};
+        final pendingName = meta['merchant_store_name']?.toString() ?? '';
+        if (pendingName.trim().isNotEmpty) {
+          await db.rpc('register_merchant_store', params: {
+            'p_name': pendingName,
+            'p_category': meta['merchant_category']?.toString() ?? 'shop',
+            'p_phone': meta['merchant_phone']?.toString() ?? '',
+            'p_address': meta['merchant_address']?.toString() ?? '',
+            'p_description': meta['merchant_description']?.toString() ?? '',
+          });
+          stores = await db.from('stores').select().eq('owner_id', uid).limit(1);
+        }
+      }
       if (stores.isNotEmpty) {
         store = Map<String, dynamic>.from(stores.first);
         final sid = store!['id'];
