@@ -25,3 +25,13 @@
 هذا المستودع هو نقطة الانطلاق. وجود الملفات والوثائق لا يعني أن التطبيق منشور أو جاهز للإنتاج.
 
 راجع docs/PRODUCT_SPEC.md و docs/ARCHITECTURE.md و docs/ROADMAP.md.
+
+
+## Application workspaces
+
+- `apps/customer`: Flutter customer app starter (Arabic RTL home/discovery screen).
+- `apps/courier`: Flutter courier app starter.
+- `apps/merchant`: Flutter merchant app starter.
+- `apps/admin`: Next.js Arabic RTL operations dashboard starter.
+
+The mobile screens currently use placeholder/sample data. Authentication, live backend integration, payments, maps, notifications and production builds remain pending. See [implementation status](docs/IMPLEMENTATION_STATUS.md).
