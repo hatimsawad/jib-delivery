@@ -2,56 +2,40 @@
 
 Last updated: 2026-11-15
 
-## In repository
+## Confirmed in GitHub
 
-- Product specification, architecture, roadmap and security review.
-- Initial PostgreSQL schema and follow-up hardening migrations.
-- Next.js admin dashboard scaffold with Arabic RTL layout and JIB brand colors.
-- Placeholder project folders for customer, courier and merchant Flutter apps.
-- Supabase setup notes and environment-variable template.
-- Trusted SQL checkout function: validates authenticated customer, address ownership, active/open store, product availability and quantities; calculates totals from stored prices; creates order, items and initial event in one database transaction.
-- Profile role trigger prevents normal authenticated users from self-assigning privileged roles.
+- Product specification, architecture, roadmap and setup documentation.
+- Flutter starter projects for customer, courier and merchant roles.
+- Next.js admin dashboard scaffold with Arabic RTL styling and Supabase SSR sign-in/authorization foundation.
+- GitHub Actions CI workflow. Verified successful run: https://github.com/hatimsawad/jib-delivery/actions/runs/43663261170 (admin build and all three Flutter analyze/widget-test jobs passed).
+- Six ordered Supabase migrations, including the initial schema, checkout hardening, role protection, admin read policies, auth profile trigger, trigger-function grants and foreign-key indexes.
 
-## Not yet done / not verified
+## Live Supabase project
 
-- No live Supabase project has been connected; migrations are not applied.
-- No real authentication screens or admin authorization flow yet.
-- No customer, courier or merchant Flutter application source implementation yet; their folders currently contain planning notes only.
-- No payment gateway, maps, push notifications, courier dispatch or live tracking.
-- No dependency installation, automated test run, production build, APK/AAB or deployment has been performed.
+- Project: JIB
+- Project ref: emvleaghjsmzjmzgguvu
+- Region: eu-west-3 (Paris)
+- Plan/cost quote at creation: $0/month; future usage and plan limits still apply.
+- All six migrations were applied successfully and are present in migration history.
+- Verified seven public application tables have Row Level Security enabled: profiles, stores, products, addresses, orders, order_items and order_events.
+- Checkout RPC validates the signed-in customer, address ownership, active/open store, product availability and quantities; prices are read from the database and order records are created transactionally.
+- Direct client writes to order/order-item/order-event tables are revoked.
+- Trigger-only SECURITY DEFINER functions have direct API execution revoked.
+
+## Security and remaining verification
+
+- Supabase Security Advisor still reports two authenticated-callable SECURITY DEFINER functions: checkout_order (intended authenticated checkout endpoint) and is_jib_admin (used by admin RLS policies). These require continued review and adversarial testing before launch.
+- Performance Advisor reports RLS init-plan and multiple permissive-policy optimization opportunities. These are not evidence of data leakage, but should be addressed before scale.
+- The 15 MAD delivery fee is a temporary placeholder and must be replaced with a validated pricing model.
+- First admin account has not yet been provisioned.
+- Real customer, merchant, courier and admin account flows have not yet been tested end-to-end.
+- Supabase public URL and publishable key have not yet been wired into app/hosting environment configuration.
+- No production deployment, release APK/AAB, payment gateway, maps, push notifications, courier dispatch or live tracking is complete.
 
 ## Next engineering tasks
 
-1. Apply migrations to a disposable Supabase project and test checkout and role protection with multiple accounts.
-2. Add admin authentication and server-side authorization before exposing dashboard data.
-3. Implement merchant and customer app flows against the tested backend.
-4. Add courier assignment and permitted order-state transition functions.
-5. Add CI checks and a reproducible Android build pipeline.
-
-
-## UI and automation additions (2026-11-15)
-
-- Added runnable Flutter project manifests and starter screens for customer, courier and merchant roles.
-- Customer screen includes Arabic RTL discovery, categories, sample store cards and navigation shell.
-- Courier and merchant screens establish the initial operational navigation and placeholder states.
-- Added GitHub Actions workflow to analyze all Flutter apps and build the Next.js admin dashboard on pushes and pull requests.
-- Updated root README with workspace map.
-
-These are starter implementations, not launch-ready applications. The CI workflow has been committed but has not yet been observed running successfully.
-
-
-## Admin authentication foundation (2026-11-15)
-
-- Added Supabase SSR browser/server clients and session-refresh middleware.
-- Added email/password sign-in screen and sign-out control.
-- Protected the dashboard server-side: unauthenticated users are sent to /login; authenticated users without profiles.role = 'admin' receive an access-denied page.
-- Dashboard summary counts are queried from Supabase under RLS for verified admins.
-- Added admin-only read policies and automatic customer profile creation for new Auth users.
-- Added owner-only instructions for creating the first administrator safely.
-
-## Remaining verification and integration
-
-- Configure a real Supabase project, apply all five migrations in order and provision the first admin.
-- Set dashboard environment variables in local/hosting environments.
-- Run npm install, Next.js production build, Flutter analyze and widget tests; CI workflow is committed but no successful run has been confirmed in this session.
-- Test admin/customer/merchant/courier RLS behavior against separate real accounts before any public deployment.
+1. Configure the public Supabase URL and publishable key in the admin and mobile build environments without committing secrets.
+2. Provision the first administrator safely, then verify admin login and RLS with separate role accounts.
+3. Connect customer, merchant and courier app flows to the live backend.
+4. Add validated order-state transition and courier assignment operations.
+5. Add tests for checkout, permissions and failure cases before any public launch.
