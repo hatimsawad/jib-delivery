@@ -123,7 +123,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
           ),
-          bottomNavigationBar: const NavigationBar(
+          bottomNavigationBar: NavigationBar(
             selectedIndex: 0,
             destinations: [
               NavigationDestination(icon: Icon(Icons.home_outlined), label: 'الرئيسية'),
