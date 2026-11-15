@@ -65,6 +65,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _name = TextEditingController();
   bool _register = false;
   bool _busy = false;
+  bool _showPassword = false;
   String? _message;
 
   @override
@@ -76,6 +77,10 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _submit() async {
+    if (_register && _name.text.trim().isEmpty) {
+      setState(() => _message = 'أدخل اسمك الكامل أولاً.');
+      return;
+    }
     if (_email.text.trim().isEmpty || _password.text.length < 8) {
       setState(() => _message = 'أدخل البريد وكلمة مرور من 8 أحرف على الأقل.');
       return;
@@ -134,7 +139,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 12),
                     TextField(controller: _email, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'البريد الإلكتروني', border: OutlineInputBorder())),
                     const SizedBox(height: 12),
-                    TextField(controller: _password, obscureText: true, decoration: const InputDecoration(labelText: 'كلمة المرور (8 أحرف على الأقل)', border: OutlineInputBorder())),
+                    TextField(controller: _password, obscureText: !_showPassword, decoration: InputDecoration(labelText: 'كلمة المرور (8 أحرف على الأقل)', border: const OutlineInputBorder(), suffixIcon: IconButton(icon: Icon(_showPassword ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _showPassword = !_showPassword)))),
                     if (_message != null) ...[
                       const SizedBox(height: 12),
                       Text(_message!, style: const TextStyle(color: jibRed)),
@@ -375,6 +380,12 @@ class _CustomerHomeState extends State<CustomerHome> {
         },
       );
 
+  String _statusLabel(String status) => const {
+    'pending': 'في انتظار تأكيد المتجر', 'accepted': 'تم قبول الطلب', 'rejected': 'تم رفض الطلب',
+    'preparing': 'قيد التحضير', 'ready_for_pickup': 'جاهز للتوصيل', 'picked_up': 'استلمه الموصّل',
+    'delivering': 'في الطريق إليك', 'delivered': 'تم التسليم', 'cancelled': 'ملغى',
+  }[status] ?? status;
+
   Widget _orders() => FutureBuilder<List<Map<String, dynamic>>>(
         future: supabase.from('orders').select('id,status,total_mad,created_at,stores(name)').order('created_at', ascending: false),
         builder: (context, snapshot) {
@@ -382,11 +393,12 @@ class _CustomerHomeState extends State<CustomerHome> {
           if (snapshot.hasError) return const Center(child: Text('تعذر تحميل الطلبات.'));
           final rows = snapshot.data ?? [];
           if (rows.isEmpty) return const Center(child: Text('لا توجد طلبات بعد.'));
-          return ListView(padding: const EdgeInsets.all(16), children: rows.map((order) => Card(child: ListTile(
+          return RefreshIndicator(onRefresh: () async { if (mounted) setState(() {}); await Future<void>.delayed(const Duration(milliseconds: 250)); }, child: ListView(padding: const EdgeInsets.all(16), children: rows.map((order) => Card(child: ListTile(
             leading: const Icon(Icons.receipt_long, color: jibRed),
-            title: Text('طلب #${order['id'].toString().substring(0, 8)}'),
-            subtitle: Text('${order['status']} · ${order['total_mad']} درهم'),
-          ))).toList());
+            title: Text((order['stores']?['name'] ?? 'طلب JIB').toString(), style: const TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: Text('طلب #${order['id'].toString().substring(0, 8)} · ${_statusLabel(order['status'].toString())}'),
+            trailing: Text('${order['total_mad']} د.م', style: const TextStyle(fontWeight: FontWeight.w900)),
+          ))).toList()));
         },
       );
 
@@ -400,13 +412,21 @@ class _CustomerHomeState extends State<CustomerHome> {
         ..._cart.entries.map((entry) => Card(child: ListTile(
           title: Text(entry.value['name'] as String? ?? ''),
           subtitle: Text('${entry.value['quantity']} × ${entry.value['price_mad']} درهم'),
-          trailing: IconButton(icon: const Icon(Icons.delete_outline), onPressed: () => setState(() {
-            _cart.remove(entry.key);
-            if (_cart.isEmpty) _cartStoreId = null;
-          })),
+          trailing: SizedBox(width: 126, child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+            IconButton(visualDensity: VisualDensity.compact, icon: const Icon(Icons.remove_circle_outline), onPressed: () => setState(() {
+              final quantity = entry.value['quantity'] as int;
+              if (quantity <= 1) { _cart.remove(entry.key); if (_cart.isEmpty) _cartStoreId = null; }
+              else { _cart[entry.key] = {...entry.value, 'quantity': quantity - 1}; }
+            })),
+            Text('${entry.value['quantity']}', style: const TextStyle(fontWeight: FontWeight.bold)),
+            IconButton(visualDensity: VisualDensity.compact, icon: const Icon(Icons.add_circle_outline, color: jibRed), onPressed: () => setState(() => _cart[entry.key] = {...entry.value, 'quantity': (entry.value['quantity'] as int) + 1})),
+          ])),
         ))),
-        ListTile(title: const Text('المجموع قبل التوصيل'), trailing: Text('${total.toStringAsFixed(2)} درهم', style: const TextStyle(fontWeight: FontWeight.w900))),
-        const Text('رسوم التوصيل الحالية 15 درهماً (رسوم مؤقتة قبل اعتماد التسعير النهائي).', style: TextStyle(color: Colors.black54, fontSize: 12)),
+        ListTile(title: const Text('مجموع المنتجات'), trailing: Text('${total.toStringAsFixed(2)} د.م')),
+        const ListTile(title: Text('التوصيل'), trailing: Text('15.00 د.م')),
+        const Divider(),
+        ListTile(title: const Text('الإجمالي عند الاستلام', style: TextStyle(fontWeight: FontWeight.w900)), trailing: Text('${(total + 15).toStringAsFixed(2)} د.م', style: const TextStyle(fontWeight: FontWeight.w900, color: jibRed))),
+        const Text('الدفع نقداً عند استلام الطلب.', style: TextStyle(color: Colors.black54, fontSize: 12)),
         const SizedBox(height: 12),
         FilledButton(
           onPressed: _checkoutBusy ? null : _checkout,
