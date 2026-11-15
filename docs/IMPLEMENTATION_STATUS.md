@@ -38,3 +38,20 @@ Last updated: 2026-11-15
 - Updated root README with workspace map.
 
 These are starter implementations, not launch-ready applications. The CI workflow has been committed but has not yet been observed running successfully.
+
+
+## Admin authentication foundation (2026-11-15)
+
+- Added Supabase SSR browser/server clients and session-refresh middleware.
+- Added email/password sign-in screen and sign-out control.
+- Protected the dashboard server-side: unauthenticated users are sent to /login; authenticated users without profiles.role = 'admin' receive an access-denied page.
+- Dashboard summary counts are queried from Supabase under RLS for verified admins.
+- Added admin-only read policies and automatic customer profile creation for new Auth users.
+- Added owner-only instructions for creating the first administrator safely.
+
+## Remaining verification and integration
+
+- Configure a real Supabase project, apply all five migrations in order and provision the first admin.
+- Set dashboard environment variables in local/hosting environments.
+- Run npm install, Next.js production build, Flutter analyze and widget tests; CI workflow is committed but no successful run has been confirmed in this session.
+- Test admin/customer/merchant/courier RLS behavior against separate real accounts before any public deployment.
