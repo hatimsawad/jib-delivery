@@ -29,6 +29,7 @@ export default function LoginForm() {
     <label htmlFor="password">كلمة المرور</label>
     <input id="password" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
     {error && <p className="form-error" role="alert">{error}</p>}
+    <a className="forgot-link" href="/login/forgot-password">نسيت كلمة المرور؟</a>
     <button type="submit" disabled={busy}>{busy ? "جارٍ الدخول…" : "تسجيل الدخول"}</button>
   </form>;
 }
