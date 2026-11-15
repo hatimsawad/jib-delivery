@@ -27,3 +27,14 @@ Last updated: 2026-11-15
 3. Implement merchant and customer app flows against the tested backend.
 4. Add courier assignment and permitted order-state transition functions.
 5. Add CI checks and a reproducible Android build pipeline.
+
+
+## UI and automation additions (2026-11-15)
+
+- Added runnable Flutter project manifests and starter screens for customer, courier and merchant roles.
+- Customer screen includes Arabic RTL discovery, categories, sample store cards and navigation shell.
+- Courier and merchant screens establish the initial operational navigation and placeholder states.
+- Added GitHub Actions workflow to analyze all Flutter apps and build the Next.js admin dashboard on pushes and pull requests.
+- Updated root README with workspace map.
+
+These are starter implementations, not launch-ready applications. The CI workflow has been committed but has not yet been observed running successfully.
