@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:image_picker/image_picker.dart';
 
 const jibRed = Color(0xFFE31E24);
 const supabaseUrl = String.fromEnvironment('SUPABASE_URL', defaultValue: 'https://emvleaghjsmzjmzgguvu.supabase.co');
@@ -325,28 +326,178 @@ class _MerchantHomeState extends State<MerchantHome> {
     } catch (_) { if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تعذر تحديث حالة المتجر'))); }
   }
 
+  Future<String> _uploadProductImage(XFile image) async {
+    final bytes = await image.readAsBytes();
+    if (bytes.lengthInBytes > 5 * 1024 * 1024) {
+      throw const FormatException('حجم الصورة يتجاوز 5 ميغابايت.');
+    }
+    final extension = image.name.split('.').last.toLowerCase();
+    const mimeTypes = {
+      'jpg': 'image/jpeg',
+      'jpeg': 'image/jpeg',
+      'png': 'image/png',
+      'webp': 'image/webp',
+    };
+    final contentType = mimeTypes[extension];
+    if (contentType == null) {
+      throw const FormatException('اختر صورة بصيغة JPG أو PNG أو WEBP.');
+    }
+    final storeId = store?['id']?.toString();
+    if (storeId == null || storeId.isEmpty) {
+      throw const FormatException('لا يوجد متجر مرتبط بهذا الحساب.');
+    }
+    final path = '$storeId/${DateTime.now().microsecondsSinceEpoch}.$extension';
+    await db.storage.from('product-images').uploadBinary(
+      path,
+      bytes,
+      fileOptions: FileOptions(contentType: contentType),
+    );
+    return db.storage.from('product-images').getPublicUrl(path);
+  }
+
   Future<void> editProduct([Map<String, dynamic>? product]) async {
     final name = TextEditingController(text: product?['name']?.toString() ?? '');
     final description = TextEditingController(text: product?['description']?.toString() ?? '');
     final price = TextEditingController(text: product?['price_mad']?.toString() ?? '');
-    final ok = await showDialog<bool>(context: context, builder: (context) => AlertDialog(
-      title: Text(product == null ? 'إضافة منتج' : 'تعديل المنتج'),
-      content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
-        TextField(controller: name, decoration: const InputDecoration(labelText: 'اسم المنتج')),
-        TextField(controller: description, decoration: const InputDecoration(labelText: 'الوصف')),
-        TextField(controller: price, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'الثمن بالدرهم')),
-      ])),
-      actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('إلغاء')), FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('حفظ'))],
-    ));
-    if (ok == true && name.text.trim().isNotEmpty && (double.tryParse(price.text.replaceAll(',', '.')) ?? 0) > 0) {
-      final values = {'name': name.text.trim(), 'description': description.text.trim(), 'price_mad': double.parse(price.text.replaceAll(',', '.')), 'is_available': product?['is_available'] ?? true};
-      try {
-        if (product == null) { values['store_id'] = store!['id']; await db.from('products').insert(values); }
-        else { await db.from('products').update(values).eq('id', product['id']); }
+    final existingImageUrl = product?['image_url']?.toString();
+    XFile? selectedImage;
+
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: Text(product == null ? 'إضافة منتج' : 'تعديل المنتج'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(controller: name, decoration: const InputDecoration(labelText: 'اسم المنتج')),
+                TextField(controller: description, decoration: const InputDecoration(labelText: 'الوصف')),
+                const SizedBox(height: 14),
+                Container(
+                  width: double.infinity,
+                  height: 164,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF4EFEB),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: const Color(0xFFE9E4DE)),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: selectedImage != null
+                      ? Image.file(File(selectedImage!.path), fit: BoxFit.cover)
+                      : (existingImageUrl != null && existingImageUrl.trim().isNotEmpty
+                          ? Image.network(
+                              existingImageUrl,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => const Center(
+                                child: Icon(Icons.add_photo_alternate_outlined, size: 42, color: Color(0xFF9A8F87)),
+                              ),
+                            )
+                          : const Center(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.add_photo_alternate_outlined, size: 42, color: Color(0xFF9A8F87)),
+                                  SizedBox(height: 8),
+                                  Text('أضف صورة واضحة للمنتج', style: TextStyle(color: Color(0xFF82766F))),
+                                ],
+                              ),
+                            )),
+                ),
+                const SizedBox(height: 10),
+                OutlinedButton.icon(
+                  onPressed: () async {
+                    try {
+                      final picked = await ImagePicker().pickImage(
+                        source: ImageSource.gallery,
+                        imageQuality: 85,
+                        maxWidth: 1600,
+                        maxHeight: 1600,
+                      );
+                      if (picked != null && dialogContext.mounted) {
+                        setDialogState(() => selectedImage = picked);
+                      }
+                    } catch (_) {
+                      if (dialogContext.mounted) {
+                        ScaffoldMessenger.of(dialogContext).showSnackBar(
+                          const SnackBar(content: Text('تعذر فتح معرض الصور. تحقق من أذونات الهاتف.')),
+                        );
+                      }
+                    }
+                  },
+                  icon: const Icon(Icons.photo_library_outlined),
+                  label: Text(selectedImage == null ? 'اختيار صورة من الهاتف' : 'تغيير الصورة'),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: price,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(labelText: 'الثمن بالدرهم'),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'الصور المقبولة: JPG أو PNG أو WEBP · بحد أقصى 5 ميغابايت',
+                  style: TextStyle(color: Colors.black54, fontSize: 11),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('إلغاء')),
+            FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('حفظ المنتج')),
+          ],
+        ),
+      ),
+    );
+
+    try {
+      if (ok == true) {
+        final parsedPrice = double.tryParse(price.text.replaceAll(',', '.'));
+        if (name.text.trim().isEmpty || parsedPrice == null || parsedPrice <= 0) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('أدخل اسم المنتج وثمناً صحيحاً أكبر من صفر.')),
+            );
+          }
+          return;
+        }
+
+        final imageUrl = selectedImage != null
+            ? await _uploadProductImage(selectedImage!)
+            : existingImageUrl;
+        final values = <String, dynamic>{
+          'name': name.text.trim(),
+          'description': description.text.trim(),
+          'price_mad': parsedPrice,
+          'is_available': product?['is_available'] ?? true,
+          'image_url': imageUrl,
+        };
+
+        if (product == null) {
+          values['store_id'] = store!['id'];
+          await db.from('products').insert(values);
+        } else {
+          await db.from('products').update(values).eq('id', product['id']);
+        }
         await load();
-      } catch (_) { if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تعذر حفظ المنتج. تحقق من صلاحيات المتجر.'))); }
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(selectedImage == null ? 'تم حفظ المنتج.' : 'تم حفظ المنتج وصورته بنجاح.')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('تعذر حفظ المنتج: $e')),
+        );
+      }
+    } finally {
+      name.dispose();
+      description.dispose();
+      price.dispose();
     }
-    name.dispose(); description.dispose(); price.dispose();
   }
 
   Future<void> setAvailable(Map<String, dynamic> p, bool value) async {
