@@ -47,7 +47,44 @@ class CourierApp extends StatelessWidget {
   Widget build(BuildContext context) => MaterialApp(
     title: 'JIB · المندوب',
     debugShowCheckedModeBanner: false,
-    theme: ThemeData(useMaterial3: true, colorScheme: ColorScheme.fromSeed(seedColor: green, primary: green)),
+    theme: ThemeData(
+      useMaterial3: true,
+      colorScheme: ColorScheme.fromSeed(seedColor: red, primary: red, surface: Colors.white)
+          .copyWith(onSurface: const Color(0xFF19191C)),
+      scaffoldBackgroundColor: const Color(0xFFF7F5F2),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Color(0xFFF7F5F2),
+        foregroundColor: Color(0xFF19191C),
+        elevation: 0,
+        titleTextStyle: TextStyle(color: Color(0xFF19191C), fontSize: 19, fontWeight: FontWeight.w900),
+      ),
+      cardTheme: CardThemeData(
+        color: Colors.white,
+        elevation: 0,
+        margin: const EdgeInsets.only(bottom: 12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(22),
+          side: const BorderSide(color: Color(0xFFECE8E3)),
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFE9E4DE))),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFE9E4DE))),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: red, width: 1.5)),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: red,
+          foregroundColor: Colors.white,
+          minimumSize: const Size.fromHeight(50),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          textStyle: const TextStyle(fontWeight: FontWeight.w800),
+        ),
+      ),
+    ),
     home: Directionality(
       textDirection: TextDirection.rtl,
       child: startupError == null ? const AuthGate() : StartupError(message: startupError!),
@@ -168,11 +205,26 @@ class _CourierLoginState extends State<CourierLogin> {
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 440),
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          const CircleAvatar(radius: 38, backgroundColor: green, child: Icon(Icons.delivery_dining, color: Colors.white, size: 40)),
-          const SizedBox(height: 16),
+          Container(
+            width: 82,
+            height: 82,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topRight,
+                end: Alignment.bottomLeft,
+                colors: [Color(0xFFEF3A40), Color(0xFF9F1118)],
+              ),
+              borderRadius: BorderRadius.circular(26),
+              boxShadow: const [BoxShadow(color: Color(0x26E31E24), blurRadius: 24, offset: Offset(0, 10))],
+            ),
+            alignment: Alignment.center,
+            child: const Icon(Icons.delivery_dining_rounded, color: Colors.white, size: 43),
+          ),
+          const SizedBox(height: 18),
           const Text('جيب JIB · المندوب', textAlign: TextAlign.center, style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900)),
+          const Text('JIB SIGNATURE  /  COURIER', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF82766F), fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.1)),
           const SizedBox(height: 6),
-          const Text('تسجيل آمن ومتابعة التوصيلات', textAlign: TextAlign.center),
+          const Text('توصيلاتك بوضوح، خطوة بخطوة', textAlign: TextAlign.center),
           const SizedBox(height: 24),
           Text(registering ? 'إنشاء حساب مندوب' : 'تسجيل الدخول', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
           if (registering) ...[
@@ -337,7 +389,15 @@ class _CourierHomeState extends State<CourierHome> {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
-      title: const Text('جيب · المندوب', style: TextStyle(fontWeight: FontWeight.w900)),
+      title: const Row(children: [
+        CircleAvatar(
+          radius: 18,
+          backgroundColor: red,
+          child: Text('J', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 21)),
+        ),
+        SizedBox(width: 10),
+        Text('جيب · المندوب', style: TextStyle(fontWeight: FontWeight.w900)),
+      ]),
       actions: [
         IconButton(onPressed: load, icon: const Icon(Icons.refresh), tooltip: 'تحديث'),
         IconButton(onPressed: () => db.auth.signOut(), icon: const Icon(Icons.logout), tooltip: 'تسجيل الخروج'),
@@ -370,9 +430,17 @@ class _CourierHomeState extends State<CourierHome> {
               child: ListView(padding: const EdgeInsets.all(16), children: [
                 Container(
                   padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(color: green, borderRadius: BorderRadius.circular(20)),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      begin: Alignment.topRight,
+                      end: Alignment.bottomLeft,
+                      colors: [Color(0xFFEE343B), Color(0xFF94131A)],
+                    ),
+                    borderRadius: BorderRadius.circular(26),
+                    boxShadow: const [BoxShadow(color: Color(0x20A20F16), blurRadius: 24, offset: Offset(0, 12))],
+                  ),
                   child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text('مرحباً بك في فريق JIB', style: TextStyle(color: Colors.white70)),
+                    Text('JIB SIGNATURE  /  DELIVERY', style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 1.1)),
                     SizedBox(height: 6),
                     Text('الطلبات المتاحة والتوصيلات المسندة إليك', style: TextStyle(color: Colors.white, fontSize: 21, fontWeight: FontWeight.w900)),
                   ]),
