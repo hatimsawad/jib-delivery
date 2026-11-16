@@ -1,6 +1,12 @@
 name: JIB Android APKs
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - 'apps/customer/**'
+      - 'apps/courier/**'
+      - 'apps/merchant/**'
+      - '.github/workflows/android-apks.yml'
   push:
     branches: [main]
     paths:
