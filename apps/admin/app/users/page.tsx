@@ -18,7 +18,7 @@ export default async function UsersPage() {
     supabase.from("profiles").select("id,full_name,phone,role,created_at")
       .order("created_at", { ascending: false }).limit(100),
     supabase.from("courier_profiles")
-      .select("user_id,phone,is_active,created_at,profiles(full_name,phone)")
+      .select("user_id,phone,is_active,created_at,profiles!courier_profiles_user_id_fkey(full_name,phone)")
       .order("created_at", { ascending: false }).limit(100),
   ]);
   const profiles = (profilesResult.data ?? []) as unknown as ProfileRow[];
