@@ -44,6 +44,24 @@ Future<void> main() async {
 
 final supabase = Supabase.instance.client;
 
+Widget _productImage(Object? rawUrl, {double size = 78}) {
+  final url = rawUrl?.toString().trim() ?? '';
+  final uri = Uri.tryParse(url);
+  final valid = uri != null && (uri.scheme == 'https' || uri.scheme == 'http');
+  final fallback = Container(
+    width: size,
+    height: size,
+    decoration: BoxDecoration(color: const Color(0xFFF4EFEB), borderRadius: BorderRadius.circular(16)),
+    child: const Icon(Icons.shopping_bag_outlined, color: Color(0xFF9A8F87), size: 30),
+  );
+  if (!valid) return fallback;
+  return ClipRRect(
+    borderRadius: BorderRadius.circular(16),
+    child: Image.network(url, width: size, height: size, fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => fallback),
+  );
+}
+
 class JibApp extends StatelessWidget {
   const JibApp({super.key});
 
@@ -53,8 +71,47 @@ class JibApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(seedColor: jibRed, primary: jibRed),
-          scaffoldBackgroundColor: const Color(0xFFF8F8F6),
+          colorScheme: ColorScheme.fromSeed(seedColor: jibRed, primary: jibRed, surface: Colors.white)
+              .copyWith(onSurface: const Color(0xFF19191C)),
+          scaffoldBackgroundColor: const Color(0xFFF7F5F2),
+          appBarTheme: const AppBarTheme(
+            backgroundColor: Color(0xFFF7F5F2),
+            foregroundColor: Color(0xFF19191C),
+            elevation: 0,
+            centerTitle: false,
+            titleTextStyle: TextStyle(color: Color(0xFF19191C), fontSize: 19, fontWeight: FontWeight.w900),
+          ),
+          cardTheme: CardThemeData(
+            color: Colors.white,
+            elevation: 0,
+            margin: const EdgeInsets.only(bottom: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(22),
+              side: const BorderSide(color: Color(0xFFECE8E3)),
+            ),
+          ),
+          inputDecorationTheme: InputDecorationTheme(
+            filled: true,
+            fillColor: Colors.white,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFE9E4DE))),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFE9E4DE))),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: jibRed, width: 1.5)),
+          ),
+          filledButtonTheme: FilledButtonThemeData(
+            style: FilledButton.styleFrom(
+              backgroundColor: jibRed,
+              foregroundColor: Colors.white,
+              minimumSize: const Size.fromHeight(52),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              textStyle: const TextStyle(fontWeight: FontWeight.w800),
+            ),
+          ),
+          navigationBarTheme: NavigationBarThemeData(
+            backgroundColor: Colors.white,
+            indicatorColor: jibRed.withValues(alpha: .12),
+            labelTextStyle: WidgetStateProperty.all(const TextStyle(fontWeight: FontWeight.w700, fontSize: 11)),
+          ),
         ),
         home: const Directionality(
           textDirection: TextDirection.rtl,
