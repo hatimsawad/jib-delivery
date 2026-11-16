@@ -1,10 +1,23 @@
 // ignore_for_file: deprecated_member_use
+import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 const jibRed = Color(0xFFE31E24);
 const supabaseUrl = String.fromEnvironment('SUPABASE_URL', defaultValue: 'https://emvleaghjsmzjmzgguvu.supabase.co');
 const supabasePublishableKey = String.fromEnvironment('SUPABASE_PUBLISHABLE_KEY', defaultValue: 'sb_publishable_6rD4poWuBH0TzK2HBFQFTg_4wOFnsX6');
+
+
+String networkErrorMessage(Object error) {
+  if (error is SocketException) {
+    return 'تعذر على هاتفك العثور على خادم Supabase (خطأ DNS). بدّل بين Wi‑Fi وبيانات الهاتف، وأوقف VPN أو مانع الإعلانات، واجعل Private DNS في Android على تلقائي ثم أعد المحاولة.';
+  }
+  if (error is TimeoutException) {
+    return 'انتهت مهلة الاتصال بخادم JIB. تحقق من الإنترنت وحاول مجدداً.';
+  }
+  return 'تعذر الاتصال بخدمة JIB: ' + error.toString();
+}
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -80,7 +93,9 @@ class _MerchantLoginState extends State<MerchantLogin> {
         await db.auth.signInWithPassword(email: email.text.trim(), password: password.text);
       }
     } on AuthException catch (e) { if (mounted) setState(() => error = e.message); }
-      catch (e) { if (mounted) setState(() => error = 'تعذر إكمال العملية: $e'); }
+      on SocketException catch (e) { if (mounted) setState(() => error = networkErrorMessage(e)); }
+      on TimeoutException catch (e) { if (mounted) setState(() => error = networkErrorMessage(e)); }
+      catch (e) { if (mounted) setState(() => error = networkErrorMessage(e)); }
     finally { if (mounted) setState(() => busy = false); }
   }
 
@@ -171,7 +186,7 @@ class _MerchantHomeState extends State<MerchantHome> {
         final o = await db.from('orders').select('id,status,total_mad,created_at,customer_note').eq('store_id', sid).order('created_at', ascending: false).limit(50);
         orders = o.map((e) => Map<String, dynamic>.from(e)).toList();
       } else { store = null; products = []; orders = []; }
-    } catch (_) { error = 'تعذر تحميل بيانات المتجر. تأكد من أن حسابك مرتبط بمتجر في JIB.'; }
+    } catch (e) { error = networkErrorMessage(e); }
     if (mounted) setState(() => loading = false);
   }
 

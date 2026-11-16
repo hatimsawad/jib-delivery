@@ -11,14 +11,14 @@ export default async function Home() {
     supabase.from("orders").select("id", { count: "exact", head: true }),
     supabase.from("stores").select("id", { count: "exact", head: true }).eq("is_active", true),
     supabase.from("products").select("id", { count: "exact", head: true }),
-    supabase.from("profiles").select("id", { count: "exact", head: true }).eq("role", "courier"),
+    supabase.from("courier_profiles").select("user_id", { count: "exact", head: true }).eq("is_active", true),
   ]);
 
   const metrics = [
     { label: "إجمالي الطلبات", value: orders.error ? "—" : String(orders.count ?? 0), note: "كل الطلبات المسجلة" },
     { label: "المتاجر النشطة", value: stores.error ? "—" : String(stores.count ?? 0), note: "المتاجر المعتمدة" },
     { label: "المنتجات", value: products.error ? "—" : String(products.count ?? 0), note: "الأصناف المسجلة" },
-    { label: "السائقون", value: couriers.error ? "—" : String(couriers.count ?? 0), note: "حسابات السائقين" },
+    { label: "السائقون", value: couriers.error ? "—" : String(couriers.count ?? 0), note: "السائقون المعتمدون" },
   ];
 
   const shortcuts = [
