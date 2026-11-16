@@ -3,10 +3,29 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:image_picker/image_picker.dart';
 
 const jibRed = Color(0xFFE31E24);
 const supabaseUrl = String.fromEnvironment('SUPABASE_URL', defaultValue: 'https://emvleaghjsmzjmzgguvu.supabase.co');
 const supabasePublishableKey = String.fromEnvironment('SUPABASE_PUBLISHABLE_KEY', defaultValue: 'sb_publishable_6rD4poWuBH0TzK2HBFQFTg_4wOFnsX6');
+
+Widget _merchantProductImage(Object? rawUrl) {
+  final url = rawUrl?.toString().trim() ?? '';
+  final uri = Uri.tryParse(url);
+  final valid = uri != null && (uri.scheme == 'https' || uri.scheme == 'http');
+  final fallback = Container(
+    width: 58,
+    height: 58,
+    decoration: BoxDecoration(color: const Color(0xFFF4EFEB), borderRadius: BorderRadius.circular(15)),
+    child: const Icon(Icons.inventory_2_outlined, color: Color(0xFF9A8F87)),
+  );
+  if (!valid) return fallback;
+  return ClipRRect(
+    borderRadius: BorderRadius.circular(15),
+    child: Image.network(url, width: 58, height: 58, fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => fallback),
+  );
+}
 
 
 String networkErrorMessage(Object error) {
@@ -43,7 +62,44 @@ class JibMerchantApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) => MaterialApp(
     title: 'JIB التاجر', debugShowCheckedModeBanner: false,
-    theme: ThemeData(useMaterial3: true, colorScheme: ColorScheme.fromSeed(seedColor: jibRed, primary: jibRed), scaffoldBackgroundColor: const Color(0xFFF8F8F6)),
+    theme: ThemeData(
+      useMaterial3: true,
+      colorScheme: ColorScheme.fromSeed(seedColor: jibRed, primary: jibRed, surface: Colors.white)
+          .copyWith(onSurface: const Color(0xFF19191C)),
+      scaffoldBackgroundColor: const Color(0xFFF7F5F2),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Color(0xFFF7F5F2),
+        foregroundColor: Color(0xFF19191C),
+        elevation: 0,
+        titleTextStyle: TextStyle(color: Color(0xFF19191C), fontSize: 19, fontWeight: FontWeight.w900),
+      ),
+      cardTheme: CardThemeData(
+        color: Colors.white,
+        elevation: 0,
+        margin: const EdgeInsets.only(bottom: 12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(22),
+          side: const BorderSide(color: Color(0xFFECE8E3)),
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFE9E4DE))),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFE9E4DE))),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: jibRed, width: 1.5)),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: jibRed,
+          foregroundColor: Colors.white,
+          minimumSize: const Size.fromHeight(50),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          textStyle: const TextStyle(fontWeight: FontWeight.w800),
+        ),
+      ),
+    ),
     home: const Directionality(textDirection: TextDirection.rtl, child: MerchantGate()),
   );
 }
@@ -121,9 +177,24 @@ class _MerchantLoginState extends State<MerchantLogin> {
     padding: const EdgeInsets.all(24), child: ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 440), child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          const CircleAvatar(radius: 38, backgroundColor: jibRed, child: Text('J', style: TextStyle(color: Colors.white, fontSize: 38, fontWeight: FontWeight.w900))),
+          Container(
+            width: 82,
+            height: 82,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topRight,
+                end: Alignment.bottomLeft,
+                colors: [Color(0xFFEF3A40), Color(0xFF9F1118)],
+              ),
+              borderRadius: BorderRadius.circular(26),
+              boxShadow: const [BoxShadow(color: Color(0x26E31E24), blurRadius: 24, offset: Offset(0, 10))],
+            ),
+            alignment: Alignment.center,
+            child: const Icon(Icons.storefront_rounded, color: Colors.white, size: 42),
+          ),
           const SizedBox(height: 18),
           const Text('JIB · فضاء التاجر', textAlign: TextAlign.center, style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900)),
+          const Text('JIB SIGNATURE  /  BUSINESS', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF82766F), fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.1)),
           Text(creating ? 'أنشئ حساب التاجر ومتجرك على JIB' : 'سجّل الدخول لإدارة متجرك وطلباتك', textAlign: TextAlign.center, style: const TextStyle(color: Colors.black54)),
           const SizedBox(height: 20),
           if (creating) ...[
@@ -255,28 +326,178 @@ class _MerchantHomeState extends State<MerchantHome> {
     } catch (_) { if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تعذر تحديث حالة المتجر'))); }
   }
 
+  Future<String> _uploadProductImage(XFile image) async {
+    final bytes = await image.readAsBytes();
+    if (bytes.lengthInBytes > 5 * 1024 * 1024) {
+      throw const FormatException('حجم الصورة يتجاوز 5 ميغابايت.');
+    }
+    final extension = image.name.split('.').last.toLowerCase();
+    const mimeTypes = {
+      'jpg': 'image/jpeg',
+      'jpeg': 'image/jpeg',
+      'png': 'image/png',
+      'webp': 'image/webp',
+    };
+    final contentType = mimeTypes[extension];
+    if (contentType == null) {
+      throw const FormatException('اختر صورة بصيغة JPG أو PNG أو WEBP.');
+    }
+    final storeId = store?['id']?.toString();
+    if (storeId == null || storeId.isEmpty) {
+      throw const FormatException('لا يوجد متجر مرتبط بهذا الحساب.');
+    }
+    final path = '$storeId/${DateTime.now().microsecondsSinceEpoch}.$extension';
+    await db.storage.from('product-images').uploadBinary(
+      path,
+      bytes,
+      fileOptions: FileOptions(contentType: contentType),
+    );
+    return db.storage.from('product-images').getPublicUrl(path);
+  }
+
   Future<void> editProduct([Map<String, dynamic>? product]) async {
     final name = TextEditingController(text: product?['name']?.toString() ?? '');
     final description = TextEditingController(text: product?['description']?.toString() ?? '');
     final price = TextEditingController(text: product?['price_mad']?.toString() ?? '');
-    final ok = await showDialog<bool>(context: context, builder: (context) => AlertDialog(
-      title: Text(product == null ? 'إضافة منتج' : 'تعديل المنتج'),
-      content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
-        TextField(controller: name, decoration: const InputDecoration(labelText: 'اسم المنتج')),
-        TextField(controller: description, decoration: const InputDecoration(labelText: 'الوصف')),
-        TextField(controller: price, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'الثمن بالدرهم')),
-      ])),
-      actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('إلغاء')), FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('حفظ'))],
-    ));
-    if (ok == true && name.text.trim().isNotEmpty && (double.tryParse(price.text.replaceAll(',', '.')) ?? 0) > 0) {
-      final values = {'name': name.text.trim(), 'description': description.text.trim(), 'price_mad': double.parse(price.text.replaceAll(',', '.')), 'is_available': product?['is_available'] ?? true};
-      try {
-        if (product == null) { values['store_id'] = store!['id']; await db.from('products').insert(values); }
-        else { await db.from('products').update(values).eq('id', product['id']); }
+    final existingImageUrl = product?['image_url']?.toString();
+    XFile? selectedImage;
+
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: Text(product == null ? 'إضافة منتج' : 'تعديل المنتج'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(controller: name, decoration: const InputDecoration(labelText: 'اسم المنتج')),
+                TextField(controller: description, decoration: const InputDecoration(labelText: 'الوصف')),
+                const SizedBox(height: 14),
+                Container(
+                  width: double.infinity,
+                  height: 164,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF4EFEB),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: const Color(0xFFE9E4DE)),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: selectedImage != null
+                      ? Image.file(File(selectedImage!.path), fit: BoxFit.cover)
+                      : (existingImageUrl != null && existingImageUrl.trim().isNotEmpty
+                          ? Image.network(
+                              existingImageUrl,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => const Center(
+                                child: Icon(Icons.add_photo_alternate_outlined, size: 42, color: Color(0xFF9A8F87)),
+                              ),
+                            )
+                          : const Center(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.add_photo_alternate_outlined, size: 42, color: Color(0xFF9A8F87)),
+                                  SizedBox(height: 8),
+                                  Text('أضف صورة واضحة للمنتج', style: TextStyle(color: Color(0xFF82766F))),
+                                ],
+                              ),
+                            )),
+                ),
+                const SizedBox(height: 10),
+                OutlinedButton.icon(
+                  onPressed: () async {
+                    try {
+                      final picked = await ImagePicker().pickImage(
+                        source: ImageSource.gallery,
+                        imageQuality: 85,
+                        maxWidth: 1600,
+                        maxHeight: 1600,
+                      );
+                      if (picked != null && dialogContext.mounted) {
+                        setDialogState(() => selectedImage = picked);
+                      }
+                    } catch (_) {
+                      if (dialogContext.mounted) {
+                        ScaffoldMessenger.of(dialogContext).showSnackBar(
+                          const SnackBar(content: Text('تعذر فتح معرض الصور. تحقق من أذونات الهاتف.')),
+                        );
+                      }
+                    }
+                  },
+                  icon: const Icon(Icons.photo_library_outlined),
+                  label: Text(selectedImage == null ? 'اختيار صورة من الهاتف' : 'تغيير الصورة'),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: price,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(labelText: 'الثمن بالدرهم'),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'الصور المقبولة: JPG أو PNG أو WEBP · بحد أقصى 5 ميغابايت',
+                  style: TextStyle(color: Colors.black54, fontSize: 11),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('إلغاء')),
+            FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('حفظ المنتج')),
+          ],
+        ),
+      ),
+    );
+
+    try {
+      if (ok == true) {
+        final parsedPrice = double.tryParse(price.text.replaceAll(',', '.'));
+        if (name.text.trim().isEmpty || parsedPrice == null || parsedPrice <= 0) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('أدخل اسم المنتج وثمناً صحيحاً أكبر من صفر.')),
+            );
+          }
+          return;
+        }
+
+        final imageUrl = selectedImage != null
+            ? await _uploadProductImage(selectedImage!)
+            : existingImageUrl;
+        final values = <String, dynamic>{
+          'name': name.text.trim(),
+          'description': description.text.trim(),
+          'price_mad': parsedPrice,
+          'is_available': product?['is_available'] ?? true,
+          'image_url': imageUrl,
+        };
+
+        if (product == null) {
+          values['store_id'] = store!['id'];
+          await db.from('products').insert(values);
+        } else {
+          await db.from('products').update(values).eq('id', product['id']);
+        }
         await load();
-      } catch (_) { if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تعذر حفظ المنتج. تحقق من صلاحيات المتجر.'))); }
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(selectedImage == null ? 'تم حفظ المنتج.' : 'تم حفظ المنتج وصورته بنجاح.')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('تعذر حفظ المنتج: $e')),
+        );
+      }
+    } finally {
+      name.dispose();
+      description.dispose();
+      price.dispose();
     }
-    name.dispose(); description.dispose(); price.dispose();
   }
 
   Future<void> setAvailable(Map<String, dynamic> p, bool value) async {
@@ -292,7 +513,19 @@ class _MerchantHomeState extends State<MerchantHome> {
     ]),
     floatingActionButton: store == null ? null : FloatingActionButton.extended(onPressed: () => editProduct(), backgroundColor: jibRed, foregroundColor: Colors.white, icon: const Icon(Icons.add), label: const Text('منتج جديد')),
     body: loading ? const Center(child: CircularProgressIndicator()) : error != null ? Center(child: Padding(padding: const EdgeInsets.all(24), child: Text(error!, textAlign: TextAlign.center))) : store == null ? const Center(child: Padding(padding: EdgeInsets.all(24), child: Text('لا يوجد متجر مرتبط بهذا الحساب بعد. اطلب من إدارة JIB ربط حساب التاجر بمتجرك.', textAlign: TextAlign.center))) : RefreshIndicator(onRefresh: load, child: ListView(padding: const EdgeInsets.all(16), children: [
-      Container(padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: jibRed, borderRadius: BorderRadius.circular(20)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Container(
+        padding: const EdgeInsets.all(22),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topRight,
+            end: Alignment.bottomLeft,
+            colors: [Color(0xFFEE343B), Color(0xFF94131A)],
+          ),
+          borderRadius: BorderRadius.circular(26),
+          boxShadow: const [BoxShadow(color: Color(0x20A20F16), blurRadius: 24, offset: Offset(0, 12))],
+        ),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Text('JIB SIGNATURE  /  BUSINESS', style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 1.1)),
         const Text('متجرك على JIB', style: TextStyle(color: Colors.white70)),
         const SizedBox(height: 6), Text(store!['name']?.toString() ?? 'متجري', style: const TextStyle(color: Colors.white, fontSize: 25, fontWeight: FontWeight.w900)),
         SwitchListTile(contentPadding: EdgeInsets.zero, value: store!['is_open'] == true, onChanged: toggleOpen, title: const Text('المتجر مفتوح لاستقبال الطلبات', style: TextStyle(color: Colors.white)), activeColor: Colors.white, activeTrackColor: Colors.green),
@@ -308,7 +541,10 @@ class _MerchantHomeState extends State<MerchantHome> {
       const SizedBox(height: 20), const Text('المنتجات', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900)),
       if (products.isEmpty) const Card(child: ListTile(title: Text('أضف أول منتج لمتجرك'), subtitle: Text('استعمل زر «منتج جديد» أسفل الشاشة.')))
       else ...products.map((p) => Card(child: ListTile(
-        leading: const Icon(Icons.inventory_2_outlined), title: Text(p['name'].toString()), subtitle: Text('${p['price_mad']} د.م'),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        leading: _merchantProductImage(p['image_url']),
+        title: Text(p['name'].toString(), style: const TextStyle(fontWeight: FontWeight.w800)),
+        subtitle: Text('${p['price_mad']} د.م', style: const TextStyle(color: jibRed, fontWeight: FontWeight.w800)),
         trailing: PopupMenuButton<String>(onSelected: (v) { if (v == 'edit') editProduct(p); if (v == 'available') setAvailable(p, !(p['is_available'] == true)); }, itemBuilder: (_) => [
           const PopupMenuItem(value: 'edit', child: Text('تعديل')), PopupMenuItem(value: 'available', child: Text(p['is_available'] == true ? 'إيقاف التوفر' : 'تفعيل التوفر')),
         ]),

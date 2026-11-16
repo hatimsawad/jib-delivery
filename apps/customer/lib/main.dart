@@ -44,6 +44,24 @@ Future<void> main() async {
 
 final supabase = Supabase.instance.client;
 
+Widget _productImage(Object? rawUrl, {double size = 78}) {
+  final url = rawUrl?.toString().trim() ?? '';
+  final uri = Uri.tryParse(url);
+  final valid = uri != null && (uri.scheme == 'https' || uri.scheme == 'http');
+  final fallback = Container(
+    width: size,
+    height: size,
+    decoration: BoxDecoration(color: const Color(0xFFF4EFEB), borderRadius: BorderRadius.circular(16)),
+    child: const Icon(Icons.shopping_bag_outlined, color: Color(0xFF9A8F87), size: 30),
+  );
+  if (!valid) return fallback;
+  return ClipRRect(
+    borderRadius: BorderRadius.circular(16),
+    child: Image.network(url, width: size, height: size, fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => fallback),
+  );
+}
+
 class JibApp extends StatelessWidget {
   const JibApp({super.key});
 
@@ -53,8 +71,47 @@ class JibApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(seedColor: jibRed, primary: jibRed),
-          scaffoldBackgroundColor: const Color(0xFFF8F8F6),
+          colorScheme: ColorScheme.fromSeed(seedColor: jibRed, primary: jibRed, surface: Colors.white)
+              .copyWith(onSurface: const Color(0xFF19191C)),
+          scaffoldBackgroundColor: const Color(0xFFF7F5F2),
+          appBarTheme: const AppBarTheme(
+            backgroundColor: Color(0xFFF7F5F2),
+            foregroundColor: Color(0xFF19191C),
+            elevation: 0,
+            centerTitle: false,
+            titleTextStyle: TextStyle(color: Color(0xFF19191C), fontSize: 19, fontWeight: FontWeight.w900),
+          ),
+          cardTheme: CardThemeData(
+            color: Colors.white,
+            elevation: 0,
+            margin: const EdgeInsets.only(bottom: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(22),
+              side: const BorderSide(color: Color(0xFFECE8E3)),
+            ),
+          ),
+          inputDecorationTheme: InputDecorationTheme(
+            filled: true,
+            fillColor: Colors.white,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFE9E4DE))),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFE9E4DE))),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: jibRed, width: 1.5)),
+          ),
+          filledButtonTheme: FilledButtonThemeData(
+            style: FilledButton.styleFrom(
+              backgroundColor: jibRed,
+              foregroundColor: Colors.white,
+              minimumSize: const Size.fromHeight(52),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              textStyle: const TextStyle(fontWeight: FontWeight.w800),
+            ),
+          ),
+          navigationBarTheme: NavigationBarThemeData(
+            backgroundColor: Colors.white,
+            indicatorColor: jibRed.withValues(alpha: .12),
+            labelTextStyle: WidgetStateProperty.all(const TextStyle(fontWeight: FontWeight.w700, fontSize: 11)),
+          ),
         ),
         home: const Directionality(
           textDirection: TextDirection.rtl,
@@ -150,14 +207,26 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const CircleAvatar(
-                      radius: 38,
-                      backgroundColor: jibRed,
-                      child: Text('J', style: TextStyle(color: Colors.white, fontSize: 38, fontWeight: FontWeight.w900)),
+                    Container(
+                      width: 82,
+                      height: 82,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          begin: Alignment.topRight,
+                          end: Alignment.bottomLeft,
+                          colors: [Color(0xFFEF3A40), Color(0xFF9F1118)],
+                        ),
+                        borderRadius: BorderRadius.circular(26),
+                        boxShadow: const [
+                          BoxShadow(color: Color(0x26E31E24), blurRadius: 24, offset: Offset(0, 10)),
+                        ],
+                      ),
+                      alignment: Alignment.center,
+                      child: const Text('J', style: TextStyle(color: Colors.white, fontSize: 48, fontWeight: FontWeight.w900)),
                     ),
-                    const SizedBox(height: 16),
-                    const Text('جيب JIB', textAlign: TextAlign.center, style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
-                    const Text('كلشي قريب ليك', textAlign: TextAlign.center, style: TextStyle(color: Colors.black54)),
+                    const SizedBox(height: 18),
+                    const Text('جيب JIB', textAlign: TextAlign.center, style: TextStyle(fontSize: 30, letterSpacing: -.5, fontWeight: FontWeight.w900)),
+                    const Text('JIB SIGNATURE  ·  كلشي قريب ليك', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF82766F), fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1.1)),
                     const SizedBox(height: 28),
                     Text(_register ? 'إنشاء حساب زبون' : 'مرحباً بعودتك', style: const TextStyle(fontSize: 21, fontWeight: FontWeight.bold)),
                     if (_register) ...[
@@ -259,7 +328,8 @@ class _CustomerHomeState extends State<CustomerHome> {
                         final product = products[index];
                         return Card(
                           child: ListTile(
-                            title: Text(product['name'] as String? ?? ''),
+                            leading: _productImage(product['image_url'], size: 74),
+                            title: Text(product['name'] as String? ?? '', style: const TextStyle(fontWeight: FontWeight.w800)),
                             subtitle: Text('${product['price_mad']} درهم'),
                             trailing: IconButton(
                               icon: const Icon(Icons.add_circle, color: jibRed),
@@ -360,9 +430,19 @@ class _CustomerHomeState extends State<CustomerHome> {
             children: [
               Container(
                 padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(color: jibRed, borderRadius: BorderRadius.circular(24)),
+                decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          begin: Alignment.topRight,
+                          end: Alignment.bottomLeft,
+                          colors: [Color(0xFFEE343B), Color(0xFF94131A)],
+                        ),
+                        borderRadius: BorderRadius.circular(26),
+                        boxShadow: const [
+                          BoxShadow(color: Color(0x20A20F16), blurRadius: 24, offset: Offset(0, 12)),
+                        ],
+                      ),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const Text('مرحبا بك فـ JIB 👋', style: TextStyle(color: Colors.white70)),
+                  const Text('JIB SIGNATURE  /  الرباط', style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 1.2)),
                   const SizedBox(height: 8),
                   const Text('شنو بغيتي نوصّلو ليك اليوم؟', style: TextStyle(color: Colors.white, fontSize: 23, fontWeight: FontWeight.w900)),
                   const SizedBox(height: 16),
@@ -396,7 +476,13 @@ class _CustomerHomeState extends State<CustomerHome> {
               else
                 ...stores.map((store) => Card(
                   child: ListTile(
-                    leading: const CircleAvatar(backgroundColor: Color(0xFFFFE8E8), child: Icon(Icons.storefront, color: jibRed)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    leading: Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(color: const Color(0xFFFFE8E8), borderRadius: BorderRadius.circular(17)),
+                      child: const Icon(Icons.storefront_rounded, color: jibRed, size: 28),
+                    ),
                     title: Text(store['name'] as String? ?? '', style: const TextStyle(fontWeight: FontWeight.w900)),
                     subtitle: Text(store['description'] as String? ?? store['address_text'] as String? ?? 'متجر JIB'),
                     trailing: const Icon(Icons.chevron_left),
@@ -414,21 +500,152 @@ class _CustomerHomeState extends State<CustomerHome> {
     'delivering': 'في الطريق إليك', 'delivered': 'تم التسليم', 'cancelled': 'ملغى',
   }[status] ?? status;
 
-  Widget _orders() => FutureBuilder<List<Map<String, dynamic>>>(
-        future: supabase.from('orders').select('id,status,total_mad,created_at,stores(name)').order('created_at', ascending: false),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
-          if (snapshot.hasError) return const Center(child: Text('تعذر تحميل الطلبات.'));
-          final rows = snapshot.data ?? [];
-          if (rows.isEmpty) return const Center(child: Text('لا توجد طلبات بعد.'));
-          return RefreshIndicator(onRefresh: () async { if (mounted) setState(() {}); await Future<void>.delayed(const Duration(milliseconds: 250)); }, child: ListView(padding: const EdgeInsets.all(16), children: rows.map((order) => Card(child: ListTile(
-            leading: const Icon(Icons.receipt_long, color: jibRed),
-            title: Text((order['stores']?['name'] ?? 'طلب JIB').toString(), style: const TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: Text('طلب #${order['id'].toString().substring(0, 8)} · ${_statusLabel(order['status'].toString())}'),
-            trailing: Text('${order['total_mad']} د.م', style: const TextStyle(fontWeight: FontWeight.w900)),
-          ))).toList()));
-        },
+  Widget _orderProgress(String status) {
+    final stage = const {
+      'pending': 0,
+      'accepted': 1,
+      'preparing': 1,
+      'ready_for_pickup': 2,
+      'picked_up': 2,
+      'delivering': 2,
+      'delivered': 3,
+    }[status];
+
+    if (stage == null) {
+      final rejected = status == 'rejected';
+      return Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFEEEE),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          children: [
+            Icon(rejected ? Icons.cancel_outlined : Icons.info_outline, color: jibRed),
+            const SizedBox(width: 8),
+            Expanded(child: Text(_statusLabel(status), style: const TextStyle(color: jibRed, fontWeight: FontWeight.w800))),
+          ],
+        ),
       );
+    }
+
+    const phases = ['تأكيد الطلب', 'التحضير', 'التوصيل', 'التسليم'];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            const Expanded(child: Text('متابعة الطلب', style: TextStyle(fontWeight: FontWeight.w900))),
+            Text(
+              phases[stage],
+              style: const TextStyle(color: jibRed, fontSize: 12, fontWeight: FontWeight.w800),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: LinearProgressIndicator(
+            value: (stage + 1) / phases.length,
+            minHeight: 7,
+            backgroundColor: const Color(0xFFECE8E3),
+            color: jibRed,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: phases.map((phase) => Expanded(
+            child: Text(
+              phase,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: phases.indexOf(phase) <= stage ? jibRed : const Color(0xFF9A928B),
+                fontSize: 9,
+                fontWeight: phases.indexOf(phase) == stage ? FontWeight.w900 : FontWeight.w500,
+              ),
+            ),
+          )).toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _orders() => FutureBuilder<List<Map<String, dynamic>>>(
+    future: supabase.from('orders').select('id,status,total_mad,created_at,stores(name)')
+        .order('created_at', ascending: false),
+    builder: (context, snapshot) {
+      if (snapshot.connectionState == ConnectionState.waiting) {
+        return const Center(child: CircularProgressIndicator());
+      }
+      if (snapshot.hasError) return const Center(child: Text('تعذر تحميل الطلبات.'));
+      final rows = snapshot.data ?? [];
+      if (rows.isEmpty) return const Center(child: Text('لا توجد طلبات بعد.'));
+      return RefreshIndicator(
+        onRefresh: () async {
+          if (mounted) setState(() {});
+          await Future<void>.delayed(const Duration(milliseconds: 250));
+        },
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: rows.map((order) {
+            final status = order['status'].toString();
+            final orderId = order['id'].toString();
+            return Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFE8E8),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Icon(Icons.receipt_long_rounded, color: jibRed),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                (order['stores']?['name'] ?? 'طلب JIB').toString(),
+                                style: const TextStyle(fontWeight: FontWeight.w900),
+                              ),
+                              Text(
+                                'طلب #${orderId.substring(0, 8)}',
+                                style: const TextStyle(color: Color(0xFF82766F), fontSize: 11),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Text(
+                          '${order['total_mad']} د.م',
+                          style: const TextStyle(color: jibRed, fontWeight: FontWeight.w900),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 18),
+                    _orderProgress(status),
+                    const SizedBox(height: 8),
+                    Text(
+                      _statusLabel(status),
+                      textAlign: TextAlign.start,
+                      style: const TextStyle(color: Color(0xFF82766F), fontSize: 11),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      );
+    },
+  );
 
   Widget _cartPage() {
     final total = _cart.values.fold<double>(0, (sum, item) => sum + (double.tryParse(item['price_mad'].toString()) ?? 0) * (item['quantity'] as int));
@@ -438,7 +655,9 @@ class _CustomerHomeState extends State<CustomerHome> {
       if (_cart.isEmpty) const Card(child: Padding(padding: EdgeInsets.all(24), child: Text('السلة فارغة. اختر متجراً وأضف المنتجات.', textAlign: TextAlign.center)))
       else ...[
         ..._cart.entries.map((entry) => Card(child: ListTile(
-          title: Text(entry.value['name'] as String? ?? ''),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          leading: _productImage(entry.value['image_url'], size: 66),
+          title: Text(entry.value['name'] as String? ?? '', style: const TextStyle(fontWeight: FontWeight.w800)),
           subtitle: Text('${entry.value['quantity']} × ${entry.value['price_mad']} درهم'),
           trailing: SizedBox(width: 126, child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
             IconButton(visualDensity: VisualDensity.compact, icon: const Icon(Icons.remove_circle_outline), onPressed: () => setState(() {
@@ -482,13 +701,16 @@ class _CustomerHomeState extends State<CustomerHome> {
     final pages = [_discovery(), _orders(), _cartPage(), _account()];
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.white,
         title: const Row(children: [
-          CircleAvatar(backgroundColor: jibRed, child: Text('J', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900))),
+          CircleAvatar(
+            radius: 19,
+            backgroundColor: jibRed,
+            child: Text('J', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 22)),
+          ),
           SizedBox(width: 10),
           Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('جيب JIB', style: TextStyle(fontWeight: FontWeight.w900)),
-            Text('كلشي قريب ليك', style: TextStyle(fontSize: 11, color: Colors.black54)),
+            Text('جيب JIB', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
+            Text('SIGNATURE  ·  كلشي قريب ليك', style: TextStyle(fontSize: 9, color: Color(0xFF82766F), letterSpacing: .7)),
           ]),
         ]),
       ),
