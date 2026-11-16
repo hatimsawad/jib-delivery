@@ -10,8 +10,20 @@ const supabaseUrl = String.fromEnvironment('SUPABASE_URL', defaultValue: 'https:
 const supabaseKey = String.fromEnvironment('SUPABASE_PUBLISHABLE_KEY', defaultValue: 'sb_publishable_6rD4poWuBH0TzK2HBFQFTg_4wOFnsX6');
 
 String networkMessage(Object e) {
-  if (e is SocketException) return 'تعذر العثور على خادم Supabase (DNS). بدّل بين Wi‑Fi وبيانات الهاتف، وأوقف VPN، واجعل Private DNS في Android على تلقائي.';
-  if (e is TimeoutException) return 'انتهت مهلة الاتصال. تحقق من الإنترنت وحاول مجدداً.';
+  final detail = e.toString().toLowerCase();
+  if (e is SocketException ||
+      detail.contains('failed host lookup') ||
+      detail.contains('socketexception') ||
+      detail.contains('no address associated with hostname') ||
+      detail.contains('name or service not known')) {
+    return 'تعذر على هاتفك العثور على خادم Supabase (خطأ DNS). بدّل بين Wi‑Fi وبيانات الهاتف، وأوقف VPN أو مانع الإعلانات، واجعل Private DNS في Android على تلقائي ثم أعد المحاولة.';
+  }
+  if (e is TimeoutException || detail.contains('timed out') || detail.contains('timeout')) {
+    return 'انتهت مهلة الاتصال بخادم JIB. تحقق من الإنترنت وحاول مجدداً.';
+  }
+  if (detail.contains('connection refused') || detail.contains('network is unreachable')) {
+    return 'الشبكة لا تسمح بالاتصال بخدمة JIB. جرّب شبكة أخرى ثم أعد المحاولة.';
+  }
   return e.toString();
 }
 
