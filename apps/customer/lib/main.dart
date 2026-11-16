@@ -500,21 +500,152 @@ class _CustomerHomeState extends State<CustomerHome> {
     'delivering': 'في الطريق إليك', 'delivered': 'تم التسليم', 'cancelled': 'ملغى',
   }[status] ?? status;
 
-  Widget _orders() => FutureBuilder<List<Map<String, dynamic>>>(
-        future: supabase.from('orders').select('id,status,total_mad,created_at,stores(name)').order('created_at', ascending: false),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
-          if (snapshot.hasError) return const Center(child: Text('تعذر تحميل الطلبات.'));
-          final rows = snapshot.data ?? [];
-          if (rows.isEmpty) return const Center(child: Text('لا توجد طلبات بعد.'));
-          return RefreshIndicator(onRefresh: () async { if (mounted) setState(() {}); await Future<void>.delayed(const Duration(milliseconds: 250)); }, child: ListView(padding: const EdgeInsets.all(16), children: rows.map((order) => Card(child: ListTile(
-            leading: const Icon(Icons.receipt_long, color: jibRed),
-            title: Text((order['stores']?['name'] ?? 'طلب JIB').toString(), style: const TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: Text('طلب #${order['id'].toString().substring(0, 8)} · ${_statusLabel(order['status'].toString())}'),
-            trailing: Text('${order['total_mad']} د.م', style: const TextStyle(fontWeight: FontWeight.w900)),
-          ))).toList()));
-        },
+  Widget _orderProgress(String status) {
+    final stage = const {
+      'pending': 0,
+      'accepted': 1,
+      'preparing': 1,
+      'ready_for_pickup': 2,
+      'picked_up': 2,
+      'delivering': 2,
+      'delivered': 3,
+    }[status];
+
+    if (stage == null) {
+      final rejected = status == 'rejected';
+      return Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFEEEE),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          children: [
+            Icon(rejected ? Icons.cancel_outlined : Icons.info_outline, color: jibRed),
+            const SizedBox(width: 8),
+            Expanded(child: Text(_statusLabel(status), style: const TextStyle(color: jibRed, fontWeight: FontWeight.w800))),
+          ],
+        ),
       );
+    }
+
+    const phases = ['تأكيد الطلب', 'التحضير', 'التوصيل', 'التسليم'];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            const Expanded(child: Text('متابعة الطلب', style: TextStyle(fontWeight: FontWeight.w900))),
+            Text(
+              phases[stage],
+              style: const TextStyle(color: jibRed, fontSize: 12, fontWeight: FontWeight.w800),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: LinearProgressIndicator(
+            value: (stage + 1) / phases.length,
+            minHeight: 7,
+            backgroundColor: const Color(0xFFECE8E3),
+            color: jibRed,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: phases.map((phase) => Expanded(
+            child: Text(
+              phase,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: phases.indexOf(phase) <= stage ? jibRed : const Color(0xFF9A928B),
+                fontSize: 9,
+                fontWeight: phases.indexOf(phase) == stage ? FontWeight.w900 : FontWeight.w500,
+              ),
+            ),
+          )).toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _orders() => FutureBuilder<List<Map<String, dynamic>>>(
+    future: supabase.from('orders').select('id,status,total_mad,created_at,stores(name)')
+        .order('created_at', ascending: false),
+    builder: (context, snapshot) {
+      if (snapshot.connectionState == ConnectionState.waiting) {
+        return const Center(child: CircularProgressIndicator());
+      }
+      if (snapshot.hasError) return const Center(child: Text('تعذر تحميل الطلبات.'));
+      final rows = snapshot.data ?? [];
+      if (rows.isEmpty) return const Center(child: Text('لا توجد طلبات بعد.'));
+      return RefreshIndicator(
+        onRefresh: () async {
+          if (mounted) setState(() {});
+          await Future<void>.delayed(const Duration(milliseconds: 250));
+        },
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: rows.map((order) {
+            final status = order['status'].toString();
+            final orderId = order['id'].toString();
+            return Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFE8E8),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Icon(Icons.receipt_long_rounded, color: jibRed),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                (order['stores']?['name'] ?? 'طلب JIB').toString(),
+                                style: const TextStyle(fontWeight: FontWeight.w900),
+                              ),
+                              Text(
+                                'طلب #${orderId.substring(0, 8)}',
+                                style: const TextStyle(color: Color(0xFF82766F), fontSize: 11),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Text(
+                          '${order['total_mad']} د.م',
+                          style: const TextStyle(color: jibRed, fontWeight: FontWeight.w900),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 18),
+                    _orderProgress(status),
+                    const SizedBox(height: 8),
+                    Text(
+                      _statusLabel(status),
+                      textAlign: TextAlign.start,
+                      style: const TextStyle(color: Color(0xFF82766F), fontSize: 11),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      );
+    },
+  );
 
   Widget _cartPage() {
     final total = _cart.values.fold<double>(0, (sum, item) => sum + (double.tryParse(item['price_mad'].toString()) ?? 0) * (item['quantity'] as int));
