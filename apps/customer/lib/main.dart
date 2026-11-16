@@ -150,14 +150,26 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const CircleAvatar(
-                      radius: 38,
-                      backgroundColor: jibRed,
-                      child: Text('J', style: TextStyle(color: Colors.white, fontSize: 38, fontWeight: FontWeight.w900)),
+                    Container(
+                      width: 82,
+                      height: 82,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          begin: Alignment.topRight,
+                          end: Alignment.bottomLeft,
+                          colors: [Color(0xFFEF3A40), Color(0xFF9F1118)],
+                        ),
+                        borderRadius: BorderRadius.circular(26),
+                        boxShadow: const [
+                          BoxShadow(color: Color(0x26E31E24), blurRadius: 24, offset: Offset(0, 10)),
+                        ],
+                      ),
+                      alignment: Alignment.center,
+                      child: const Text('J', style: TextStyle(color: Colors.white, fontSize: 48, fontWeight: FontWeight.w900)),
                     ),
-                    const SizedBox(height: 16),
-                    const Text('جيب JIB', textAlign: TextAlign.center, style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
-                    const Text('كلشي قريب ليك', textAlign: TextAlign.center, style: TextStyle(color: Colors.black54)),
+                    const SizedBox(height: 18),
+                    const Text('جيب JIB', textAlign: TextAlign.center, style: TextStyle(fontSize: 30, letterSpacing: -.5, fontWeight: FontWeight.w900)),
+                    const Text('JIB SIGNATURE  ·  كلشي قريب ليك', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF82766F), fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1.1)),
                     const SizedBox(height: 28),
                     Text(_register ? 'إنشاء حساب زبون' : 'مرحباً بعودتك', style: const TextStyle(fontSize: 21, fontWeight: FontWeight.bold)),
                     if (_register) ...[
@@ -259,7 +271,8 @@ class _CustomerHomeState extends State<CustomerHome> {
                         final product = products[index];
                         return Card(
                           child: ListTile(
-                            title: Text(product['name'] as String? ?? ''),
+                            leading: _productImage(product['image_url'], size: 74),
+                            title: Text(product['name'] as String? ?? '', style: const TextStyle(fontWeight: FontWeight.w800)),
                             subtitle: Text('${product['price_mad']} درهم'),
                             trailing: IconButton(
                               icon: const Icon(Icons.add_circle, color: jibRed),
@@ -360,9 +373,19 @@ class _CustomerHomeState extends State<CustomerHome> {
             children: [
               Container(
                 padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(color: jibRed, borderRadius: BorderRadius.circular(24)),
+                decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          begin: Alignment.topRight,
+                          end: Alignment.bottomLeft,
+                          colors: [Color(0xFFEE343B), Color(0xFF94131A)],
+                        ),
+                        borderRadius: BorderRadius.circular(26),
+                        boxShadow: const [
+                          BoxShadow(color: Color(0x20A20F16), blurRadius: 24, offset: Offset(0, 12)),
+                        ],
+                      ),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const Text('مرحبا بك فـ JIB 👋', style: TextStyle(color: Colors.white70)),
+                  const Text('JIB SIGNATURE  /  الرباط', style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 1.2)),
                   const SizedBox(height: 8),
                   const Text('شنو بغيتي نوصّلو ليك اليوم؟', style: TextStyle(color: Colors.white, fontSize: 23, fontWeight: FontWeight.w900)),
                   const SizedBox(height: 16),
@@ -396,7 +419,13 @@ class _CustomerHomeState extends State<CustomerHome> {
               else
                 ...stores.map((store) => Card(
                   child: ListTile(
-                    leading: const CircleAvatar(backgroundColor: Color(0xFFFFE8E8), child: Icon(Icons.storefront, color: jibRed)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    leading: Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(color: const Color(0xFFFFE8E8), borderRadius: BorderRadius.circular(17)),
+                      child: const Icon(Icons.storefront_rounded, color: jibRed, size: 28),
+                    ),
                     title: Text(store['name'] as String? ?? '', style: const TextStyle(fontWeight: FontWeight.w900)),
                     subtitle: Text(store['description'] as String? ?? store['address_text'] as String? ?? 'متجر JIB'),
                     trailing: const Icon(Icons.chevron_left),
@@ -438,7 +467,9 @@ class _CustomerHomeState extends State<CustomerHome> {
       if (_cart.isEmpty) const Card(child: Padding(padding: EdgeInsets.all(24), child: Text('السلة فارغة. اختر متجراً وأضف المنتجات.', textAlign: TextAlign.center)))
       else ...[
         ..._cart.entries.map((entry) => Card(child: ListTile(
-          title: Text(entry.value['name'] as String? ?? ''),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          leading: _productImage(entry.value['image_url'], size: 66),
+          title: Text(entry.value['name'] as String? ?? '', style: const TextStyle(fontWeight: FontWeight.w800)),
           subtitle: Text('${entry.value['quantity']} × ${entry.value['price_mad']} درهم'),
           trailing: SizedBox(width: 126, child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
             IconButton(visualDensity: VisualDensity.compact, icon: const Icon(Icons.remove_circle_outline), onPressed: () => setState(() {
@@ -482,13 +513,16 @@ class _CustomerHomeState extends State<CustomerHome> {
     final pages = [_discovery(), _orders(), _cartPage(), _account()];
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.white,
         title: const Row(children: [
-          CircleAvatar(backgroundColor: jibRed, child: Text('J', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900))),
+          CircleAvatar(
+            radius: 19,
+            backgroundColor: jibRed,
+            child: Text('J', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 22)),
+          ),
           SizedBox(width: 10),
           Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('جيب JIB', style: TextStyle(fontWeight: FontWeight.w900)),
-            Text('كلشي قريب ليك', style: TextStyle(fontSize: 11, color: Colors.black54)),
+            Text('جيب JIB', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
+            Text('SIGNATURE  ·  كلشي قريب ليك', style: TextStyle(fontSize: 9, color: Color(0xFF82766F), letterSpacing: .7)),
           ]),
         ]),
       ),
