@@ -8,6 +8,24 @@ const jibRed = Color(0xFFE31E24);
 const supabaseUrl = String.fromEnvironment('SUPABASE_URL', defaultValue: 'https://emvleaghjsmzjmzgguvu.supabase.co');
 const supabasePublishableKey = String.fromEnvironment('SUPABASE_PUBLISHABLE_KEY', defaultValue: 'sb_publishable_6rD4poWuBH0TzK2HBFQFTg_4wOFnsX6');
 
+Widget _merchantProductImage(Object? rawUrl) {
+  final url = rawUrl?.toString().trim() ?? '';
+  final uri = Uri.tryParse(url);
+  final valid = uri != null && (uri.scheme == 'https' || uri.scheme == 'http');
+  final fallback = Container(
+    width: 58,
+    height: 58,
+    decoration: BoxDecoration(color: const Color(0xFFF4EFEB), borderRadius: BorderRadius.circular(15)),
+    child: const Icon(Icons.inventory_2_outlined, color: Color(0xFF9A8F87)),
+  );
+  if (!valid) return fallback;
+  return ClipRRect(
+    borderRadius: BorderRadius.circular(15),
+    child: Image.network(url, width: 58, height: 58, fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => fallback),
+  );
+}
+
 
 String networkErrorMessage(Object error) {
   final detail = error.toString().toLowerCase();
@@ -43,7 +61,44 @@ class JibMerchantApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) => MaterialApp(
     title: 'JIB التاجر', debugShowCheckedModeBanner: false,
-    theme: ThemeData(useMaterial3: true, colorScheme: ColorScheme.fromSeed(seedColor: jibRed, primary: jibRed), scaffoldBackgroundColor: const Color(0xFFF8F8F6)),
+    theme: ThemeData(
+      useMaterial3: true,
+      colorScheme: ColorScheme.fromSeed(seedColor: jibRed, primary: jibRed, surface: Colors.white)
+          .copyWith(onSurface: const Color(0xFF19191C)),
+      scaffoldBackgroundColor: const Color(0xFFF7F5F2),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Color(0xFFF7F5F2),
+        foregroundColor: Color(0xFF19191C),
+        elevation: 0,
+        titleTextStyle: TextStyle(color: Color(0xFF19191C), fontSize: 19, fontWeight: FontWeight.w900),
+      ),
+      cardTheme: CardThemeData(
+        color: Colors.white,
+        elevation: 0,
+        margin: const EdgeInsets.only(bottom: 12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(22),
+          side: const BorderSide(color: Color(0xFFECE8E3)),
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFE9E4DE))),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFE9E4DE))),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: jibRed, width: 1.5)),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: jibRed,
+          foregroundColor: Colors.white,
+          minimumSize: const Size.fromHeight(50),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          textStyle: const TextStyle(fontWeight: FontWeight.w800),
+        ),
+      ),
+    ),
     home: const Directionality(textDirection: TextDirection.rtl, child: MerchantGate()),
   );
 }
@@ -121,9 +176,24 @@ class _MerchantLoginState extends State<MerchantLogin> {
     padding: const EdgeInsets.all(24), child: ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 440), child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          const CircleAvatar(radius: 38, backgroundColor: jibRed, child: Text('J', style: TextStyle(color: Colors.white, fontSize: 38, fontWeight: FontWeight.w900))),
+          Container(
+            width: 82,
+            height: 82,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topRight,
+                end: Alignment.bottomLeft,
+                colors: [Color(0xFFEF3A40), Color(0xFF9F1118)],
+              ),
+              borderRadius: BorderRadius.circular(26),
+              boxShadow: const [BoxShadow(color: Color(0x26E31E24), blurRadius: 24, offset: Offset(0, 10))],
+            ),
+            alignment: Alignment.center,
+            child: const Icon(Icons.storefront_rounded, color: Colors.white, size: 42),
+          ),
           const SizedBox(height: 18),
           const Text('JIB · فضاء التاجر', textAlign: TextAlign.center, style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900)),
+          const Text('JIB SIGNATURE  /  BUSINESS', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF82766F), fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.1)),
           Text(creating ? 'أنشئ حساب التاجر ومتجرك على JIB' : 'سجّل الدخول لإدارة متجرك وطلباتك', textAlign: TextAlign.center, style: const TextStyle(color: Colors.black54)),
           const SizedBox(height: 20),
           if (creating) ...[
@@ -292,7 +362,19 @@ class _MerchantHomeState extends State<MerchantHome> {
     ]),
     floatingActionButton: store == null ? null : FloatingActionButton.extended(onPressed: () => editProduct(), backgroundColor: jibRed, foregroundColor: Colors.white, icon: const Icon(Icons.add), label: const Text('منتج جديد')),
     body: loading ? const Center(child: CircularProgressIndicator()) : error != null ? Center(child: Padding(padding: const EdgeInsets.all(24), child: Text(error!, textAlign: TextAlign.center))) : store == null ? const Center(child: Padding(padding: EdgeInsets.all(24), child: Text('لا يوجد متجر مرتبط بهذا الحساب بعد. اطلب من إدارة JIB ربط حساب التاجر بمتجرك.', textAlign: TextAlign.center))) : RefreshIndicator(onRefresh: load, child: ListView(padding: const EdgeInsets.all(16), children: [
-      Container(padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: jibRed, borderRadius: BorderRadius.circular(20)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Container(
+        padding: const EdgeInsets.all(22),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topRight,
+            end: Alignment.bottomLeft,
+            colors: [Color(0xFFEE343B), Color(0xFF94131A)],
+          ),
+          borderRadius: BorderRadius.circular(26),
+          boxShadow: const [BoxShadow(color: Color(0x20A20F16), blurRadius: 24, offset: Offset(0, 12))],
+        ),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Text('JIB SIGNATURE  /  BUSINESS', style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 1.1)),
         const Text('متجرك على JIB', style: TextStyle(color: Colors.white70)),
         const SizedBox(height: 6), Text(store!['name']?.toString() ?? 'متجري', style: const TextStyle(color: Colors.white, fontSize: 25, fontWeight: FontWeight.w900)),
         SwitchListTile(contentPadding: EdgeInsets.zero, value: store!['is_open'] == true, onChanged: toggleOpen, title: const Text('المتجر مفتوح لاستقبال الطلبات', style: TextStyle(color: Colors.white)), activeColor: Colors.white, activeTrackColor: Colors.green),
@@ -308,7 +390,10 @@ class _MerchantHomeState extends State<MerchantHome> {
       const SizedBox(height: 20), const Text('المنتجات', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900)),
       if (products.isEmpty) const Card(child: ListTile(title: Text('أضف أول منتج لمتجرك'), subtitle: Text('استعمل زر «منتج جديد» أسفل الشاشة.')))
       else ...products.map((p) => Card(child: ListTile(
-        leading: const Icon(Icons.inventory_2_outlined), title: Text(p['name'].toString()), subtitle: Text('${p['price_mad']} د.م'),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        leading: _merchantProductImage(p['image_url']),
+        title: Text(p['name'].toString(), style: const TextStyle(fontWeight: FontWeight.w800)),
+        subtitle: Text('${p['price_mad']} د.م', style: const TextStyle(color: jibRed, fontWeight: FontWeight.w800)),
         trailing: PopupMenuButton<String>(onSelected: (v) { if (v == 'edit') editProduct(p); if (v == 'available') setAvailable(p, !(p['is_available'] == true)); }, itemBuilder: (_) => [
           const PopupMenuItem(value: 'edit', child: Text('تعديل')), PopupMenuItem(value: 'available', child: Text(p['is_available'] == true ? 'إيقاف التوفر' : 'تفعيل التوفر')),
         ]),
