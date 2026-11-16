@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -11,6 +13,28 @@ const supabasePublishableKey = String.fromEnvironment(
   'SUPABASE_PUBLISHABLE_KEY',
   defaultValue: 'sb_publishable_6rD4poWuBH0TzK2HBFQFTg_4wOFnsX6',
 );
+
+
+String networkErrorMessage(Object error) {
+  final detail = error.toString().toLowerCase();
+  if (error is SocketException ||
+      detail.contains('failed host lookup') ||
+      detail.contains('socketexception') ||
+      detail.contains('no address associated with hostname') ||
+      detail.contains('name or service not known')) {
+    return 'تعذر على هاتفك العثور على خادم Supabase (خطأ DNS). بدّل بين Wi‑Fi وبيانات الهاتف، وأوقف VPN أو مانع الإعلانات، واجعل Private DNS في Android على تلقائي ثم أعد المحاولة.';
+  }
+  if (error is TimeoutException ||
+      detail.contains('timed out') ||
+      detail.contains('timeout')) {
+    return 'انتهت مهلة الاتصال بخادم JIB. تحقق من الإنترنت وحاول مجدداً.';
+  }
+  if (detail.contains('connection refused') ||
+      detail.contains('network is unreachable')) {
+    return 'الشبكة لا تسمح بالاتصال بخدمة JIB. جرّب شبكة أخرى ثم أعد المحاولة.';
+  }
+  return 'تعذر الاتصال بخدمة JIB: ' + error.toString();
+}
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -104,8 +128,12 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } on AuthException catch (error) {
       if (mounted) setState(() => _message = error.message);
-    } catch (_) {
-      if (mounted) setState(() => _message = 'تعذر الاتصال الآن. تحقق من الإنترنت وحاول مجدداً.');
+    } on SocketException catch (error) {
+      if (mounted) setState(() => _message = networkErrorMessage(error));
+    } on TimeoutException catch (error) {
+      if (mounted) setState(() => _message = networkErrorMessage(error));
+    } catch (error) {
+      if (mounted) setState(() => _message = networkErrorMessage(error));
     } finally {
       if (mounted) setState(() => _busy = false);
     }

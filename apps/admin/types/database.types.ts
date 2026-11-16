@@ -47,6 +47,48 @@ export type Database = {
         }
         Relationships: []
       }
+      courier_profiles: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          is_active: boolean
+          phone: string | null
+          user_id: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          is_active?: boolean
+          phone?: string | null
+          user_id: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          is_active?: boolean
+          phone?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "courier_profiles_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "courier_profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_events: {
         Row: {
           actor_id: string | null
@@ -320,6 +362,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_set_courier_active: {
+        Args: { p_active: boolean; p_user_id: string }
+        Returns: undefined
+      }
+      admin_set_store_status: {
+        Args: { p_is_active: boolean; p_is_open?: boolean; p_store_id: string }
+        Returns: undefined
+      }
       checkout_order: {
         Args: {
           p_address_id: string
@@ -329,7 +379,44 @@ export type Database = {
         }
         Returns: string
       }
+      claim_delivery_order: { Args: { p_order_id: string }; Returns: boolean }
+      courier_dashboard: {
+        Args: never
+        Returns: {
+          created_at: string
+          customer_note: string
+          delivery_address: string
+          delivery_fee_mad: number
+          order_id: string
+          status: string
+          store_address: string
+          store_name: string
+          total_mad: number
+        }[]
+      }
+      courier_update_order_status: {
+        Args: { p_new_status: string; p_order_id: string }
+        Returns: undefined
+      }
       is_jib_admin: { Args: never; Returns: boolean }
+      merchant_update_order_status: {
+        Args: { p_new_status: string; p_order_id: string }
+        Returns: undefined
+      }
+      register_courier_profile: {
+        Args: { p_full_name?: string; p_phone?: string }
+        Returns: boolean
+      }
+      register_merchant_store: {
+        Args: {
+          p_address?: string
+          p_category: string
+          p_description?: string
+          p_name: string
+          p_phone?: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
