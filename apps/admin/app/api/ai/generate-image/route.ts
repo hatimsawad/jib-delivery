@@ -12,6 +12,20 @@ const IMAGE_MODEL = "bfl/flux-3-image-klein";
 const ESTIMATED_COST_USD = 0.009;
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
+type ReservedImageJob = {
+  job_id: string;
+  store_id: string | null;
+  title: string;
+  description: string;
+};
+
+type ImageJobRpcClient = {
+  rpc(
+    functionName: string,
+    args: Record<string, unknown>,
+  ): Promise<{ data: unknown; error: { message: string } | null }>;
+};
+
 type ImageRequest = {
   type?: "product" | "article";
   productId?: string;
@@ -86,7 +100,9 @@ export async function POST(request: Request) {
       return jsonError("عنوان المقال وملخصه مطلوبان.", 400);
     }
 
-    const { data: reserved, error: reserveError } = await supabase.rpc(
+    // Keep the RPC boundary explicit until generated Supabase types are refreshed from the live schema.
+    const imageRpc = supabase as unknown as ImageJobRpcClient;
+    const { data: reserved, error: reserveError } = await imageRpc.rpc(
       "jib_ai_manager_reserve_image_job",
       {
         p_request_type: type,
@@ -104,7 +120,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const job = Array.isArray(reserved) ? reserved[0] : reserved;
+    const job = (Array.isArray(reserved) ? reserved[0] : reserved) as ReservedImageJob | null;
     if (!job?.job_id) {
       return jsonError("تعذر حجز طلب إنشاء الصورة.", 500);
     }
@@ -144,7 +160,7 @@ export async function POST(request: Request) {
     const { data: publicData } = supabase.storage.from(bucket).getPublicUrl(storagePath);
     const imageUrl = publicData.publicUrl;
 
-    const { error: finishError } = await supabase.rpc("jib_ai_manager_finish_image_job", {
+    const { error: finishError } = await imageRpc.rpc("jib_ai_manager_finish_image_job", {
       p_job_id: jobId,
       p_image_url: imageUrl,
       p_storage_bucket: bucket,
@@ -170,7 +186,7 @@ export async function POST(request: Request) {
     if (jobId && supabase) {
       const safeMessage = error instanceof Error ? error.message.slice(0, 400) : "Image generation failed";
       try {
-        await supabase.rpc("jib_ai_manager_fail_image_job", {
+        await (supabase as unknown as ImageJobRpcClient).rpc("jib_ai_manager_fail_image_job", {
           p_job_id: jobId,
           p_error_message: safeMessage,
         });
