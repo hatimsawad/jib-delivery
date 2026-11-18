@@ -1,5 +1,5 @@
 {
-  "name": "@jib/admin",
+  "name": "@jib/manager",
   "version": "0.1.0",
   "private": true,
   "scripts": {
