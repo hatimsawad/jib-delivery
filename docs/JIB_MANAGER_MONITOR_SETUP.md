@@ -40,7 +40,8 @@ select cron.schedule(
           where name = 'jib_ai_manager_monitor_secret'
         )
       ),
-      body := jsonb_build_object('source', 'pg_cron')
+      body := jsonb_build_object('source', 'pg_cron'),
+      timeout_milliseconds := 20000
     );
   $job$
 );
