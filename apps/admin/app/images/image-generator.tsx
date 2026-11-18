@@ -78,7 +78,13 @@ export default function ImageGenerator({ initialJobs }: { initialJobs: ImageJob[
     setError("");
     setSuccess("");
     const supabase = createClient();
-    const { error: reviewError } = await supabase.rpc("jib_ai_manager_review_image_job", {
+    const imageRpc = supabase as unknown as {
+      rpc: (
+        functionName: "jib_ai_manager_review_image_job",
+        args: { p_job_id: string; p_approve: boolean },
+      ) => Promise<{ error: { message: string } | null }>;
+    };
+    const { error: reviewError } = await imageRpc.rpc("jib_ai_manager_review_image_job", {
       p_job_id: jobId,
       p_approve: approve,
     });
