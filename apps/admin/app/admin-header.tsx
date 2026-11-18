@@ -25,6 +25,7 @@ export default function AdminHeader() {
         <Link href="/stores">المتاجر</Link>
         <Link href="/products">المنتجات</Link>
         <Link href="/users">المستخدمون والمندوبون</Link>
+        <Link href="/monitoring">المراقبة والحوادث</Link>
         <Link href="/settings/notifications">إعدادات AI Manager</Link>
       </nav>
     </>
