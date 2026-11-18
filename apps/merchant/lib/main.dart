@@ -564,7 +564,7 @@ class _MerchantHomeState extends State<MerchantHome> {
                   const Padding(
                     padding: EdgeInsets.only(bottom: 4),
                     child: Text(
-                      'تقدير الصورة 0.02 دولار · حد الاستخدام 100 صورة شهرياً · لا تُنشر قبل موافقتك.',
+                      'تقدير الصورة 0.009 دولار · حد الاستخدام 100 صورة شهرياً · لا تُنشر قبل موافقتك.',
                       style: TextStyle(fontSize: 10, color: Color(0xFF82766F)),
                       textAlign: TextAlign.center,
                     ),
