@@ -125,6 +125,81 @@ export type Database = {
         }
         Relationships: []
       }
+      jib_ai_manager_health_checks: {
+        Row: {
+          checked_at: string
+          duration_ms: number
+          id: string
+          issues: Json
+          metrics: Json
+          status: string
+          website_status: number | null
+        }
+        Insert: {
+          checked_at?: string
+          duration_ms?: number
+          id?: string
+          issues?: Json
+          metrics?: Json
+          status: string
+          website_status?: number | null
+        }
+        Update: {
+          checked_at?: string
+          duration_ms?: number
+          id?: string
+          issues?: Json
+          metrics?: Json
+          status?: string
+          website_status?: number | null
+        }
+        Relationships: []
+      }
+      jib_ai_manager_events: {
+        Row: {
+          details: Json
+          event_type: string
+          fingerprint: string
+          first_seen_at: string
+          id: string
+          last_seen_at: string
+          message: string
+          occurrence_count: number
+          resolved_at: string | null
+          severity: string
+          status: string
+          title: string
+        }
+        Insert: {
+          details?: Json
+          event_type: string
+          fingerprint: string
+          first_seen_at?: string
+          id?: string
+          last_seen_at?: string
+          message: string
+          occurrence_count?: number
+          resolved_at?: string | null
+          severity: string
+          status?: string
+          title: string
+        }
+        Update: {
+          details?: Json
+          event_type?: string
+          fingerprint?: string
+          first_seen_at?: string
+          id?: string
+          last_seen_at?: string
+          message?: string
+          occurrence_count?: number
+          resolved_at?: string | null
+          severity?: string
+          status?: string
+          title?: string
+        }
+        Relationships: []
+      }
       order_events: {
         Row: {
           actor_id: string | null
@@ -434,7 +509,7 @@ export type Database = {
         Args: { p_new_status: string; p_order_id: string }
         Returns: undefined
       }
-      is_jib_admin: { Args: never; Returns: boolean }
+      jib_ai_manager_monitor_secret: { Args: never; Returns: string }\n      is_jib_admin: { Args: never; Returns: boolean }
       merchant_update_order_status: {
         Args: { p_new_status: string; p_order_id: string }
         Returns: undefined
