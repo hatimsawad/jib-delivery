@@ -7,19 +7,19 @@ export default function AdminHeader() {
       <header className="topbar">
         <Link href="/" className="brand brand-link">
           <span className="mark">J</span>
-          <span><strong>جيب JIB</strong><small>منصة التوصيل · الرباط</small></span>
+          <span><strong>JIB Manager</strong><small>مركز الإدارة والتشغيل · الرباط</small></span>
         </Link>
         <div className="top-actions">
-          <span className="status">مدير موثّق</span>
+          <span className="status">دخول إداري موثّق</span>
           <LogoutButton />
         </div>
       </header>
       <nav className="admin-nav" aria-label="التنقل الرئيسي">
-        <Link href="/">الرئيسية</Link>
+        <Link href="/">مركز القيادة</Link>
         <Link href="/orders">الطلبات</Link>
         <Link href="/stores">المتاجر</Link>
         <Link href="/products">المنتجات</Link>
-        <Link href="/users">المستخدمون</Link>
+        <Link href="/users">المستخدمون والمندوبون</Link>
       </nav>
     </>
   );
