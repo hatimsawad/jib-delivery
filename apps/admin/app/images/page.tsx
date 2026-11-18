@@ -25,7 +25,7 @@ export default async function ImagesPage() {
       ) : (
         <ImageGenerator initialJobs={(data ?? []) as unknown as ImageJob[]} />
       )}
-      <p className="manager-provider-note">الموديل: Black Forest Labs FLUX 3 Image عبر Vercel AI Gateway. التكلفة التقديرية 0.02 دولار للصورة، مع حد أقصى 100 طلب شهرياً. يعتمد الاستخدام على رصيد AI Gateway المتاح في حساب Vercel.</p>
+      <p className="manager-provider-note">الموديل: Black Forest Labs FLUX 3 Image Klein عبر Vercel AI Gateway. التكلفة التقديرية 0.009 دولار للصورة، مع حد أقصى 100 طلب شهرياً. يعتمد الاستخدام على رصيد AI Gateway المتاح في حساب Vercel.</p>
     </main>
   );
 }
