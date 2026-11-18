@@ -556,6 +556,14 @@ class _MerchantHomeState extends State<MerchantHome> {
                 ),
                 if (product != null) ...[
                   const SizedBox(height: 8),
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 4),
+                    child: Text(
+                      'تقدير الصورة 0.02 دولار · حد الاستخدام 100 صورة شهرياً · لا تُنشر قبل موافقتك.',
+                      style: TextStyle(fontSize: 10, color: Color(0xFF82766F)),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
                   OutlinedButton.icon(
                     onPressed: isGeneratingAiImage ? null : () async {
                       if (description.text.trim().isEmpty) {
@@ -640,6 +648,7 @@ class _MerchantHomeState extends State<MerchantHome> {
                                   'p_approve': true,
                                 });
                                 final approvedUrl = generatedImage!['imageUrl'].toString();
+                                await load();
                                 if (dialogContext.mounted) {
                                   setDialogState(() {
                                     currentImageUrl = approvedUrl;
