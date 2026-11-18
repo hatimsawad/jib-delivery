@@ -33,6 +33,7 @@ export default async function Home() {
     { href: "/stores", icon: "▣", title: "إدارة المتاجر", description: "اعتماد الشركاء ومراجعة النشاط" },
     { href: "/products", icon: "◇", title: "كتالوج المنتجات", description: "الأسعار والتوفر" },
     { href: "/users", icon: "♙", title: "الحسابات والمندوبون", description: "المستخدمون وطلبات الاعتماد" },
+    { href: "/images", icon: "✦", title: "استوديو الصور الذكي", description: "توليد صور المنتجات والمقالات ومراجعتها" },
   ];
 
   return (
