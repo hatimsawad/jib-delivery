@@ -1,6 +1,7 @@
 import { generateImage } from "ai";
 import { Buffer } from "node:buffer";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "../../../../types/database.types";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -47,7 +48,7 @@ function buildPrompt(type: "product" | "article", title: string, description: st
 
 export async function POST(request: Request) {
   let jobId: string | null = null;
-  let supabase: ReturnType<typeof createClient> | null = null;
+  let supabase: SupabaseClient<Database> | null = null;
 
   try {
     const authorization = request.headers.get("authorization") ?? "";
@@ -62,7 +63,7 @@ export async function POST(request: Request) {
       return jsonError("خدمة قاعدة البيانات غير مهيأة على الخادم.", 503);
     }
 
-    supabase = createClient(supabaseUrl, anonKey, {
+    supabase = createClient<Database>(supabaseUrl, anonKey, {
       auth: { persistSession: false, autoRefreshToken: false },
       global: { headers: { Authorization: `Bearer ${token}` } },
     });
