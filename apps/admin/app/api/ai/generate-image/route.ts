@@ -119,13 +119,6 @@ export async function POST(request: Request) {
   let supabase: SupabaseClient<Database> | null = null;
 
   try {
-    // Validate provider configuration before reserving a monthly image slot.
-    const cloudflareAccountId = process.env.CLOUDFLARE_ACCOUNT_ID?.trim() ?? "";
-    const cloudflareApiToken = process.env.CLOUDFLARE_API_TOKEN?.trim() ?? "";
-    if (!/^[a-f0-9]{32}$/i.test(cloudflareAccountId) || !cloudflareApiToken) {
-      return jsonError("مولّد الصور غير مربوط بعد أو أن Account ID غير صالح. أضف بيانات Cloudflare السرية الصحيحة إلى إعدادات Vercel ثم أعد النشر.", 503);
-    }
-
     const authorization = request.headers.get("authorization") ?? "";
     if (!authorization.startsWith("Bearer ")) {
       return jsonError("يجب تسجيل الدخول قبل إنشاء الصور.", 401);
@@ -158,6 +151,13 @@ export async function POST(request: Request) {
     }
     if (type === "article" && (!body.title?.trim() || !body.description?.trim())) {
       return jsonError("عنوان المقال وملخصه مطلوبان.", 400);
+    }
+
+    // Validate provider configuration before reserving a monthly image slot.
+    const cloudflareAccountId = process.env.CLOUDFLARE_ACCOUNT_ID?.trim() ?? "";
+    const cloudflareApiToken = process.env.CLOUDFLARE_API_TOKEN?.trim() ?? "";
+    if (!/^[a-f0-9]{32}$/i.test(cloudflareAccountId) || !cloudflareApiToken) {
+      return jsonError("مولّد الصور غير مربوط بعد أو أن Account ID غير صالح. أضف بيانات Cloudflare السرية الصحيحة إلى إعدادات Vercel ثم أعد النشر.", 503);
     }
 
     const imageRpc = supabase as unknown as ImageJobRpcClient;
