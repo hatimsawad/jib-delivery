@@ -46,9 +46,7 @@ begin
 
   if v_job.request_type = 'product' then
     if p_storage_bucket is distinct from 'product-images'
-       or p_storage_path !~ (
-         '^' || v_job.store_id::text || '/ai-drafts/' || p_job_id::text || '\\.(png|jpg|webp)$'
-       ) then
+       or p_storage_path is distinct from (v_job.store_id::text || '/ai-drafts/' || p_job_id::text || '.jpg') then
       raise exception 'Product image path does not match this job';
     end if;
   elsif v_job.request_type = 'article' then
@@ -56,9 +54,7 @@ begin
       raise exception 'Only admins can finalize article images';
     end if;
     if p_storage_bucket is distinct from 'article-images'
-       or p_storage_path !~ (
-         '^articles/' || p_job_id::text || '\\.(png|jpg|webp)$'
-       ) then
+       or p_storage_path is distinct from ('articles/' || p_job_id::text || '.jpg') then
       raise exception 'Article image path does not match this job';
     end if;
   else
