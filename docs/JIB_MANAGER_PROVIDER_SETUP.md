@@ -46,3 +46,21 @@ The notification destinations and preferred channels are already stored in the J
 - Product images are uploaded to `product-images` under the store's folder. Article covers use the admin-only `article-images` bucket.
 - All generated images are drafts. The merchant or admin must approve before a product's `image_url` is changed. AI-generated imagery must be labeled as such.
 - The first real image-generation request must be tested on the production Vercel domain after deployment. If OIDC authentication is unavailable, configure `AI_GATEWAY_API_KEY` as a Vercel server-side environment secret; never expose it to the mobile apps.
+
+
+## Notification dispatcher activation
+
+The Supabase Edge Function `jib-ai-manager-dispatch` is deployed and scheduled once per minute. It deliberately sends nothing unless `JIB_NOTIFICATIONS_ENABLED=true` and the relevant provider secrets exist. Provider credentials belong only in **Supabase Dashboard → Edge Functions → Secrets**; never commit them to GitHub or put them in Android apps.
+
+Required server-side secrets:
+
+- Email: `RESEND_API_KEY`, `RESEND_FROM_EMAIL` (the sender address must belong to a verified domain).
+- Twilio base: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`.
+- SMS: either `TWILIO_MESSAGING_SERVICE_SID` or `TWILIO_SMS_FROM` (use a sender approved for Morocco).
+- WhatsApp: `TWILIO_WHATSAPP_FROM`, `TWILIO_WHATSAPP_CONTENT_SID` (approved template with variables 1=title and 2=message).
+- Voice: `TWILIO_VOICE_FROM`, plus `JIB_VOICE_MONTHLY_BUDGET_USD`. Voice stays blocked if the budget is missing or zero.
+- Final activation switch: `JIB_NOTIFICATIONS_ENABLED=true`.
+
+Voice calls use Arabic (`ar-XA`) and French (`fr-FR`) speech. The dispatcher reserves USD 1.50 per Moroccan mobile call as a conservative one-minute allowance including a TTS buffer; actual provider charges can vary. Twilio's published mobile-call rate is a base rate and does not guarantee the total voice/TTS cost. Do not set a budget until the owner explicitly approves the spend.
+
+The dispatcher claims jobs with row locks, retries transient failures with backoff, recovers stale processing locks, and leaves unconfigured channels in `awaiting_provider`. WhatsApp production alerts require an approved template; Morocco SMS sender registration may take several weeks.
