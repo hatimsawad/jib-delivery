@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { createClient } from "../../lib/supabase/client";
 
-type ImageJob = {
+export type ImageJob = {
   id: string;
   request_type: string;
   title: string;
