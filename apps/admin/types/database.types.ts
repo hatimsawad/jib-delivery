@@ -510,6 +510,25 @@ export type Database = {
         Returns: undefined
       }
       jib_ai_manager_monitor_secret: { Args: never; Returns: string }
+      jib_order_timeline: {
+        Args: { p_order_id?: string | null }
+        Returns: {
+          order_id: string
+          current_stage: string
+          order_placed_at: string
+          merchant_accepted_at: string | null
+          preparation_started_at: string | null
+          ready_for_pickup_at: string | null
+          courier_assigned_at: string | null
+          picked_up_at: string | null
+          delivering_at: string | null
+          delivered_at: string | null
+          elapsed_seconds: number
+          expected_remaining_seconds: number | null
+          eta_confidence: string
+          estimated_delivery_at: string | null
+        }[]
+      }
       is_jib_admin: { Args: never; Returns: boolean }
       merchant_update_order_status: {
         Args: { p_new_status: string; p_order_id: string }
