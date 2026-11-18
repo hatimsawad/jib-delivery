@@ -16,6 +16,25 @@ alter table public.jib_ai_manager_settings
   add column if not exists notification_call_mode text not null default 'all_events',
   add column if not exists notification_voice_languages text[] not null default array['ar','fr']::text[];
 
+alter table public.jib_ai_manager_settings
+  drop constraint if exists jib_ai_manager_channels_check,
+  drop constraint if exists jib_ai_manager_settings_notification_call_mode_check,
+  drop constraint if exists jib_ai_manager_settings_notification_voice_languages_check;
+
+alter table public.jib_ai_manager_settings
+  add constraint jib_ai_manager_channels_check
+    check (
+      notification_channels @> array['email','sms','whatsapp','voice']::text[]
+      and cardinality(notification_channels) = 4
+    ),
+  add constraint jib_ai_manager_settings_notification_call_mode_check
+    check (notification_call_mode in ('critical_only','all_events')),
+  add constraint jib_ai_manager_settings_notification_voice_languages_check
+    check (
+      notification_voice_languages <@ array['ar','fr']::text[]
+      and cardinality(notification_voice_languages) between 1 and 2
+    );
+
 alter table public.jib_ai_manager_settings enable row level security;
 revoke all on table public.jib_ai_manager_settings from anon;
 grant select on table public.jib_ai_manager_settings to authenticated;
