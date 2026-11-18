@@ -1,5 +1,5 @@
-import AdminHeader from "../../../admin-header";
-import { requireAdmin } from "../../../admin-data";
+import AdminHeader from "../../admin-header";
+import { requireAdmin } from "../../admin-data";
 
 export const dynamic = "force-dynamic";
 
