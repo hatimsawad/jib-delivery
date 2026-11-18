@@ -8,8 +8,8 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 
-const IMAGE_MODEL = "bfl/flux-3-image";
-const ESTIMATED_COST_USD = 0.02;
+const IMAGE_MODEL = "bfl/flux-3-image-klein";
+const ESTIMATED_COST_USD = 0.009;
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
 type ImageRequest = {
@@ -115,9 +115,6 @@ export async function POST(request: Request) {
       model: IMAGE_MODEL,
       prompt,
       aspectRatio: type === "product" ? "1:1" : "16:9",
-      providerOptions: {
-        blackForestLabs: { resolution: "1k" },
-      },
     });
 
     if (!image.uint8Array?.byteLength || image.uint8Array.byteLength > MAX_IMAGE_BYTES) {
