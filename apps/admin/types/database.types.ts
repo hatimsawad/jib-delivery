@@ -471,6 +471,7 @@ export type Database = {
           description: string | null
           id: string
           image_url: string | null
+          image_is_ai_generated: boolean
           is_available: boolean
           name: string
           price_mad: number
@@ -482,6 +483,7 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          image_is_ai_generated?: boolean
           is_available?: boolean
           name: string
           price_mad: number
