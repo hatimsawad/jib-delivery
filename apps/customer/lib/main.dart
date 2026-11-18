@@ -313,7 +313,7 @@ class _CustomerHomeState extends State<CustomerHome> {
               ),
               Expanded(
                 child: FutureBuilder<List<Map<String, dynamic>>>(
-                  future: supabase.from('products').select('id,name,description,price_mad,image_url')
+                  future: supabase.from('products').select('id,name,description,price_mad,image_url,image_is_ai_generated')
                     .eq('store_id', store['id']).eq('is_available', true).order('name')
                     .then((rows) => List<Map<String, dynamic>>.from(rows)),
                   builder: (context, snapshot) {
@@ -330,7 +330,24 @@ class _CustomerHomeState extends State<CustomerHome> {
                           child: ListTile(
                             leading: _productImage(product['image_url'], size: 74),
                             title: Text(product['name'] as String? ?? '', style: const TextStyle(fontWeight: FontWeight.w800)),
-                            subtitle: Text('${product['price_mad']} درهم'),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('${product['price_mad']} درهم'),
+                                if (product['image_is_ai_generated'] == true)
+                                  const Padding(
+                                    padding: EdgeInsets.only(top: 3),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.auto_awesome, size: 11, color: jibRed),
+                                        SizedBox(width: 4),
+                                        Text('صورة مولدة بالذكاء الاصطناعي', style: TextStyle(fontSize: 10, color: Color(0xFF82766F))),
+                                      ],
+                                    ),
+                                  ),
+                              ],
+                            ),
                             trailing: IconButton(
                               icon: const Icon(Icons.add_circle, color: jibRed),
                               onPressed: () {
@@ -734,7 +751,14 @@ class _CustomerHomeState extends State<CustomerHome> {
           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           leading: _productImage(entry.value['image_url'], size: 66),
           title: Text(entry.value['name'] as String? ?? '', style: const TextStyle(fontWeight: FontWeight.w800)),
-          subtitle: Text('${entry.value['quantity']} × ${entry.value['price_mad']} درهم'),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('${entry.value['quantity']} × ${entry.value['price_mad']} درهم'),
+              if (entry.value['image_is_ai_generated'] == true)
+                const Text('صورة مولدة بالذكاء الاصطناعي', style: TextStyle(fontSize: 10, color: Color(0xFF82766F))),
+            ],
+          ),
           trailing: SizedBox(width: 126, child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
             IconButton(visualDensity: VisualDensity.compact, icon: const Icon(Icons.remove_circle_outline), onPressed: () => setState(() {
               final quantity = entry.value['quantity'] as int;
