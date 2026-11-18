@@ -35,3 +35,14 @@ The notification destinations and preferred channels are already stored in the J
 - Every new manager incident/activity is placed into a private, idempotent four-channel outbox. Jobs remain `awaiting_provider` and are not sent until credentials are configured and the owner approves activation.
 - Provider delivery: not configured; no paid messages or calls are sent.
 - AI image generation and AI code repair: not connected to an application model provider yet.
+
+
+## AI image generation
+
+- Provider: Vercel AI Gateway, using the existing `jib-admin` Vercel project identity (OIDC) where available; no separate Black Forest Labs account is required.
+- Model: `bfl/flux-3-image`.
+- Reference model price: USD 0.02 per generated image. Vercel currently advertises USD 5 of credits every 30 days for eligible free users; eligibility/billing settings must be confirmed in the Vercel account.
+- Safety cap in the database: 100 image requests per calendar month (reference spend USD 2 at the listed per-image price). Failed attempts also count toward the cap.
+- Product images are uploaded to `product-images` under the store's folder. Article covers use the admin-only `article-images` bucket.
+- All generated images are drafts. The merchant or admin must approve before a product's `image_url` is changed. AI-generated imagery must be labeled as such.
+- The first real image-generation request must be tested on the production Vercel domain after deployment. If OIDC authentication is unavailable, configure `AI_GATEWAY_API_KEY` as a Vercel server-side environment secret; never expose it to the mobile apps.
