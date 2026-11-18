@@ -14,6 +14,11 @@ jobs:
       - name: Install admin dependencies
         working-directory: apps/admin
         run: npm install
+      - name: Summarize admin dependency audit
+        working-directory: apps/admin
+        run: |
+          npm audit --json > /tmp/jib-admin-audit.json || true
+          node -e 'const r=require("/tmp/jib-admin-audit.json"); console.log("Audit summary:", JSON.stringify(r.metadata?.vulnerabilities ?? {})); for (const [name,v] of Object.entries(r.vulnerabilities ?? {})) console.log(`${v.severity}: ${name}; fixAvailable=${JSON.stringify(v.fixAvailable)}`)'
       - name: Build admin dashboard
         working-directory: apps/admin
         run: npm run build
