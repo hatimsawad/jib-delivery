@@ -89,6 +89,42 @@ export type Database = {
           },
         ]
       }
+      jib_ai_manager_settings: {
+        Row: {
+          created_at: string
+          id: number
+          notification_call_mode: string
+          notification_channels: string[]
+          notification_email: string
+          notification_phone: string
+          notification_phone_e164: string
+          notification_voice_languages: string[]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          notification_call_mode?: string
+          notification_channels?: string[]
+          notification_email: string
+          notification_phone: string
+          notification_phone_e164: string
+          notification_voice_languages?: string[]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          notification_call_mode?: string
+          notification_channels?: string[]
+          notification_email?: string
+          notification_phone?: string
+          notification_phone_e164?: string
+          notification_voice_languages?: string[]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       order_events: {
         Row: {
           actor_id: string | null
