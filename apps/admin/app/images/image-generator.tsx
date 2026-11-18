@@ -121,7 +121,7 @@ export default function ImageGenerator({ initialJobs }: { initialJobs: ImageJob[
                   <div className="image-job-placeholder">لا توجد صورة بعد</div>
                 )}
                 <div className="image-job-copy">
-                  <div className="image-job-title"><strong>{job.title}</strong><span className="status-pill">{statusLabels[job.status] ?? job.status}</span></div>
+                  <div className="image-job-title"><strong>{job.title}</strong><span className="ai-image-badge">AI GENERATED</span><span className="status-pill">{statusLabels[job.status] ?? job.status}</span></div>
                   <p>{job.request_type === "article" ? "غلاف مقال" : "صورة منتج"} · {new Date(job.created_at).toLocaleString("ar-MA", { timeZone: "Africa/Casablanca" })}</p>
                   {job.estimated_cost_usd != null && <small>التكلفة التقديرية: ${job.estimated_cost_usd.toFixed(3)}</small>}
                   {job.error_message && <small className="form-error">{job.error_message}</small>}
