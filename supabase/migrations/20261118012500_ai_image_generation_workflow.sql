@@ -88,7 +88,7 @@ begin
   if v_uid is null then raise exception 'Authentication required'; end if;
 
   select p.role into v_role from public.profiles p where p.id = v_uid;
-  if v_role not in ('merchant','admin') then raise exception 'Only merchants or admins can request image generation'; end if;
+  if v_role is null or v_role not in ('merchant','admin') then raise exception 'Only merchants or admins can request image generation'; end if;
 
   if p_request_type = 'product' then
     select pr.store_id, pr.id, pr.name, coalesce(pr.description, '')
@@ -106,7 +106,7 @@ begin
       raise exception 'Add the dish ingredients or description before generating an image';
     end if;
   elsif p_request_type = 'article' then
-    if v_role <> 'admin' then raise exception 'Only admins can generate article cover images'; end if;
+    if v_role is distinct from 'admin' then raise exception 'Only admins can generate article cover images'; end if;
     v_title := nullif(trim(p_title), '');
     v_description := nullif(trim(p_description), '');
     if v_title is null or v_description is null then
@@ -175,7 +175,7 @@ begin
     raise exception 'Not authorized to finish this image job';
   end if;
   if v_job.status <> 'generating' then raise exception 'Image job is not generating'; end if;
-  if p_image_url is null or p_storage_bucket not in ('product-images','article-images') or p_storage_path is null then
+  if p_image_url is null or p_storage_bucket is null or p_storage_bucket not in ('product-images','article-images') or p_storage_path is null then
     raise exception 'Generated image storage details are incomplete';
   end if;
 
@@ -259,7 +259,7 @@ begin
   if not found then raise exception 'Image job not found'; end if;
 
   if v_job.request_type = 'article' then
-    if v_role <> 'admin' then raise exception 'Only admins can review article images'; end if;
+    if v_role is distinct from 'admin' then raise exception 'Only admins can review article images'; end if;
   elsif v_role <> 'admin' and not exists (
     select 1 from public.stores s where s.id = v_job.store_id and s.owner_id = v_uid
   ) then
