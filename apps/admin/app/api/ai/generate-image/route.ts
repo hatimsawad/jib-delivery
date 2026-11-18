@@ -114,6 +114,8 @@ async function generateWithCloudflare(prompt: string): Promise<Uint8Array> {
 
 export async function POST(request: Request) {
   let jobId: string | null = null;
+  let uploadedBucket: string | null = null;
+  let uploadedStoragePath: string | null = null;
   let supabase: SupabaseClient<Database> | null = null;
 
   try {
@@ -195,6 +197,8 @@ export async function POST(request: Request) {
         upsert: false,
       });
     if (uploadError) throw new Error(`Image storage upload failed: ${uploadError.message}`);
+    uploadedBucket = bucket;
+    uploadedStoragePath = storagePath;
 
     const { data: publicData } = supabase.storage.from(bucket).getPublicUrl(storagePath);
     const imageUrl = publicData.publicUrl;
@@ -207,6 +211,8 @@ export async function POST(request: Request) {
       p_estimated_cost_usd: ESTIMATED_COST_USD,
     });
     if (finishError) throw new Error(`Could not finalize image job: ${finishError.message}`);
+    uploadedBucket = null;
+    uploadedStoragePath = null;
 
     return NextResponse.json({
       jobId,
@@ -219,6 +225,13 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     const code = error instanceof Error ? error.message : "UNKNOWN";
+    if (uploadedBucket && uploadedStoragePath && supabase) {
+      try {
+        await supabase.storage.from(uploadedBucket).remove([uploadedStoragePath]);
+      } catch {
+        console.error("[JIB AI image cleanup] Could not remove unfinalized image object.");
+      }
+    }
     if (jobId && supabase) {
       try {
         await (supabase as unknown as ImageJobRpcClient).rpc("jib_ai_manager_fail_image_job", {
