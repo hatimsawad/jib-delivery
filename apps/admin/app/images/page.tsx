@@ -1,6 +1,6 @@
 import AdminHeader from "../admin-header";
 import { requireAdmin } from "../admin-data";
-import ImageGenerator from "./image-generator";
+import ImageGenerator, { type ImageJob } from "./image-generator";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +23,7 @@ export default async function ImagesPage() {
       {error ? (
         <p className="error-state">تعذر تحميل طلبات الصور. تحقق من صلاحيات المدير واتصال قاعدة البيانات.</p>
       ) : (
-        <ImageGenerator initialJobs={(data ?? []) as never} />
+        <ImageGenerator initialJobs={(data ?? []) as unknown as ImageJob[]} />
       )}
       <p className="manager-provider-note">الموديل: Black Forest Labs FLUX 3 Image عبر Vercel AI Gateway. التكلفة التقديرية 0.02 دولار للصورة، مع حد أقصى 100 طلب شهرياً. يعتمد الاستخدام على رصيد AI Gateway المتاح في حساب Vercel.</p>
     </main>
