@@ -99,7 +99,7 @@ export default function ImageGenerator({ initialJobs }: { initialJobs: ImageJob[
   return (
     <div className="image-manager">
       <section className="list-panel">
-        <div className="section-heading"><h2>إنشاء غلاف مقال</h2><span className="count-chip">AI · 16:9</span></div>
+        <div className="section-heading"><h2>إنشاء غلاف مقال</h2><span className="count-chip">AI · 1:1</span></div>
         <p className="manager-provider-note">اكتب عنوان المقال وملخصه. سيُنشئ JIB صورة تحريرية مناسبة، ثم يعرضها للمراجعة قبل اعتمادها. الحد الحالي 100 طلب صورة شهرياً.</p>
         <form className="image-request-form" onSubmit={generateArticleCover}>
           <label htmlFor="article-title">عنوان المقال</label>
