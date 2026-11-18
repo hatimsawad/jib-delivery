@@ -44,26 +44,27 @@ function jsonError(message: string, status: number) {
 }
 
 function buildPrompt(type: "product" | "article", title: string, description: string) {
-  if (type === "product") {
-    return [
-      "Create one premium, photorealistic food photograph for a Moroccan food-delivery marketplace.",
-      `Dish name: ${title}.`,
-      `Ingredients and restaurant description: ${description}.`,
-      "Ingredient fidelity is essential: depict only the ingredients and preparation details supplied. Do not invent meat, seafood, dairy, nuts, sauces, toppings, or allergens that are not mentioned.",
-      "Show the finished dish as it would actually be served, appetizing but realistic, with natural textures, accurate proportions, soft studio daylight, and a clean neutral tabletop.",
-      "Single dish, centered composition, square 1:1 framing, high-end commercial restaurant photography.",
-      "No text, no typography, no menu labels, no logos, no watermarks, no packaging, no people, no extra dishes.",
-    ].join(" ");
-  }
+  const prompt = type === "product"
+    ? [
+        "Create one premium, photorealistic food photograph for a Moroccan food-delivery marketplace.",
+        `Dish name: ${title}.`,
+        `Ingredients and restaurant description: ${description}.`,
+        "Ingredient fidelity is essential: depict only the ingredients and preparation details supplied. Do not invent meat, seafood, dairy, nuts, sauces, toppings, or allergens that are not mentioned.",
+        "Show the finished dish as it would actually be served, appetizing but realistic, with natural textures, accurate proportions, soft studio daylight, and a clean neutral tabletop.",
+        "Single dish, centered composition, square 1:1 framing, high-end commercial restaurant photography.",
+        "No text, no typography, no menu labels, no logos, no watermarks, no packaging, no people, no extra dishes.",
+      ].join(" ")
+    : [
+        "Create one premium editorial cover image for a JIB article.",
+        `Article title: ${title}.`,
+        `Article summary and context: ${description}.`,
+        "Create a clear visual metaphor for the article's central idea, with a refined modern Moroccan editorial feel, strong subject hierarchy, natural lighting, and polished composition.",
+        "Compose the subject centrally so the square image can be safely cropped for article cards.",
+        "No text, no typography, no logos, no watermarks, no fabricated charts or labels.",
+      ].join(" ");
 
-  return [
-    "Create one premium editorial cover image for a JIB article.",
-    `Article title: ${title}.`,
-    `Article summary and context: ${description}.`,
-    "Create a clear visual metaphor for the article's central idea, with a refined modern Moroccan editorial feel, strong subject hierarchy, natural lighting, and polished composition.",
-    "Compose the subject centrally so the square image can be safely cropped for article cards.",
-    "No text, no typography, no logos, no watermarks, no fabricated charts or labels.",
-  ].join(" ").slice(0, 2048);
+  // Cloudflare FLUX.1 Schnell accepts prompts up to 2,048 characters.
+  return prompt.slice(0, 2048);
 }
 
 async function generateWithCloudflare(prompt: string): Promise<Uint8Array> {
