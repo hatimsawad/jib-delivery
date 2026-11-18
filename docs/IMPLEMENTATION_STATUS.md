@@ -29,11 +29,11 @@ Last updated: 2026-11-18
 - Enabled `pg_cron` and `pg_net`, stored the monitor endpoint, publishable API key and a private monitor token in Supabase Vault, and scheduled the health check every five minutes.
 - Verified a manual scheduled-function invocation end to end: the JIB Manager endpoint returned HTTP 200, Supabase reads and the product image bucket check succeeded, and the latest recorded health status was `healthy` (one order, one active store, one product and one active courier at that check).
 - Added the admin-only monitoring page at `/monitoring` and navigation entry, with a readable incident/activity feed.
-- Added database triggers that record order status events and store/product create/update/delete activity without copying customer PII. Trigger behavior was tested in transactions that were rolled back.
+- Added database triggers that record order status events, store/product create/update/delete activity, profile-role changes and courier application/approval changes without copying customer contact details. Trigger behavior was tested in rolled-back transactions.
 - Added a RLS-respecting batched order timeline RPC. Courier assignment is now a distinct timestamp (the duplicate historical ready-for-pickup event was corrected). Customer, merchant and courier app screens now request and display elapsed/remaining time and stage timestamps; final Flutter CI verification is pending. ETA uses a labeled baseline until at least five completed visible orders are available, then uses historical medians.
 - Optimized RLS auth checks and consolidated additive SELECT policies. Supabase Performance Advisor no longer reports auth-initplan or multiple-permissive-policy warnings; only unused-index informational suggestions remain.
 - Verified the scheduled cron execution succeeded and created a second healthy check at HTTP 200.
-- Added a private idempotent notification outbox. Every new operational incident/activity is queued for the four selected channels and remains `awaiting_provider`; no sender runs and no paid messages/calls are sent until accounts, credentials and owner approval exist.
+- Added a private idempotent notification outbox. Every new operational incident/activity is queued for the four selected channels and remains `awaiting_provider`; the test transaction confirmed four channel jobs are created and rolled back cleanly. No sender runs and no paid messages/calls are sent until accounts, credentials and owner approval exist.
 - The monitor does not yet deliver email, SMS, WhatsApp or voice notifications. Provider credentials are not configured.
 
 ## Existing backend capabilities
