@@ -33,7 +33,7 @@ Last updated: 2026-11-18
 - Added a RLS-respecting batched order timeline RPC. Courier assignment is now a distinct timestamp (the duplicate historical ready-for-pickup event was corrected). Customer, merchant and courier app screens now request and display elapsed/remaining time and stage timestamps; final Flutter CI verification is pending. ETA uses a labeled baseline until at least five completed visible orders are available, then uses historical medians.
 - Optimized RLS auth checks and consolidated additive SELECT policies. Supabase Performance Advisor no longer reports auth-initplan or multiple-permissive-policy warnings; only unused-index informational suggestions remain.
 - Verified the scheduled cron execution succeeded and created a second healthy check at HTTP 200.
-- Added a private idempotent notification outbox. Every new operational incident/activity is queued for the four selected channels and remains `awaiting_provider`; the test transaction confirmed four channel jobs are created and rolled back cleanly. No sender runs and no paid messages/calls are sent until accounts, credentials and owner approval exist.
+- Added a private idempotent notification outbox. Every new operational incident/activity and every resolved incident is queued for the four selected channels and remains `awaiting_provider`; rolled-back tests confirmed four jobs per event and resolution. No sender runs and no paid messages/calls are sent until accounts, credentials and owner approval exist.
 - The monitor does not yet deliver email, SMS, WhatsApp or voice notifications. Provider credentials are not configured.
 
 ## Existing backend capabilities
