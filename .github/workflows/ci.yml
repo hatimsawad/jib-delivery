@@ -18,7 +18,13 @@ jobs:
         working-directory: apps/admin
         run: |
           npm audit --json > /tmp/jib-admin-audit.json || true
-          node -e 'const r=require("/tmp/jib-admin-audit.json"); console.log("Audit summary:", JSON.stringify(r.metadata?.vulnerabilities ?? {})); for (const [name,v] of Object.entries(r.vulnerabilities ?? {})) console.log(`${v.severity}: ${name}; fixAvailable=${JSON.stringify(v.fixAvailable)}`)'
+          node -e 'const r=require("/tmp/jib-admin-audit.json"); console.log("Audit summary:", JSON.stringify(r.metadata?.vulnerabilities ?? {})); for (const [name,v] of Object.entries(r.vulnerabilities ?? {})) console.log(`${v.severity}: ${name}; range=${v.range}; via=${JSON.stringify(v.via)}; fixAvailable=${JSON.stringify(v.fixAvailable)}`)'
+      - name: Upload admin dependency audit report
+        uses: actions/upload-artifact@v4
+        with:
+          name: jib-admin-npm-audit
+          path: /tmp/jib-admin-audit.json
+          if-no-files-found: error
       - name: Build admin dashboard
         working-directory: apps/admin
         run: npm run build
