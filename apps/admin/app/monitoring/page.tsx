@@ -28,7 +28,9 @@ type ManagerEvent = {
   last_seen_at: string;
 };
 
-const severityLabels = { info: "معلومة", warning: "تحذير", critical: "حرج" } as const;\n\nconst statusLabels = {
+const severityLabels = { info: "معلومة", warning: "تحذير", critical: "حرج" } as const;
+
+const statusLabels = {
   healthy: "سليم",
   degraded: "يحتاج مراجعة",
   down: "متوقف أو غير متاح",
@@ -120,11 +122,11 @@ export default async function MonitoringPage() {
         {events.length === 0 ? (
           <div className="empty-state"><strong>لا توجد حوادث مسجلة</strong><span>سيظهر هنا أي فشل في الموقع أو قراءة قاعدة البيانات.</span></div>
         ) : (
-          <div className="manager-channel-list">
+          <div className="manager-event-list">
             {events.map((event) => (
-              <article className="manager-channel" key={event.id}>
-                <strong>{event.title}</strong>
-                <span>{event.message}</span>
+              <article className={`manager-event manager-event-${event.severity}`} key={event.id}>
+                <div className="manager-event-heading"><strong>{event.title}</strong><span>{severityLabels[event.severity]}</span></div>
+                <p>{event.message}</p>
                 <small>{event.status === "open" ? "مفتوح" : event.status === "resolved" ? "تم الحل" : "تمت المراجعة"} · تكرر {event.occurrence_count} مرة · {formatDate(event.last_seen_at)}</small>
               </article>
             ))}
