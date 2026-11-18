@@ -60,15 +60,15 @@ tbody tr:last-child td{border-bottom:0}
 /* AI image studio */
 .image-manager { display: grid; gap: 22px; }
 .image-request-form { display: grid; gap: 10px; max-width: 760px; }
-.image-request-form label { font-weight: 750; color: var(--foreground); }
+.image-request-form label { font-weight: 750; color: var(--ink); }
 .image-request-form input,
 .image-request-form textarea {
   width: 100%;
   border: 1px solid var(--line);
   border-radius: 13px;
   padding: 12px 14px;
-  background: var(--surface);
-  color: var(--foreground);
+  background: #fff;
+  color: var(--ink);
   font: inherit;
 }
 .image-request-form textarea { resize: vertical; min-height: 110px; }
@@ -77,7 +77,7 @@ tbody tr:last-child td{border-bottom:0}
   border: 0;
   border-radius: 12px;
   padding: 11px 16px;
-  background: var(--accent);
+  background: var(--red);
   color: white;
   font: inherit;
   font-weight: 800;
@@ -85,17 +85,17 @@ tbody tr:last-child td{border-bottom:0}
 }
 .image-request-form button:disabled { opacity: .55; cursor: wait; }
 .image-job-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
-.image-job-card { overflow: hidden; border: 1px solid var(--line); border-radius: 18px; background: var(--surface); }
-.image-job-card > img { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover; background: var(--surface-muted); }
-.image-job-placeholder { display: grid; place-items: center; width: 100%; aspect-ratio: 16 / 10; color: var(--muted); background: var(--surface-muted); }
+.image-job-card { overflow: hidden; border: 1px solid var(--line); border-radius: 18px; background: #fff; }
+.image-job-card > img { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover; background: #f4f4f2; }
+.image-job-placeholder { display: grid; place-items: center; width: 100%; aspect-ratio: 16 / 10; color: var(--muted); background: #f4f4f2; }
 .image-job-copy { display: grid; gap: 8px; padding: 14px; }
 .image-job-title { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
 .image-job-copy p { margin: 0; color: var(--muted); font-size: 12px; }
 .image-job-copy small { color: var(--muted); font-size: 11px; }
-.image-job-copy a { color: var(--accent); font-weight: 750; }
+.image-job-copy a { color: var(--red); font-weight: 750; }
 .image-job-actions { display: flex; gap: 8px; margin-top: 4px; }
 .image-job-actions button { flex: 1; }
-.image-job-actions .secondary-button { background: var(--surface-muted); color: var(--foreground); border: 1px solid var(--line); }
+.image-job-actions .secondary-button { background: #f4f4f2; color: var(--ink); border: 1px solid var(--line); }
 .success-state { padding: 12px 14px; border-radius: 12px; background: #eaf8ef; color: #176b36; font-weight: 700; }
 @media (max-width: 640px) {
   .image-job-title { flex-direction: column; }
