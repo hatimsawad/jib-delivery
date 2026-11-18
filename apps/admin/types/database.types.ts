@@ -200,6 +200,59 @@ export type Database = {
         }
         Relationships: []
       }
+      jib_ai_manager_notification_outbox: {
+        Row: {
+          attempts: number
+          blocked_reason: string | null
+          channel: string
+          created_at: string
+          event_id: string
+          id: string
+          next_attempt_at: string | null
+          payload: Json
+          provider_message_id: string | null
+          recipient: string | null
+          sent_at: string | null
+          status: string
+        }
+        Insert: {
+          attempts?: number
+          blocked_reason?: string | null
+          channel: string
+          created_at?: string
+          event_id: string
+          id?: string
+          next_attempt_at?: string | null
+          payload?: Json
+          provider_message_id?: string | null
+          recipient?: string | null
+          sent_at?: string | null
+          status?: string
+        }
+        Update: {
+          attempts?: number
+          blocked_reason?: string | null
+          channel?: string
+          created_at?: string
+          event_id?: string
+          id?: string
+          next_attempt_at?: string | null
+          payload?: Json
+          provider_message_id?: string | null
+          recipient?: string | null
+          sent_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jib_ai_manager_notification_outbox_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "jib_ai_manager_events"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       order_events: {
         Row: {
           actor_id: string | null
