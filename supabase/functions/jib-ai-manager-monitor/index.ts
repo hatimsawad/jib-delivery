@@ -83,9 +83,10 @@ Deno.serve(async (request: Request) => {
     countRows(admin, "products"),
     countRows(admin, "courier_profiles", (query) => query.eq("is_active", true)),
     admin.from("jib_ai_manager_settings")
-      .select("id,notification_channels")
+      .select("id,notification_channels,notification_call_mode,notification_voice_languages")
       .eq("id", 1)
       .maybeSingle(),
+    admin.storage.getBucket("product-images"),
   ]);
 
   const checks: Record<string, CheckResult> = { orders, stores, products, couriers };
@@ -93,6 +94,11 @@ Deno.serve(async (request: Request) => {
     if (result.error) issues.push(`database_${name}_query_failed`);
   }
   if (settings.error || !settings.data) issues.push("manager_settings_unavailable");
+  if (bucket.error || !bucket.data) issues.push("storage_product_images_bucket_unavailable");
+  const expectedChannels = ["email", "sms", "whatsapp", "voice"];
+  if (settings.data && expectedChannels.some((channel) => !settings.data.notification_channels.includes(channel))) {
+    issues.push("notification_channels_incomplete");
+  }
 
   const databaseDown = Object.values(checks).some((result) => result.error) || Boolean(settings.error);
   const status = databaseDown ? "down" : issues.length > 0 ? "degraded" : "healthy";
@@ -102,6 +108,9 @@ Deno.serve(async (request: Request) => {
     products: products.count,
     active_couriers: couriers.count,
     notification_channels: settings.data?.notification_channels ?? [],
+    call_mode: settings.data?.notification_call_mode ?? null,
+    voice_languages: settings.data?.notification_voice_languages ?? [],
+    product_image_bucket_available: Boolean(bucket.data) && !bucket.error,
     provider_delivery_configured: false,
   };
   const durationMs = Date.now() - startedAt;
