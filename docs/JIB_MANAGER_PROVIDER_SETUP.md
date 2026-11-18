@@ -32,5 +32,6 @@ The notification destinations and preferred channels are already stored in the J
 
 - Email/SMS/WhatsApp/voice preferences: saved.
 - Scheduled JIB website/database health monitoring: active every five minutes.
+- Every new manager incident/activity is placed into a private, idempotent four-channel outbox. Jobs remain `awaiting_provider` and are not sent until credentials are configured and the owner approves activation.
 - Provider delivery: not configured; no paid messages or calls are sent.
 - AI image generation and AI code repair: not connected to an application model provider yet.
