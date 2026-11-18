@@ -1,4 +1,3 @@
-import { generateImage } from "ai";
 import { Buffer } from "node:buffer";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "../../../../types/database.types";
@@ -8,8 +7,9 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 
-const IMAGE_MODEL = "bfl/flux-3-image-klein";
-const ESTIMATED_COST_USD = 0.009;
+const IMAGE_MODEL = "cloudflare/@cf/black-forest-labs/flux-1-schnell";
+const CLOUDFLARE_MODEL = "@cf/black-forest-labs/flux-1-schnell";
+const ESTIMATED_COST_USD = 0.0005;
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
 type ReservedImageJob = {
@@ -31,6 +31,12 @@ type ImageRequest = {
   productId?: string;
   title?: string;
   description?: string;
+};
+
+type CloudflareImageResponse = {
+  success?: boolean;
+  errors?: Array<{ message?: string }>;
+  result?: { image?: string };
 };
 
 function jsonError(message: string, status: number) {
@@ -55,9 +61,54 @@ function buildPrompt(type: "product" | "article", title: string, description: st
     `Article title: ${title}.`,
     `Article summary and context: ${description}.`,
     "Create a clear visual metaphor for the article's central idea, with a refined modern Moroccan editorial feel, strong subject hierarchy, natural lighting, and polished composition.",
-    "Landscape 16:9 framing suitable for a website article cover.",
+    "Compose the subject centrally so the square image can be safely cropped for article cards.",
     "No text, no typography, no logos, no watermarks, no fabricated charts or labels.",
   ].join(" ");
+}
+
+async function generateWithCloudflare(prompt: string): Promise<Uint8Array> {
+  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID?.trim();
+  const apiToken = process.env.CLOUDFLARE_API_TOKEN?.trim();
+  if (!accountId || !apiToken) {
+    throw new Error("CLOUDFLARE_NOT_CONFIGURED");
+  }
+
+  const response = await fetch(
+    `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${CLOUDFLARE_MODEL}`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ prompt, steps: 4 }),
+      signal: AbortSignal.timeout(50_000),
+      cache: "no-store",
+    },
+  );
+
+  const payload = (await response.json().catch(() => null)) as CloudflareImageResponse | null;
+  const imageBase64 = payload?.result?.image;
+  if (!response.ok || payload?.success === false || !imageBase64) {
+    const providerMessage = payload?.errors?.map((item) => item.message).filter(Boolean).join("; ");
+    console.error("[JIB Cloudflare AI]", {
+      status: response.status,
+      errors: providerMessage ?? "No image returned",
+    });
+    if (response.status === 401 || response.status === 403) {
+      throw new Error("CLOUDFLARE_AUTH_FAILED");
+    }
+    if (response.status === 429) {
+      throw new Error("CLOUDFLARE_QUOTA_OR_RATE_LIMIT");
+    }
+    throw new Error("CLOUDFLARE_GENERATION_FAILED");
+  }
+
+  const image = Buffer.from(imageBase64, "base64");
+  if (!image.byteLength || image.byteLength > MAX_IMAGE_BYTES) {
+    throw new Error("Generated image is empty or exceeds the 5 MB storage limit.");
+  }
+  return new Uint8Array(image);
 }
 
 export async function POST(request: Request) {
@@ -65,6 +116,11 @@ export async function POST(request: Request) {
   let supabase: SupabaseClient<Database> | null = null;
 
   try {
+    // Validate provider configuration before reserving a monthly image slot.
+    if (!process.env.CLOUDFLARE_ACCOUNT_ID?.trim() || !process.env.CLOUDFLARE_API_TOKEN?.trim()) {
+      return jsonError("مولّد الصور غير مربوط بعد. أضف CLOUDFLARE_ACCOUNT_ID و CLOUDFLARE_API_TOKEN إلى إعدادات Vercel ثم أعد النشر.", 503);
+    }
+
     const authorization = request.headers.get("authorization") ?? "";
     if (!authorization.startsWith("Bearer ")) {
       return jsonError("يجب تسجيل الدخول قبل إنشاء الصور.", 401);
@@ -92,7 +148,6 @@ export async function POST(request: Request) {
     if (type !== "product" && type !== "article") {
       return jsonError("نوع طلب الصورة غير صالح.", 400);
     }
-
     if (type === "product" && !body.productId) {
       return jsonError("معرّف المنتج مطلوب.", 400);
     }
@@ -100,7 +155,6 @@ export async function POST(request: Request) {
       return jsonError("عنوان المقال وملخصه مطلوبان.", 400);
     }
 
-    // Keep the RPC boundary explicit until generated Supabase types are refreshed from the live schema.
     const imageRpc = supabase as unknown as ImageJobRpcClient;
     const { data: reserved, error: reserveError } = await imageRpc.rpc(
       "jib_ai_manager_reserve_image_job",
@@ -121,45 +175,26 @@ export async function POST(request: Request) {
     }
 
     const job = (Array.isArray(reserved) ? reserved[0] : reserved) as ReservedImageJob | null;
-    if (!job?.job_id) {
-      return jsonError("تعذر حجز طلب إنشاء الصورة.", 500);
-    }
+    if (!job?.job_id) return jsonError("تعذر حجز طلب إنشاء الصورة.", 500);
     jobId = String(job.job_id);
 
     const prompt = buildPrompt(type, String(job.title), String(job.description));
-    const { image } = await generateImage({
-      model: IMAGE_MODEL,
-      prompt,
-      aspectRatio: type === "product" ? "1:1" : "16:9",
-    });
-
-    if (!image.uint8Array?.byteLength || image.uint8Array.byteLength > MAX_IMAGE_BYTES) {
-      throw new Error("Generated image is empty or exceeds the 5 MB storage limit.");
-    }
-    if (!["image/png", "image/jpeg", "image/webp"].includes(image.mediaType)) {
-      throw new Error("Generated image format is not allowed by JIB storage.");
-    }
-
+    const imageBytes = await generateWithCloudflare(prompt);
     const bucket = type === "product" ? "product-images" : "article-images";
-    const extension = image.mediaType === "image/jpeg" ? "jpg" : image.mediaType === "image/webp" ? "webp" : "png";
     const storagePath = type === "product"
-      ? `${job.store_id}/ai-drafts/${jobId}.${extension}`
-      : `articles/${jobId}.${extension}`;
+      ? `${job.store_id}/ai-drafts/${jobId}.jpg`
+      : `articles/${jobId}.jpg`;
 
     const { error: uploadError } = await supabase.storage
       .from(bucket)
-      .upload(storagePath, Buffer.from(image.uint8Array), {
-        contentType: image.mediaType || "image/png",
+      .upload(storagePath, Buffer.from(imageBytes), {
+        contentType: "image/jpeg",
         upsert: false,
       });
-
-    if (uploadError) {
-      throw new Error(`Image storage upload failed: ${uploadError.message}`);
-    }
+    if (uploadError) throw new Error(`Image storage upload failed: ${uploadError.message}`);
 
     const { data: publicData } = supabase.storage.from(bucket).getPublicUrl(storagePath);
     const imageUrl = publicData.publicUrl;
-
     const { error: finishError } = await imageRpc.rpc("jib_ai_manager_finish_image_job", {
       p_job_id: jobId,
       p_image_url: imageUrl,
@@ -168,10 +203,7 @@ export async function POST(request: Request) {
       p_model: IMAGE_MODEL,
       p_estimated_cost_usd: ESTIMATED_COST_USD,
     });
-
-    if (finishError) {
-      throw new Error(`Could not finalize image job: ${finishError.message}`);
-    }
+    if (finishError) throw new Error(`Could not finalize image job: ${finishError.message}`);
 
     return NextResponse.json({
       jobId,
@@ -183,18 +215,28 @@ export async function POST(request: Request) {
       approvalRequired: true,
     });
   } catch (error) {
+    const code = error instanceof Error ? error.message : "UNKNOWN";
     if (jobId && supabase) {
-      const safeMessage = error instanceof Error ? error.message.slice(0, 400) : "Image generation failed";
       try {
         await (supabase as unknown as ImageJobRpcClient).rpc("jib_ai_manager_fail_image_job", {
           p_job_id: jobId,
-          p_error_message: safeMessage,
+          p_error_message: code.slice(0, 400),
         });
       } catch {
         // Preserve the original generation error if the failure logger is unavailable.
       }
     }
+
+    if (code === "CLOUDFLARE_NOT_CONFIGURED") {
+      return jsonError("مولّد الصور غير مربوط بعد. أضف بيانات Cloudflare السرية إلى إعدادات Vercel.", 503);
+    }
+    if (code === "CLOUDFLARE_AUTH_FAILED") {
+      return jsonError("رفض Cloudflare بيانات الربط. تحقق من Account ID وصلاحيات Workers AI في API Token.", 502);
+    }
+    if (code === "CLOUDFLARE_QUOTA_OR_RATE_LIMIT") {
+      return jsonError("وصل Cloudflare إلى حد الاستخدام أو معدل الطلبات. انتظر تجدد الحصة ثم أعد المحاولة.", 429);
+    }
     console.error("[JIB AI image generation]", error);
-    return jsonError("تعذر إنشاء الصورة حالياً. تحقق من ربط AI Gateway ثم أعد المحاولة.", 503);
+    return jsonError("تعذر إنشاء الصورة حالياً عبر Cloudflare Workers AI. حاول مجدداً لاحقاً.", 503);
   }
 }
