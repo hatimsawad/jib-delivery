@@ -1,0 +1,2 @@
+[functions.jib-ai-manager-monitor]
+verify_jwt = false
