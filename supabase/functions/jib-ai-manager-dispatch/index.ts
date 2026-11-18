@@ -9,7 +9,7 @@ type OutboxRow = {
 };
 
 const OUTBOX = "jib_ai_manager_notification_outbox";
-const VOICE_MOROCCO_MOBILE_PER_MINUTE_USD = 1.0748;
+const VOICE_RESERVE_PER_CALL_USD = 1.5; // Conservative 1-minute mobile call reserve including a TTS buffer.
 const MAX_ATTEMPTS = 5;
 
 const json = (body: unknown, status = 200) =>
@@ -63,7 +63,7 @@ function frenchEventSummary(eventType: string, severity: string): string {
 function buildVoiceTwiML(row: OutboxRow): string {
   const payload = row.payload ?? {};
   const title = textValue(payload.title, "تنبيه من JIB");
-  const message = textValue(payload.message, title).slice(0, 600);
+  const message = textValue(payload.message, title).slice(0, 450);
   const eventType = textValue(payload.event_type, "system_update");
   const severity = textValue(payload.severity, "info");
   const languages = Array.isArray(payload.voice_languages)
@@ -220,7 +220,7 @@ async function markSent(
     next_attempt_at: null,
     locked_at: null,
     blocked_reason: null,
-    estimated_cost_usd: row.channel === "voice" ? VOICE_MOROCCO_MOBILE_PER_MINUTE_USD : 0,
+    estimated_cost_usd: row.channel === "voice" ? VOICE_RESERVE_PER_CALL_USD : 0,
   }).eq("id", row.id);
 }
 
@@ -287,8 +287,8 @@ Deno.serve(async (request: Request) => {
       .eq("channel", "voice")
       .in("status", ["sent", "processing"])
       .gte("created_at", monthStart);
-    const estimatedSpent = (count ?? 0) * VOICE_MOROCCO_MOBILE_PER_MINUTE_USD;
-    voiceLimit = Math.min(2, Math.max(0, Math.floor((voiceBudget - estimatedSpent) / VOICE_MOROCCO_MOBILE_PER_MINUTE_USD)));
+    const estimatedSpent = (count ?? 0) * VOICE_RESERVE_PER_CALL_USD;
+    voiceLimit = Math.min(2, Math.max(0, Math.floor((voiceBudget - estimatedSpent) / VOICE_RESERVE_PER_CALL_USD)));
     if (voiceLimit === 0) {
       await admin.from(OUTBOX).update({ blocked_reason: "voice_monthly_budget_reached" })
         .eq("channel", "voice").eq("status", "awaiting_provider");
