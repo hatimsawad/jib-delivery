@@ -28,7 +28,7 @@ type ManagerEvent = {
   last_seen_at: string;
 };
 
-const statusLabels = {
+const severityLabels = { info: "معلومة", warning: "تحذير", critical: "حرج" } as const;\n\nconst statusLabels = {
   healthy: "سليم",
   degraded: "يحتاج مراجعة",
   down: "متوقف أو غير متاح",
