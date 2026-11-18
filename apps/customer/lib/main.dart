@@ -570,9 +570,47 @@ class _CustomerHomeState extends State<CustomerHome> {
     );
   }
 
+  Future<List<Map<String, dynamic>>> _loadOrdersWithTimeline() async {
+    final rows = await supabase
+        .from('orders')
+        .select('id,status,total_mad,created_at,stores(name)')
+        .order('created_at', ascending: false)
+        .limit(50);
+    if (rows.isEmpty) return [];
+
+    final rawTimelines = await supabase.rpc('jib_order_timeline');
+    final timelines = <String, Map<String, dynamic>>{};
+    for (final raw in rawTimelines as List<dynamic>) {
+      final item = Map<String, dynamic>.from(raw as Map);
+      timelines[item['order_id'].toString()] = item;
+    }
+
+    return rows.map((raw) {
+      final order = Map<String, dynamic>.from(raw);
+      order['timeline'] = timelines[order['id'].toString()];
+      return order;
+    }).toList();
+  }
+
+  String _durationLabel(dynamic rawSeconds) {
+    if (rawSeconds == null) return 'غير متاح';
+    final seconds = (rawSeconds as num).toInt();
+    if (seconds <= 0) return 'اكتمل';
+    final minutes = (seconds / 60).ceil();
+    if (minutes < 60) return '$minutes دقيقة';
+    final hours = minutes ~/ 60;
+    final remainder = minutes % 60;
+    return remainder == 0 ? '$hours ساعة' : '$hours س و$remainder د';
+  }
+
+  String _timeLabel(dynamic rawTime) {
+    if (rawTime == null) return '—';
+    final value = DateTime.parse(rawTime.toString()).toLocal();
+    return '${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}';
+  }
+
   Widget _orders() => FutureBuilder<List<Map<String, dynamic>>>(
-    future: supabase.from('orders').select('id,status,total_mad,created_at,stores(name)')
-        .order('created_at', ascending: false),
+    future: _loadOrdersWithTimeline(),
     builder: (context, snapshot) {
       if (snapshot.connectionState == ConnectionState.waiting) {
         return const Center(child: CircularProgressIndicator());
@@ -590,6 +628,7 @@ class _CustomerHomeState extends State<CustomerHome> {
           children: rows.map((order) {
             final status = order['status'].toString();
             final orderId = order['id'].toString();
+            final timeline = order['timeline'] as Map<String, dynamic>?;
             return Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -631,6 +670,43 @@ class _CustomerHomeState extends State<CustomerHome> {
                     ),
                     const SizedBox(height: 18),
                     _orderProgress(status),
+                    if (timeline != null) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8F5F2),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Row(
+                              children: [
+                                const Expanded(child: Text('الوقت المنقضي', style: TextStyle(fontSize: 11, color: Color(0xFF82766F)))),
+                                Text(_durationLabel(timeline['elapsed_seconds']), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12)),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Row(
+                              children: [
+                                const Expanded(child: Text('الوقت المتوقع المتبقي', style: TextStyle(fontSize: 11, color: Color(0xFF82766F)))),
+                                Text(_durationLabel(timeline['expected_remaining_seconds']), style: const TextStyle(color: jibRed, fontWeight: FontWeight.w900, fontSize: 12)),
+                              ],
+                            ),
+                            if (timeline['estimated_delivery_at'] != null) ...[
+                              const SizedBox(height: 6),
+                              Text('موعد التسليم المتوقع: ${_timeLabel(timeline['estimated_delivery_at'])}', style: const TextStyle(fontSize: 11, color: Color(0xFF82766F))),
+                            ],
+                            if (timeline['eta_confidence'] == 'baseline')
+                              const Padding(
+                                padding: EdgeInsets.only(top: 5),
+                                child: Text('تقدير أولي يتحسن مع تراكم بيانات التوصيل.', style: TextStyle(fontSize: 10, color: Color(0xFF82766F))),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 8),
                     Text(
                       _statusLabel(status),
