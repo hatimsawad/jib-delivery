@@ -73,3 +73,12 @@ Last updated: 2026-11-18
 10. Run a controlled Rabat pilot with consenting merchants and couriers before public launch.
 
 A feature is complete only after code, CI, security checks and a real integration test support that claim. This is not yet a production-ready delivery service.
+
+
+## Notification dispatch status (2026-11-18)
+
+- Supabase Edge Function `jib-ai-manager-dispatch` is deployed and scheduled every minute.
+- It uses a separate Vault-held dispatch secret, service-role-only claim RPC, row locking, retry backoff, stale-lock recovery, and per-channel provider detection.
+- It remains intentionally inert until `JIB_NOTIFICATIONS_ENABLED=true` and provider secrets are configured. No email, SMS, WhatsApp message, or voice call has been sent.
+- Voice is additionally blocked until `JIB_VOICE_MONTHLY_BUDGET_USD` is set. The dispatcher reserves USD 1.50 per Moroccan mobile call as a conservative allowance; actual call/TTS charges can vary.
+- WhatsApp requires a configured approved Content Template SID; Morocco SMS sender registration is a separate prerequisite.
