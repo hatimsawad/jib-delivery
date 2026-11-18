@@ -20,6 +20,7 @@ type HealthCheck = {
 
 type ManagerEvent = {
   id: string;
+  event_type: string;
   severity: "info" | "warning" | "critical";
   title: string;
   message: string;
@@ -29,6 +30,7 @@ type ManagerEvent = {
 };
 
 const severityLabels = { info: "معلومة", warning: "تحذير", critical: "حرج" } as const;
+const eventTypeLabels: Record<string, string> = { health_check: "مراقبة النظام", order_status: "تحديث طلب", product_change: "تغيير منتج", store_change: "تغيير متجر" };
 
 const statusLabels = {
   healthy: "سليم",
@@ -54,7 +56,7 @@ export default async function MonitoringPage() {
       .limit(1),
     supabase
       .from("jib_ai_manager_events")
-      .select("id,severity,title,message,status,occurrence_count,last_seen_at")
+      .select("id,event_type,severity,title,message,status,occurrence_count,last_seen_at")
       .order("last_seen_at", { ascending: false })
       .limit(10),
   ]);
@@ -127,7 +129,7 @@ export default async function MonitoringPage() {
               <article className={`manager-event manager-event-${event.severity}`} key={event.id}>
                 <div className="manager-event-heading"><strong>{event.title}</strong><span>{severityLabels[event.severity]}</span></div>
                 <p>{event.message}</p>
-                <small>{event.status === "open" ? "مفتوح" : event.status === "resolved" ? "تم الحل" : "تمت المراجعة"} · تكرر {event.occurrence_count} مرة · {formatDate(event.last_seen_at)}</small>
+                <small>{eventTypeLabels[event.event_type] ?? event.event_type} · {event.event_type === "health_check" ? (event.status === "open" ? "مفتوح" : "تم الحل") : "سجل نشاط"} · تكرر {event.occurrence_count} مرة · {formatDate(event.last_seen_at)}</small>
               </article>
             ))}
           </div>
