@@ -167,10 +167,14 @@ export async function POST(request: Request) {
   } catch (error) {
     if (jobId && supabase) {
       const safeMessage = error instanceof Error ? error.message.slice(0, 400) : "Image generation failed";
-      await supabase.rpc("jib_ai_manager_fail_image_job", {
-        p_job_id: jobId,
-        p_error_message: safeMessage,
-      }).catch(() => undefined);
+      try {
+        await supabase.rpc("jib_ai_manager_fail_image_job", {
+          p_job_id: jobId,
+          p_error_message: safeMessage,
+        });
+      } catch {
+        // Preserve the original generation error if the failure logger is unavailable.
+      }
     }
     console.error("[JIB AI image generation]", error);
     return jsonError("تعذر إنشاء الصورة حالياً. تحقق من ربط AI Gateway ثم أعد المحاولة.", 503);
