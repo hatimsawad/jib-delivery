@@ -31,7 +31,7 @@ type ManagerEvent = {
 };
 
 const severityLabels = { info: "معلومة", warning: "تحذير", critical: "حرج" } as const;
-const eventTypeLabels: Record<string, string> = { health_check: "مراقبة النظام", order_status: "تحديث طلب", product_change: "تغيير منتج", store_change: "تغيير متجر", profile_role_change: "تغيير صلاحية", courier_approval: "اعتماد مندوب" };
+const eventTypeLabels: Record<string, string> = { health_check: "مراقبة النظام", order_status: "تحديث طلب", product_change: "تغيير منتج", store_change: "تغيير متجر", profile_role_change: "تغيير صلاحية", courier_approval: "اعتماد مندوب", health_check_resolution: "حل مشكلة تشغيلية" };
 
 const statusLabels = {
   healthy: "سليم",
