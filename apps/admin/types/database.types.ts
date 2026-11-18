@@ -200,6 +200,72 @@ export type Database = {
         }
         Relationships: []
       }
+      jib_ai_manager_image_jobs: {
+        Row: {
+          created_at: string
+          description: string
+          error_message: string | null
+          estimated_cost_usd: number | null
+          generated_image_url: string | null
+          id: string
+          is_ai_generated: boolean
+          model: string | null
+          product_id: string | null
+          request_type: string
+          requested_by: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          storage_bucket: string | null
+          storage_path: string | null
+          store_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          error_message?: string | null
+          estimated_cost_usd?: number | null
+          generated_image_url?: string | null
+          id?: string
+          is_ai_generated?: boolean
+          model?: string | null
+          product_id?: string | null
+          request_type: string
+          requested_by: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          storage_bucket?: string | null
+          storage_path?: string | null
+          store_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          error_message?: string | null
+          estimated_cost_usd?: number | null
+          generated_image_url?: string | null
+          id?: string
+          is_ai_generated?: boolean
+          model?: string | null
+          product_id?: string | null
+          request_type?: string
+          requested_by?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          storage_bucket?: string | null
+          storage_path?: string | null
+          store_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       jib_ai_manager_notification_outbox: {
         Row: {
           attempts: number
@@ -563,6 +629,41 @@ export type Database = {
         Returns: undefined
       }
       jib_ai_manager_monitor_secret: { Args: never; Returns: string }
+      jib_ai_manager_reserve_image_job: {
+        Args: {
+          p_request_type: string
+          p_product_id?: string | null
+          p_title?: string | null
+          p_description?: string | null
+        }
+        Returns: {
+          job_id: string
+          store_id: string | null
+          product_id: string | null
+          request_type: string
+          title: string
+          description: string
+        }[]
+      }
+      jib_ai_manager_finish_image_job: {
+        Args: {
+          p_job_id: string
+          p_image_url: string
+          p_storage_bucket: string
+          p_storage_path: string
+          p_model: string
+          p_estimated_cost_usd?: number
+        }
+        Returns: boolean
+      }
+      jib_ai_manager_fail_image_job: {
+        Args: { p_job_id: string; p_error_message: string }
+        Returns: boolean
+      }
+      jib_ai_manager_review_image_job: {
+        Args: { p_job_id: string; p_approve: boolean }
+        Returns: boolean
+      }
       jib_order_timeline: {
         Args: { p_order_id?: string | null }
         Returns: {
