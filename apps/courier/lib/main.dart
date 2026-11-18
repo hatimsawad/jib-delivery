@@ -302,6 +302,19 @@ class _CourierHomeState extends State<CourierHome> {
       if (active) {
         final rows = await db.rpc('courier_dashboard');
         orders = (rows as List<dynamic>).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+        try {
+          final rawTimelines = await db.rpc('jib_order_timeline');
+          final timelines = <String, Map<String, dynamic>>{};
+          for (final raw in rawTimelines as List<dynamic>) {
+            final item = Map<String, dynamic>.from(raw as Map);
+            timelines[item['order_id'].toString()] = item;
+          }
+          for (final order in orders) {
+            order['timeline'] = timelines[order['order_id'].toString()];
+          }
+        } catch (_) {
+          // Courier actions remain available if the optional timeline query is unavailable.
+        }
       } else {
         orders = [];
       }
@@ -344,10 +357,74 @@ class _CourierHomeState extends State<CourierHome> {
     }
   }
 
+  String _courierTime(dynamic raw) {
+    if (raw == null) return '—';
+    final value = DateTime.parse(raw.toString()).toLocal();
+    return '${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}';
+  }
+
+  String _courierDuration(dynamic raw) {
+    if (raw == null) return '—';
+    final seconds = (raw as num).toInt();
+    if (seconds <= 0) return 'اكتمل';
+    final minutes = (seconds / 60).ceil();
+    if (minutes < 60) return '$minutes دقيقة';
+    final hours = minutes ~/ 60;
+    final remainder = minutes % 60;
+    return remainder == 0 ? '$hours ساعة' : '$hours س و$remainder د';
+  }
+
+  Widget _courierTimeline(Map<String, dynamic> timeline) {
+    const stages = <(String, String)>[
+      ('courier_assigned_at', 'قبول التوصيلة'),
+      ('picked_up_at', 'استلام الطلب من المتجر'),
+      ('delivering_at', 'بدء الطريق'),
+      ('delivered_at', 'تأكيد التسليم'),
+    ];
+    final completed = stages.where((stage) => timeline[stage.$1] != null).toList();
+    if (completed.isEmpty) return const SizedBox.shrink();
+    return Container(
+      margin: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: const Color(0xFFF1F8F4), borderRadius: BorderRadius.circular(12)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('توقيت التوصيلة', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12)),
+          const SizedBox(height: 7),
+          ...completed.map((stage) => Padding(
+            padding: const EdgeInsets.only(bottom: 5),
+            child: Row(
+              children: [
+                Expanded(child: Text(stage.$2, style: const TextStyle(fontSize: 11, color: Color(0xFF6F7D74)))),
+                Text(_courierTime(timeline[stage.$1]), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
+              ],
+            ),
+          )),
+          const Divider(height: 12),
+          Row(
+            children: [
+              const Expanded(child: Text('الوقت المنقضي', style: TextStyle(fontSize: 11, color: Color(0xFF6F7D74)))),
+              Text(_courierDuration(timeline['elapsed_seconds']), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
+            ],
+          ),
+          const SizedBox(height: 5),
+          Row(
+            children: [
+              const Expanded(child: Text('المتبقي المتوقع', style: TextStyle(fontSize: 11, color: Color(0xFF6F7D74)))),
+              Text(_courierDuration(timeline['expected_remaining_seconds']), style: const TextStyle(fontSize: 11, color: green, fontWeight: FontWeight.w900)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget orderCard(Map<String, dynamic> order) {
     final id = order['order_id'].toString();
     final status = order['status'].toString();
     final mine = order['delivery_address'] != null;
+    final timeline = order['timeline'] as Map<String, dynamic>?;
     Widget? action;
     if (status == 'ready_for_pickup' && !mine) {
       action = FilledButton(onPressed: () => claim(id), child: const Text('استلام الطلب'));
@@ -377,6 +454,7 @@ class _CourierHomeState extends State<CourierHome> {
             Padding(padding: const EdgeInsets.only(top: 7), child: Text('عنوان الزبون: ' + order['delivery_address'].toString())),
           if (mine && (order['customer_note'] ?? '').toString().trim().isNotEmpty)
             Padding(padding: const EdgeInsets.only(top: 7), child: Text('ملاحظة الزبون: ' + order['customer_note'].toString())),
+          if (mine && timeline != null) _courierTimeline(timeline),
           if (action != null) ...[
             const SizedBox(height: 12),
             SizedBox(width: double.infinity, child: action),
