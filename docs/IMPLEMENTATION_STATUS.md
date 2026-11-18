@@ -38,8 +38,9 @@ Last updated: 2026-11-18
 - Performance Advisor has RLS init-plan and multiple permissive-policy optimization warnings.
 - Checkout currently uses a temporary 15 MAD delivery fee; replace it with approved Rabat service zones and server-validated pricing before production.
 - Latest known application data was empty for stores, products and orders; seed real partner data only with their consent.
-- Merchant and courier apps were still starters/placeholders in the last source review; live order handling and dispatch need completion and verification.
-- Customer app integration was in progress and needed CI plus end-to-end verification.
+- Source review of the current main branch confirms customer app baseline: Supabase sign-in/registration, store/product browsing, local cart, address capture, checkout RPC and order history. CI and a complete device-to-device order test remain required.
+- Source review confirms merchant baseline: Supabase auth, merchant/store enrollment, product create/edit/availability, product image upload to Supabase Storage, incoming orders and merchant status transitions. CI, image-policy verification and end-to-end testing remain required.
+- Source review confirms courier baseline: Supabase auth/enrollment, admin-approval gate, available/assigned delivery list, atomic claim RPC and picked-up/delivering/delivered status updates. CI, location/privacy checks and end-to-end testing remain required.
 - No signed production APK/AAB, production maps, verified push/SMS/WhatsApp/voice delivery, payment gateway, full courier dispatch, or live GPS tracking was confirmed.
 - JIB Manager still needs detailed per-stage timeline/ETA, complete dispatch controls, pricing/service-zone management, financial settlement, admin audit log, notification-provider delivery status, incident automation and AI-provider integration.
 - Stored notification preferences do not prove provider connectivity. Provider accounts, credentials, templates, opt-in/consent and delivery tests are required.
