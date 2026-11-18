@@ -484,6 +484,7 @@ class _MerchantHomeState extends State<MerchantHome> {
     final description = TextEditingController(text: product?['description']?.toString() ?? '');
     final price = TextEditingController(text: product?['price_mad']?.toString() ?? '');
     String? currentImageUrl = product?['image_url']?.toString();
+    bool currentImageIsAiGenerated = product?['image_is_ai_generated'] == true;
     XFile? selectedImage;
     Map<String, dynamic>? generatedImage;
     bool isGeneratingAiImage = false;
@@ -541,7 +542,11 @@ class _MerchantHomeState extends State<MerchantHome> {
                         maxHeight: 1600,
                       );
                       if (picked != null && dialogContext.mounted) {
-                        setDialogState(() => selectedImage = picked);
+                        setDialogState(() {
+                          selectedImage = picked;
+                          currentImageIsAiGenerated = false;
+                          generatedImage = null;
+                        });
                       }
                     } catch (_) {
                       if (dialogContext.mounted) {
@@ -652,6 +657,7 @@ class _MerchantHomeState extends State<MerchantHome> {
                                 if (dialogContext.mounted) {
                                   setDialogState(() {
                                     currentImageUrl = approvedUrl;
+                                    currentImageIsAiGenerated = true;
                                     generatedImage = null;
                                   });
                                   ScaffoldMessenger.of(dialogContext).showSnackBar(
@@ -718,6 +724,7 @@ class _MerchantHomeState extends State<MerchantHome> {
           'price_mad': parsedPrice,
           'is_available': product?['is_available'] ?? true,
           'image_url': imageUrl,
+          'image_is_ai_generated': selectedImage != null ? false : currentImageIsAiGenerated,
         };
 
         if (product == null) {
