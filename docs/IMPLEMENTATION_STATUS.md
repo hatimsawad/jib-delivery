@@ -28,7 +28,10 @@ Last updated: 2026-11-18
 - Deployed the Supabase Edge Function `jib-ai-manager-monitor`. It checks the JIB Manager login endpoint and database read health, stores metrics without customer PII, and records/resolves operational incidents.
 - Enabled `pg_cron` and `pg_net`, stored the monitor endpoint, publishable API key and a private monitor token in Supabase Vault, and scheduled the health check every five minutes.
 - Verified a manual scheduled-function invocation end to end: the JIB Manager endpoint returned HTTP 200, Supabase reads succeeded, and the recorded health status was `healthy` (one order, one active store, one product, zero active couriers at that check).
-- Added the admin-only monitoring page at `/monitoring` and navigation entry. It is committed on the feature branch; its latest Vercel deployment and CI run are still pending.
+- Added the admin-only monitoring page at `/monitoring` and navigation entry, with a readable incident/activity feed.
+- Added database triggers that record order status events and store/product create/update/delete activity without copying customer PII. Trigger behavior was tested in transactions that were rolled back.
+- Optimized RLS auth checks and consolidated additive SELECT policies. Supabase Performance Advisor no longer reports auth-initplan or multiple-permissive-policy warnings; only unused-index informational suggestions remain.
+- Verified the scheduled cron execution succeeded and created a second healthy check at HTTP 200.
 - The monitor does not yet send email, SMS, WhatsApp or voice notifications. Provider credentials are not configured; no paid messages or calls are sent.
 
 ## Existing backend capabilities
@@ -43,15 +46,15 @@ Last updated: 2026-11-18
 ## Confirmed blockers and work still required
 
 - Confirm admin sign-in and verify Supabase Auth redirect URLs in the deployed Manager environment.
-- Review Supabase Security Advisor findings: authenticated-callable SECURITY DEFINER functions `checkout_order` and `is_jib_admin`, and leaked-password protection disabled. Test RPC authorization adversarially before public launch.
-- Performance Advisor has RLS init-plan and multiple permissive-policy optimization warnings.
+- Security Advisor still reports ten authenticated-callable SECURITY DEFINER RPCs. Their definitions and grants were inspected: anonymous execution is denied and the functions perform role/ownership checks; retain them pending adversarial authorization tests. Leaked-password protection remains disabled and must be enabled in Supabase Auth settings.
+- Security Advisor also flags pg_net's extension metadata in the public schema. pg_net is non-relocatable in this project; do not drop it casually because the scheduled monitor depends on it.
 - Checkout currently uses a temporary 15 MAD delivery fee; replace it with approved Rabat service zones and server-validated pricing before production.
-- Latest known application data was empty for stores, products and orders; seed real partner data only with their consent.
+- At the latest health check, the database contained one order, one active store and one product; there were zero active couriers. These are live counts, not a claim that the marketplace is ready for launch.
 - Source review of the current main branch confirms customer app baseline: Supabase sign-in/registration, store/product browsing, local cart, address capture, checkout RPC and order history. CI and a complete device-to-device order test remain required.
 - Source review confirms merchant baseline: Supabase auth, merchant/store enrollment, product create/edit/availability, product image upload to Supabase Storage, incoming orders and merchant status transitions. CI, image-policy verification and end-to-end testing remain required.
 - Source review confirms courier baseline: Supabase auth/enrollment, admin-approval gate, available/assigned delivery list, atomic claim RPC and picked-up/delivering/delivered status updates. CI, location/privacy checks and end-to-end testing remain required.
 - No signed production APK/AAB, production maps, verified push/SMS/WhatsApp/voice delivery, payment gateway, full courier dispatch, or live GPS tracking was confirmed.
-- JIB Manager still needs detailed per-stage timeline/ETA, complete dispatch controls, pricing/service-zone management, financial settlement, admin audit log, notification-provider delivery status, incident automation and AI-provider integration.
+- JIB Manager still needs detailed per-stage timeline/ETA, complete dispatch controls, pricing/service-zone management, financial settlement, notification-provider delivery status, AI diagnosis/repair workflow, AI image-generation integration and human approval UI.
 - Stored notification preferences do not prove provider connectivity. Provider accounts, credentials, templates, opt-in/consent and delivery tests are required.
 
 ## Required next engineering sequence
