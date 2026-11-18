@@ -107,6 +107,11 @@ export default async function MonitoringPage() {
               <b className="settings-value">{latest.metrics.product_image_bucket_available ? "متصل" : "غير متاح"}</b>
               <small>Supabase Storage · product-images</small>
             </article>
+            <article className="metric">
+              <span>تنبيهات بانتظار ربط المزود</span>
+              <b className="settings-value">{notificationQueueCount}</b>
+              <small>لن تُرسل قبل تفعيل الخدمات وموافقتك</small>
+            </article>
           </section>
           <section className="list-panel">
             <div className="section-heading"><h2>مؤشرات قاعدة البيانات</h2><span className="count-chip">آخر فحص</span></div>
