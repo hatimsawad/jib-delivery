@@ -1,4 +1,5 @@
 import { generateImage } from "ai";
+import { Buffer } from "node:buffer";
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 
@@ -130,7 +131,7 @@ export async function POST(request: Request) {
 
     const { error: uploadError } = await supabase.storage
       .from(bucket)
-      .upload(storagePath, image.uint8Array, {
+      .upload(storagePath, Buffer.from(image.uint8Array), {
         contentType: image.mediaType || "image/png",
         upsert: false,
       });
