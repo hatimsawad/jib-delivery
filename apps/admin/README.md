@@ -15,7 +15,7 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in `.env.local`. Never put the Supabase service-role key in this app or commit credentials.
+Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in `.env.local`. For AI image generation, configure `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` as server-only environment variables in Vercel (Preview and Production as needed). Create a Cloudflare API token with Workers AI Read and Workers AI Write permissions. Never prefix these secrets with `NEXT_PUBLIC_`, put them in source control, or send them in chat. Image generation returns a clear setup error until both values exist.
 
 ## Current verified scope
 
