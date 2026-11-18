@@ -1,5 +1,6 @@
 // ignore_for_file: deprecated_member_use
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -447,12 +448,45 @@ class _MerchantHomeState extends State<MerchantHome> {
     return db.storage.from('product-images').getPublicUrl(path);
   }
 
+  Future<Map<String, dynamic>> _generateProductImage(String productId, String description) async {
+    final token = db.auth.currentSession?.accessToken;
+    if (token == null || token.isEmpty) {
+      throw Exception('انتهت جلسة الدخول. سجّل الدخول مجدداً.');
+    }
+
+    final client = HttpClient();
+    try {
+      final request = await client.postUrl(
+        Uri.parse('https://jib-admin-two.vercel.app/api/ai/generate-image'),
+      );
+      request.headers.set(HttpHeaders.authorizationHeader, 'Bearer $token');
+      request.headers.contentType = ContentType.json;
+      request.write(jsonEncode({
+        'type': 'product',
+        'productId': productId,
+        'description': description,
+      }));
+      final response = await request.close();
+      final responseBody = await response.transform(utf8.decoder).join();
+      final decoded = jsonDecode(responseBody);
+      final data = Map<String, dynamic>.from(decoded as Map);
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw Exception(data['error']?.toString() ?? 'تعذر إنشاء الصورة.');
+      }
+      return data;
+    } finally {
+      client.close(force: true);
+    }
+  }
+
   Future<void> editProduct([Map<String, dynamic>? product]) async {
     final name = TextEditingController(text: product?['name']?.toString() ?? '');
     final description = TextEditingController(text: product?['description']?.toString() ?? '');
     final price = TextEditingController(text: product?['price_mad']?.toString() ?? '');
-    final existingImageUrl = product?['image_url']?.toString();
+    String? currentImageUrl = product?['image_url']?.toString();
     XFile? selectedImage;
+    Map<String, dynamic>? generatedImage;
+    bool isGeneratingAiImage = false;
 
     final ok = await showDialog<bool>(
       context: context,
@@ -477,9 +511,9 @@ class _MerchantHomeState extends State<MerchantHome> {
                   clipBehavior: Clip.antiAlias,
                   child: selectedImage != null
                       ? Image.file(File(selectedImage!.path), fit: BoxFit.cover)
-                      : (existingImageUrl != null && existingImageUrl.trim().isNotEmpty
+                      : (currentImageUrl != null && currentImageUrl!.trim().isNotEmpty
                           ? Image.network(
-                              existingImageUrl,
+                              currentImageUrl!,
                               fit: BoxFit.cover,
                               errorBuilder: (_, __, ___) => const Center(
                                 child: Icon(Icons.add_photo_alternate_outlined, size: 42, color: Color(0xFF9A8F87)),
@@ -520,6 +554,117 @@ class _MerchantHomeState extends State<MerchantHome> {
                   icon: const Icon(Icons.photo_library_outlined),
                   label: Text(selectedImage == null ? 'اختيار صورة من الهاتف' : 'تغيير الصورة'),
                 ),
+                if (product != null) ...[
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    onPressed: isGeneratingAiImage ? null : () async {
+                      if (description.text.trim().isEmpty) {
+                        ScaffoldMessenger.of(dialogContext).showSnackBar(
+                          const SnackBar(content: Text('اكتب المكونات والوصف أولاً حتى تكون الصورة مطابقة للطبق.')),
+                        );
+                        return;
+                      }
+                      setDialogState(() {
+                        isGeneratingAiImage = true;
+                        generatedImage = null;
+                      });
+                      try {
+                        final result = await _generateProductImage(product['id'].toString(), description.text.trim());
+                        if (dialogContext.mounted) {
+                          setDialogState(() {
+                            generatedImage = result;
+                            isGeneratingAiImage = false;
+                          });
+                        }
+                      } catch (e) {
+                        if (dialogContext.mounted) {
+                          setDialogState(() => isGeneratingAiImage = false);
+                          ScaffoldMessenger.of(dialogContext).showSnackBar(
+                            SnackBar(content: Text('تعذر إنشاء الصورة: $e')),
+                          );
+                        }
+                      }
+                    },
+                    icon: isGeneratingAiImage
+                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.auto_awesome),
+                    label: Text(isGeneratingAiImage ? 'جاري إنشاء الصورة...' : 'إنشاء صورة بالذكاء الاصطناعي'),
+                  ),
+                  if (generatedImage != null) ...[
+                    const SizedBox(height: 8),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(14),
+                      child: Image.network(
+                        generatedImage!['imageUrl'].toString(),
+                        width: double.infinity,
+                        height: 164,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.only(top: 6),
+                      child: Text(
+                        'صورة مولدة بالذكاء الاصطناعي — لن تُنشر حتى تعتمدها.',
+                        style: TextStyle(fontSize: 11, color: Color(0xFF82766F)),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextButton(
+                            onPressed: () async {
+                              try {
+                                await db.rpc('jib_ai_manager_review_image_job', params: {
+                                  'p_job_id': generatedImage!['jobId'],
+                                  'p_approve': false,
+                                });
+                                if (dialogContext.mounted) setDialogState(() => generatedImage = null);
+                              } catch (e) {
+                                if (dialogContext.mounted) {
+                                  ScaffoldMessenger.of(dialogContext).showSnackBar(
+                                    SnackBar(content: Text('تعذر رفض الصورة: $e')),
+                                  );
+                                }
+                              }
+                            },
+                            child: const Text('رفض الصورة'),
+                          ),
+                        ),
+                        Expanded(
+                          child: FilledButton.icon(
+                            onPressed: () async {
+                              try {
+                                await db.rpc('jib_ai_manager_review_image_job', params: {
+                                  'p_job_id': generatedImage!['jobId'],
+                                  'p_approve': true,
+                                });
+                                final approvedUrl = generatedImage!['imageUrl'].toString();
+                                if (dialogContext.mounted) {
+                                  setDialogState(() {
+                                    currentImageUrl = approvedUrl;
+                                    generatedImage = null;
+                                  });
+                                  ScaffoldMessenger.of(dialogContext).showSnackBar(
+                                    const SnackBar(content: Text('تم اعتماد الصورة. ستظهر بعد حفظ المنتج أو تحديث القائمة.')),
+                                  );
+                                }
+                              } catch (e) {
+                                if (dialogContext.mounted) {
+                                  ScaffoldMessenger.of(dialogContext).showSnackBar(
+                                    SnackBar(content: Text('تعذر اعتماد الصورة: $e')),
+                                  );
+                                }
+                              }
+                            },
+                            icon: const Icon(Icons.check_circle_outline),
+                            label: const Text('اعتماد الصورة'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
                 const SizedBox(height: 8),
                 TextField(
                   controller: price,
@@ -557,7 +702,7 @@ class _MerchantHomeState extends State<MerchantHome> {
 
         final imageUrl = selectedImage != null
             ? await _uploadProductImage(selectedImage!)
-            : existingImageUrl;
+            : currentImageUrl;
         final values = <String, dynamic>{
           'name': name.text.trim(),
           'description': description.text.trim(),
