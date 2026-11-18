@@ -797,7 +797,14 @@ class _MerchantHomeState extends State<MerchantHome> {
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         leading: _merchantProductImage(p['image_url']),
         title: Text(p['name'].toString(), style: const TextStyle(fontWeight: FontWeight.w800)),
-        subtitle: Text('${p['price_mad']} د.م', style: const TextStyle(color: jibRed, fontWeight: FontWeight.w800)),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('${p['price_mad']} د.م', style: const TextStyle(color: jibRed, fontWeight: FontWeight.w800)),
+            if (p['image_is_ai_generated'] == true)
+              const Text('صورة مولدة بالذكاء الاصطناعي', style: TextStyle(fontSize: 10, color: Color(0xFF82766F))),
+          ],
+        ),
         trailing: PopupMenuButton<String>(onSelected: (v) { if (v == 'edit') editProduct(p); if (v == 'available') setAvailable(p, !(p['is_available'] == true)); }, itemBuilder: (_) => [
           const PopupMenuItem(value: 'edit', child: Text('تعديل')), PopupMenuItem(value: 'available', child: Text(p['is_available'] == true ? 'إيقاف التوفر' : 'تفعيل التوفر')),
         ]),
