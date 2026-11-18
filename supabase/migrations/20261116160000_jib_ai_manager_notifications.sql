@@ -1,8 +1,8 @@
 create table if not exists public.jib_ai_manager_settings (
   id smallint primary key default 1 check (id = 1),
-  notification_email text not null,
-  notification_phone text not null,
-  notification_phone_e164 text not null,
+  notification_email text not null default '',
+  notification_phone text not null default '',
+  notification_phone_e164 text not null default '',
   notification_channels text[] not null default array['email', 'sms']::text[],
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -14,57 +14,31 @@ create table if not exists public.jib_ai_manager_settings (
 );
 
 alter table public.jib_ai_manager_settings enable row level security;
+revoke all on public.jib_ai_manager_settings from public, anon, authenticated;
+grant select on public.jib_ai_manager_settings to authenticated;
 
-drop policy if exists "Admins can read JIB AI manager settings"
-  on public.jib_ai_manager_settings;
+drop policy if exists "Admins can read JIB AI manager settings" on public.jib_ai_manager_settings;
 create policy "Admins can read JIB AI manager settings"
-  on public.jib_ai_manager_settings
-  for select to authenticated
-  using (
-    exists (
-      select 1 from public.profiles p
-      where p.id = (select auth.uid()) and p.role = 'admin'
-    )
-  );
+  on public.jib_ai_manager_settings for select to authenticated
+  using (exists (
+    select 1 from public.profiles p
+    where p.id = (select auth.uid()) and p.role = 'admin'
+  ));
 
-drop policy if exists "Admins can update JIB AI manager settings"
-  on public.jib_ai_manager_settings;
+drop policy if exists "Admins can update JIB AI manager settings" on public.jib_ai_manager_settings;
 create policy "Admins can update JIB AI manager settings"
-  on public.jib_ai_manager_settings
-  for update to authenticated
-  using (
-    exists (
-      select 1 from public.profiles p
-      where p.id = (select auth.uid()) and p.role = 'admin'
-    )
-  )
-  with check (
-    exists (
-      select 1 from public.profiles p
-      where p.id = (select auth.uid()) and p.role = 'admin'
-    )
-  );
+  on public.jib_ai_manager_settings for update to authenticated
+  using (exists (
+    select 1 from public.profiles p
+    where p.id = (select auth.uid()) and p.role = 'admin'
+  ))
+  with check (exists (
+    select 1 from public.profiles p
+    where p.id = (select auth.uid()) and p.role = 'admin'
+  ));
 
 insert into public.jib_ai_manager_settings (
-  id,
-  notification_email,
-  notification_phone,
-  notification_phone_e164,
-  notification_channels
+  id, notification_email, notification_phone, notification_phone_e164, notification_channels
 )
-values (
-  1,
-  'hatilswad@gmail.com',
-  '0669651675',
-  '+212669651675',
-  array['email', 'sms']::text[]
-)
-on conflict (id) do update set
-  notification_email = excluded.notification_email,
-  notification_phone = excluded.notification_phone,
-  notification_phone_e164 = excluded.notification_phone_e164,
-  notification_channels = excluded.notification_channels,
-  updated_at = now();
-
-comment on table public.jib_ai_manager_settings is
-  'Private owner notification destinations and channels for JIB AI Manager. Delivery providers must be configured separately.';
+values (1, '', '', '', array['email', 'sms']::text[])
+on conflict (id) do nothing;
