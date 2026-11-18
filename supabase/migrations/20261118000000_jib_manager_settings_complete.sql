@@ -36,7 +36,7 @@ alter table public.jib_ai_manager_settings
     );
 
 alter table public.jib_ai_manager_settings enable row level security;
-revoke all on table public.jib_ai_manager_settings from anon;
+revoke all on table public.jib_ai_manager_settings from public, anon, authenticated;
 grant select on table public.jib_ai_manager_settings to authenticated;
 
 drop policy if exists "Admins can read JIB AI manager settings" on public.jib_ai_manager_settings;
