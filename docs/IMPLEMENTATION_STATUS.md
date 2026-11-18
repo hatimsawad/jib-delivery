@@ -30,6 +30,7 @@ Last updated: 2026-11-18
 - Verified a manual scheduled-function invocation end to end: the JIB Manager endpoint returned HTTP 200, Supabase reads succeeded, and the recorded health status was `healthy` (one order, one active store, one product, zero active couriers at that check).
 - Added the admin-only monitoring page at `/monitoring` and navigation entry, with a readable incident/activity feed.
 - Added database triggers that record order status events and store/product create/update/delete activity without copying customer PII. Trigger behavior was tested in transactions that were rolled back.
+- Added a RLS-respecting batched order timeline RPC. Courier assignment is now a distinct timestamp (the duplicate historical ready-for-pickup event was corrected). Customer, merchant and courier app screens now request and display elapsed/remaining time and stage timestamps; final Flutter CI verification is pending. ETA uses a labeled baseline until at least five completed visible orders are available, then uses historical medians.
 - Optimized RLS auth checks and consolidated additive SELECT policies. Supabase Performance Advisor no longer reports auth-initplan or multiple-permissive-policy warnings; only unused-index informational suggestions remain.
 - Verified the scheduled cron execution succeeded and created a second healthy check at HTTP 200.
 - The monitor does not yet send email, SMS, WhatsApp or voice notifications. Provider credentials are not configured; no paid messages or calls are sent.
@@ -54,7 +55,7 @@ Last updated: 2026-11-18
 - Source review confirms merchant baseline: Supabase auth, merchant/store enrollment, product create/edit/availability, product image upload to Supabase Storage, incoming orders and merchant status transitions. CI, image-policy verification and end-to-end testing remain required.
 - Source review confirms courier baseline: Supabase auth/enrollment, admin-approval gate, available/assigned delivery list, atomic claim RPC and picked-up/delivering/delivered status updates. CI, location/privacy checks and end-to-end testing remain required.
 - No signed production APK/AAB, production maps, verified push/SMS/WhatsApp/voice delivery, payment gateway, full courier dispatch, or live GPS tracking was confirmed.
-- JIB Manager still needs detailed per-stage timeline/ETA, complete dispatch controls, pricing/service-zone management, financial settlement, notification-provider delivery status, AI diagnosis/repair workflow, AI image-generation integration and human approval UI.
+- JIB still needs complete dispatch controls, pricing/service-zone management, financial settlement, notification-provider delivery status, AI diagnosis/repair workflow, AI image-generation integration and human approval UI. The agreed Arabic/French/English simultaneous content display across all major screens remains to be implemented and verified.
 - Stored notification preferences do not prove provider connectivity. Provider accounts, credentials, templates, opt-in/consent and delivery tests are required.
 
 ## Required next engineering sequence
