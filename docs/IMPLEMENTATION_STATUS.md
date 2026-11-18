@@ -22,6 +22,15 @@ Last updated: 2026-11-18
 - Updated Manager setup and safety documentation.
 - These changes are committed on the feature branch; they are not yet merged into main or verified by CI.
 
+## Work added during the current continuation
+
+- Added a private health-check history table and an incident table with admin-only read access and service-role write access.
+- Deployed the Supabase Edge Function `jib-ai-manager-monitor`. It checks the JIB Manager login endpoint and database read health, stores metrics without customer PII, and records/resolves operational incidents.
+- Enabled `pg_cron` and `pg_net`, stored the monitor endpoint, publishable API key and a private monitor token in Supabase Vault, and scheduled the health check every five minutes.
+- Verified a manual scheduled-function invocation end to end: the JIB Manager endpoint returned HTTP 200, Supabase reads succeeded, and the recorded health status was `healthy` (one order, one active store, one product, zero active couriers at that check).
+- Added the admin-only monitoring page at `/monitoring` and navigation entry. It is committed on the feature branch; its latest Vercel deployment and CI run are still pending.
+- The monitor does not yet send email, SMS, WhatsApp or voice notifications. Provider credentials are not configured; no paid messages or calls are sent.
+
 ## Existing backend capabilities
 
 - Seven core application tables have RLS enabled: profiles, stores, products, addresses, orders, order_items and order_events.
