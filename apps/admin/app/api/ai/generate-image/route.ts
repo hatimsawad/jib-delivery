@@ -122,6 +122,9 @@ export async function POST(request: Request) {
     if (!image.uint8Array?.byteLength || image.uint8Array.byteLength > MAX_IMAGE_BYTES) {
       throw new Error("Generated image is empty or exceeds the 5 MB storage limit.");
     }
+    if (!["image/png", "image/jpeg", "image/webp"].includes(image.mediaType)) {
+      throw new Error("Generated image format is not allowed by JIB storage.");
+    }
 
     const bucket = type === "product" ? "product-images" : "article-images";
     const extension = image.mediaType === "image/jpeg" ? "jpg" : image.mediaType === "image/webp" ? "webp" : "png";
