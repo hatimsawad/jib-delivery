@@ -696,7 +696,7 @@ class _CustomerHomeState extends State<CustomerHome> {
                             ),
                             if (timeline['estimated_delivery_at'] != null) ...[
                               const SizedBox(height: 6),
-                              Text('موعد التسليم المتوقع: ${_timeLabel(timeline['estimated_delivery_at'])}', style: const TextStyle(fontSize: 11, color: Color(0xFF82766F))),
+                              Text('${status == 'delivered' ? 'تم التسليم في' : 'موعد التسليم المتوقع'}: ${_timeLabel(timeline['estimated_delivery_at'])}', style: const TextStyle(fontSize: 11, color: Color(0xFF82766F))),
                             ],
                             if (timeline['eta_confidence'] == 'baseline')
                               const Padding(
