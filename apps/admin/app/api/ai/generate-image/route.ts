@@ -118,8 +118,10 @@ export async function POST(request: Request) {
 
   try {
     // Validate provider configuration before reserving a monthly image slot.
-    if (!process.env.CLOUDFLARE_ACCOUNT_ID?.trim() || !process.env.CLOUDFLARE_API_TOKEN?.trim()) {
-      return jsonError("مولّد الصور غير مربوط بعد. أضف CLOUDFLARE_ACCOUNT_ID و CLOUDFLARE_API_TOKEN إلى إعدادات Vercel ثم أعد النشر.", 503);
+    const cloudflareAccountId = process.env.CLOUDFLARE_ACCOUNT_ID?.trim() ?? "";
+    const cloudflareApiToken = process.env.CLOUDFLARE_API_TOKEN?.trim() ?? "";
+    if (!/^[a-f0-9]{32}$/i.test(cloudflareAccountId) || !cloudflareApiToken) {
+      return jsonError("مولّد الصور غير مربوط بعد أو أن Account ID غير صالح. أضف بيانات Cloudflare السرية الصحيحة إلى إعدادات Vercel ثم أعد النشر.", 503);
     }
 
     const authorization = request.headers.get("authorization") ?? "";
