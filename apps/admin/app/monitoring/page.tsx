@@ -14,6 +14,7 @@ type HealthCheck = {
     products?: number | null;
     active_couriers?: number | null;
     provider_delivery_configured?: boolean;
+    product_image_bucket_available?: boolean;
   };
   issues: string[];
 };
@@ -100,6 +101,11 @@ export default async function MonitoringPage() {
               <span>المتاجر والمندوبون</span>
               <b className="settings-value">{latest.metrics.active_stores ?? "—"} / {latest.metrics.active_couriers ?? "—"}</b>
               <small>متاجر نشطة / مندوبون نشطون</small>
+            </article>
+            <article className="metric">
+              <span>تخزين صور المنتجات</span>
+              <b className="settings-value">{latest.metrics.product_image_bucket_available ? "متصل" : "غير متاح"}</b>
+              <small>Supabase Storage · product-images</small>
             </article>
           </section>
           <section className="list-panel">
