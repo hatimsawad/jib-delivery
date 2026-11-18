@@ -63,7 +63,7 @@ function buildPrompt(type: "product" | "article", title: string, description: st
     "Create a clear visual metaphor for the article's central idea, with a refined modern Moroccan editorial feel, strong subject hierarchy, natural lighting, and polished composition.",
     "Compose the subject centrally so the square image can be safely cropped for article cards.",
     "No text, no typography, no logos, no watermarks, no fabricated charts or labels.",
-  ].join(" ");
+  ].join(" ").slice(0, 2048);
 }
 
 async function generateWithCloudflare(prompt: string): Promise<Uint8Array> {
