@@ -509,7 +509,8 @@ export type Database = {
         Args: { p_new_status: string; p_order_id: string }
         Returns: undefined
       }
-      jib_ai_manager_monitor_secret: { Args: never; Returns: string }\n      is_jib_admin: { Args: never; Returns: boolean }
+      jib_ai_manager_monitor_secret: { Args: never; Returns: string }
+      is_jib_admin: { Args: never; Returns: boolean }
       merchant_update_order_status: {
         Args: { p_new_status: string; p_order_id: string }
         Returns: undefined
