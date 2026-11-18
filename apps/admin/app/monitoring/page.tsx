@@ -49,7 +49,7 @@ function formatDate(value: string) {
 
 export default async function MonitoringPage() {
   const { supabase } = await requireAdmin();
-  const [healthResult, eventsResult] = await Promise.all([
+  const [healthResult, eventsResult, queueResult] = await Promise.all([
     supabase
       .from("jib_ai_manager_health_checks")
       .select("checked_at,status,website_status,duration_ms,metrics,issues")
@@ -60,13 +60,18 @@ export default async function MonitoringPage() {
       .select("id,event_type,severity,title,message,status,occurrence_count,last_seen_at")
       .order("last_seen_at", { ascending: false })
       .limit(10),
+    supabase
+      .from("jib_ai_manager_notification_outbox")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "awaiting_provider"),
   ]);
 
   const healthRows = healthResult.data as unknown as HealthCheck[] | null;
   const eventRows = eventsResult.data as unknown as ManagerEvent[] | null;
   const latest = healthRows?.[0] ?? null;
   const events = eventRows ?? [];
-  const readError = Boolean(healthResult.error || eventsResult.error);
+  const notificationQueueCount = queueResult.count ?? 0;
+  const readError = Boolean(healthResult.error || eventsResult.error || queueResult.error);
 
   return (
     <main className="shell">
