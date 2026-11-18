@@ -266,7 +266,21 @@ class _MerchantHomeState extends State<MerchantHome> {
         final p = await db.from('products').select().eq('store_id', sid).order('created_at', ascending: false);
         products = p.map((e) => Map<String, dynamic>.from(e)).toList();
         final o = await db.from('orders').select('id,status,total_mad,created_at,customer_note').eq('store_id', sid).order('created_at', ascending: false).limit(50);
-        orders = o.map((e) => Map<String, dynamic>.from(e)).toList();
+        final timelines = <String, Map<String, dynamic>>{};
+        try {
+          final rawTimelines = await db.rpc('jib_order_timeline');
+          for (final raw in rawTimelines as List<dynamic>) {
+            final item = Map<String, dynamic>.from(raw as Map);
+            timelines[item['order_id'].toString()] = item;
+          }
+        } catch (_) {
+          // Keep order management usable if the timeline endpoint is temporarily unavailable.
+        }
+        orders = o.map((e) {
+          final row = Map<String, dynamic>.from(e);
+          row['timeline'] = timelines[row['id'].toString()];
+          return row;
+        }).toList();
       } else { store = null; products = []; orders = []; }
     } catch (e) { error = networkErrorMessage(e); }
     if (mounted) setState(() => loading = false);
@@ -277,6 +291,83 @@ class _MerchantHomeState extends State<MerchantHome> {
     'preparing': 'قيد التحضير', 'ready_for_pickup': 'جاهز للاستلام',
     'picked_up': 'استلمه الموصّل', 'delivering': 'في الطريق', 'delivered': 'تم التسليم', 'cancelled': 'ملغى',
   }[status] ?? status;
+
+  String timelineTime(dynamic raw) {
+    if (raw == null) return '—';
+    final value = DateTime.parse(raw.toString()).toLocal();
+    final day = value.day.toString().padLeft(2, '0');
+    final month = value.month.toString().padLeft(2, '0');
+    final hour = value.hour.toString().padLeft(2, '0');
+    final minute = value.minute.toString().padLeft(2, '0');
+    return '$day/$month $hour:$minute';
+  }
+
+  String timelineDuration(dynamic raw) {
+    if (raw == null) return '—';
+    final seconds = (raw as num).toInt();
+    if (seconds <= 0) return 'اكتمل';
+    final minutes = (seconds / 60).ceil();
+    if (minutes < 60) return '$minutes دقيقة';
+    final hours = minutes ~/ 60;
+    final remainder = minutes % 60;
+    return remainder == 0 ? '$hours ساعة' : '$hours س و$remainder د';
+  }
+
+  Widget orderTimeline(Map<String, dynamic>? timeline) {
+    if (timeline == null) return const SizedBox.shrink();
+    const stages = <(String, String)>[
+      ('order_placed_at', 'تأكيد الطلب'),
+      ('merchant_accepted_at', 'قبول المتجر'),
+      ('preparation_started_at', 'بدء التحضير'),
+      ('ready_for_pickup_at', 'جاهز للاستلام'),
+      ('courier_assigned_at', 'قبول المندوب'),
+      ('picked_up_at', 'استلام المندوب'),
+      ('delivering_at', 'بدء التوصيل'),
+      ('delivered_at', 'التسليم'),
+    ];
+    final completed = stages.where((stage) => timeline[stage.$1] != null).toList();
+    if (completed.isEmpty) return const SizedBox.shrink();
+    return Container(
+      margin: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: const Color(0xFFF8F5F2), borderRadius: BorderRadius.circular(12)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('التوقيت التفصيلي للطلب', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12)),
+          const SizedBox(height: 8),
+          ...completed.map((stage) => Padding(
+            padding: const EdgeInsets.only(bottom: 5),
+            child: Row(
+              children: [
+                Expanded(child: Text(stage.$2, style: const TextStyle(fontSize: 11, color: Color(0xFF82766F)))),
+                Text(timelineTime(timeline[stage.$1]), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
+              ],
+            ),
+          )),
+          const Divider(height: 12),
+          Row(
+            children: [
+              const Expanded(child: Text('الوقت المنقضي', style: TextStyle(fontSize: 11, color: Color(0xFF82766F)))),
+              Text(timelineDuration(timeline['elapsed_seconds']), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
+            ],
+          ),
+          const SizedBox(height: 5),
+          Row(
+            children: [
+              const Expanded(child: Text('المتبقي المتوقع', style: TextStyle(fontSize: 11, color: Color(0xFF82766F)))),
+              Text(timelineDuration(timeline['expected_remaining_seconds']), style: const TextStyle(fontSize: 11, color: jibRed, fontWeight: FontWeight.w900)),
+            ],
+          ),
+          if (timeline['eta_confidence'] == 'baseline')
+            const Padding(
+              padding: EdgeInsets.only(top: 5),
+              child: Text('تقدير أولي؛ سيصبح أدق مع تراكم الطلبات المكتملة.', style: TextStyle(fontSize: 10, color: Color(0xFF82766F))),
+            ),
+        ],
+      ),
+    );
+  }
 
   Future<void> updateOrder(Map<String, dynamic> order, String status) async {
     try {
@@ -312,6 +403,7 @@ class _MerchantHomeState extends State<MerchantHome> {
       ]),
       const SizedBox(height: 8),
       Text(statusLabel(status), style: const TextStyle(color: jibRed, fontWeight: FontWeight.bold)),
+      orderTimeline(order['timeline'] as Map<String, dynamic>?),
       if ((order['customer_note'] ?? '').toString().trim().isNotEmpty)
         Padding(padding: const EdgeInsets.only(top: 6), child: Text('ملاحظة الزبون: ${order['customer_note']}')),
       if (actions.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 10), child: Wrap(spacing: 8, runSpacing: 8, children: actions)),
