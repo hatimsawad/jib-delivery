@@ -56,7 +56,7 @@ Last updated: 2026-11-18
 - Source review confirms merchant baseline: Supabase auth, merchant/store enrollment, product create/edit/availability, product image upload to Supabase Storage, incoming orders and merchant status transitions. CI, image-policy verification and end-to-end testing remain required.
 - Source review confirms courier baseline: Supabase auth/enrollment, admin-approval gate, available/assigned delivery list, atomic claim RPC and picked-up/delivering/delivered status updates. CI, location/privacy checks and end-to-end testing remain required.
 - No signed production APK/AAB, production maps, verified push/SMS/WhatsApp/voice delivery, payment gateway, full courier dispatch, or live GPS tracking was confirmed.
-- JIB still needs complete dispatch controls, pricing/service-zone management, financial settlement, notification-provider delivery status, AI diagnosis/repair workflow, AI image-generation integration and human approval UI. The agreed Arabic/French/English simultaneous content display across all major screens remains to be implemented and verified.
+- JIB still needs complete dispatch controls, pricing/service-zone management, financial settlement, notification-provider delivery status and AI diagnosis/repair workflow. The JIB Manager image-generation route and human approval UI now target Cloudflare Workers AI FLUX.1 Schnell, but live generation remains blocked until the account ID and API token are added to Vercel and a real generation/storage/review test passes. The agreed Arabic/French/English simultaneous content display across all major screens remains to be implemented and verified.
 - Stored notification preferences do not prove provider connectivity. Provider accounts, credentials, templates, opt-in/consent and delivery tests are required.
 
 ## Required next engineering sequence
@@ -82,3 +82,16 @@ A feature is complete only after code, CI, security checks and a real integratio
 - It remains intentionally inert until `JIB_NOTIFICATIONS_ENABLED=true` and provider secrets are configured. No email, SMS, WhatsApp message, or voice call has been sent.
 - Voice is additionally blocked until `JIB_VOICE_MONTHLY_BUDGET_USD` is set. The dispatcher reserves USD 1.50 per Moroccan mobile call as a conservative allowance; actual call/TTS charges can vary.
 - WhatsApp requires a configured approved Content Template SID; Morocco SMS sender registration is a separate prerequisite.
+
+
+## Cloudflare image-generation migration (2026-11-18)
+
+- Replaced the Vercel AI Gateway call in `apps/admin/app/api/ai/generate-image/route.ts` with the Cloudflare Workers AI REST API and `@cf/black-forest-labs/flux-1-schnell` (4 steps).
+- Provider configuration is checked before an image job is reserved. Missing/invalid credentials return a clear setup response without consuming the monthly JIB image quota.
+- Generated JPEG bytes are size-checked, uploaded to the existing Supabase image bucket under a job-specific path, and finalized only after the existing authenticated owner/admin, Storage-object ownership, exact-path and URL checks pass.
+- The finalization RPC now accepts only the Cloudflare model ID and a bounded estimated cost; anonymous execution remains revoked. Images remain `ready_for_review` until explicit human approval.
+- JIB monthly reservation cap remains 100 image jobs. Cloudflare's daily free allocation is shared at account level and is not a guaranteed image count; requests can be rate-limited or stop when the available quota is exhausted.
+- Required server-only Vercel variables: `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN`. Token needs Workers AI Read and Write permissions. Never use a `NEXT_PUBLIC_` prefix.
+- The Cloudflare migration is committed on the feature branch and applied to Supabase. A database read-back confirmed the finalization function uses the Cloudflare model allow-list and retains `anon_exec=false`, `authenticated_exec=true`.
+- No live image request has been run because the Cloudflare account credentials are not yet configured. Do not mark image generation production-ready until the owner adds the secrets, a new deployment is READY, and a real image completes upload and approval.
+- Latest CI workflows were queued at the time of the check. Vercel reported a build-rate-limit failure for the newer branch commits; the last known READY preview predates the final route/UI/docs changes. Recheck CI and preview after the deployment rate limit clears.
