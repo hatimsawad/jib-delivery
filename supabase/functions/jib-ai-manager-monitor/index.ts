@@ -22,9 +22,10 @@ async function countRows(
   admin: ReturnType<typeof createClient>,
   table: string,
   filters: (query: any) => any = (query) => query,
+  column = "id",
 ): Promise<CheckResult> {
   try {
-    let query = admin.from(table).select("id", { count: "exact", head: true });
+    let query = admin.from(table).select(column, { count: "exact", head: true });
     query = filters(query);
     const { count, error } = await query;
     return { count: count ?? 0, error: error?.message ?? null };
@@ -77,11 +78,11 @@ Deno.serve(async (request: Request) => {
     issues.push("manager_web_unreachable");
   }
 
-  const [orders, stores, products, couriers, settings] = await Promise.all([
+  const [orders, stores, products, couriers, settings, bucket] = await Promise.all([
     countRows(admin, "orders"),
     countRows(admin, "stores", (query) => query.eq("is_active", true)),
     countRows(admin, "products"),
-    countRows(admin, "courier_profiles", (query) => query.eq("is_active", true)),
+    countRows(admin, "courier_profiles", (query) => query.eq("is_active", true), "user_id"),
     admin.from("jib_ai_manager_settings")
       .select("id,notification_channels,notification_call_mode,notification_voice_languages")
       .eq("id", 1)
