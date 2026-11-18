@@ -63,7 +63,7 @@ function frenchEventSummary(eventType: string, severity: string): string {
 function buildVoiceTwiML(row: OutboxRow): string {
   const payload = row.payload ?? {};
   const title = textValue(payload.title, "تنبيه من JIB");
-  const message = textValue(payload.message, title);
+  const message = textValue(payload.message, title).slice(0, 600);
   const eventType = textValue(payload.event_type, "system_update");
   const severity = textValue(payload.severity, "info");
   const languages = Array.isArray(payload.voice_languages)
@@ -285,7 +285,7 @@ Deno.serve(async (request: Request) => {
     const { count } = await admin.from(OUTBOX)
       .select("id", { count: "exact", head: true })
       .eq("channel", "voice")
-      .eq("status", "sent")
+      .in("status", ["sent", "processing"])
       .gte("created_at", monthStart);
     const estimatedSpent = (count ?? 0) * VOICE_MOROCCO_MOBILE_PER_MINUTE_USD;
     voiceLimit = Math.min(2, Math.max(0, Math.floor((voiceBudget - estimatedSpent) / VOICE_MOROCCO_MOBILE_PER_MINUTE_USD)));
