@@ -1,0 +1,1 @@
+-- Historical migration already applied to the live project. Its final merchant order transition behavior is represented by 20261116113702_secure_merchant_enrollment_and_courier_operations.sql and subsequent order lifecycle migrations. This marker preserves the applied remote migration version; no additional SQL is required.
