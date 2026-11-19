@@ -111,6 +111,18 @@ A feature is complete only after code, CI, security checks and a real integratio
 - The Vercel Hobby plan is restricted to personal/non-commercial usage by Vercel's terms. It must not be treated as an eligible long-term hosting plan for a commercial delivery business. A Cloudflare Workers migration is the preferred no-cost technical path to evaluate, but it must pass Next.js compatibility, auth, image upload, monitoring, and complete order-flow tests before any production cutover.
 - Remaining production blockers: enable leaked-password protection in Supabase Auth settings; conduct adversarial authorization tests for authenticated-callable `SECURITY DEFINER` RPCs before deciding on grants; define Rabat service zones and replace the temporary 15 MAD fee; configure truly free app-push delivery and test it; complete maps/live GPS and full cross-device order journey tests; validate signing/distribution of final Android builds; and move JIB Manager off Vercel Hobby before commercial use.
 
+
+
+## Branch-specific fulfillment and loyalty foundation (2026-11-19)
+
+- Added an admin-only `store_branch_policies` table. Each branch can independently select courier-led ordering, JIB central ordering, the store's official digital channel, or an authorized API/POS integration.
+- Central ordering, official digital ordering and API/POS modes are blocked unless branch-specific approval is recorded. Digital ordering requires an HTTPS URL; API/POS checkout is blocked unless a connected partner integration exists.
+- Added branch-specific loyalty modes: no external program, JIB business account, partner business account, or JIB Rewards. External loyalty account modes require explicit approval and a program name.
+- Updated trusted `checkout_order` to read these settings on the server and snapshot fulfillment mode and loyalty mode/name onto each order. Order history in JIB Manager now displays those snapshots.
+- Added a per-branch editor to JIB Manager's Stores page. RLS and explicit authenticated table grants restrict policy records to JIB administrators; no anonymous access or secret credential storage was added.
+- Added no paid service, external provider, subscription or billing upgrade.
+- This is the configuration and checkout-snapshot foundation only. It does **not** yet automate JIB staff ordering, implement a complete courier purchase/advance-cash flow, connect store websites/APIs, or issue/redeem external/JIB loyalty points. Do not represent those operational steps as live until their queue, mobile screens, ledger and end-to-end tests are implemented.
+- The migration is committed to PR #4's feature branch only and has not been applied to the live Supabase database. Run migration validation, admin lint/build, security review and an end-to-end checkout test on a safe database before merge or production release.
 This review does not mark JIB production-ready. Keep PR #4 as Draft and do not merge or repoint production until the remaining blockers and migration tests are complete.
 
 - Storage authorization was re-reviewed. Article uploads are admin-only; product uploads are limited to an authenticated merchant's own store (and admins for authorized support), while public access is read-only through the public buckets. Authenticated deletes are restricted to the owning store or admin. This makes the image-route cleanup attempt work for newly failed uploads without granting public write/delete access. Two historical article-image objects associated with pre-fix failed jobs remain orphaned in Storage; they were identified but not deleted by direct SQL because Storage objects must be removed through the Storage API.
