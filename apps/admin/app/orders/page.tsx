@@ -4,7 +4,7 @@ import { requireAdmin } from "../admin-data";
 type OrderRow = {
   id: string; status: string; payment_method: string; payment_status: string;
   subtotal_mad: number; delivery_fee_mad: number; total_mad: number; created_at: string;
-  fulfillment_mode_snapshot: string; loyalty_mode_snapshot: string; loyalty_program_name_snapshot: string | null;
+  fulfillment_mode_snapshot?: string; loyalty_mode_snapshot?: string; loyalty_program_name_snapshot?: string | null;
 };
 
 const fulfillmentLabels: Record<string, string> = {
@@ -32,9 +32,22 @@ export const dynamic = "force-dynamic";
 
 export default async function OrdersPage() {
   const { supabase } = await requireAdmin();
-  const { data, error } = await supabase.from("orders")
+  const snapshotQuery = await supabase.from("orders")
     .select("id,status,payment_method,payment_status,subtotal_mad,delivery_fee_mad,total_mad,created_at,fulfillment_mode_snapshot,loyalty_mode_snapshot,loyalty_program_name_snapshot")
     .order("created_at", { ascending: false }).limit(100);
+
+  let data = snapshotQuery.data;
+  let error = snapshotQuery.error;
+  let snapshotColumnsUnavailable = false;
+  if (snapshotQuery.error) {
+    // Keep current preview usable until the branch-only migration is applied.
+    const legacyQuery = await supabase.from("orders")
+      .select("id,status,payment_method,payment_status,subtotal_mad,delivery_fee_mad,total_mad,created_at")
+      .order("created_at", { ascending: false }).limit(100);
+    data = legacyQuery.data as typeof data;
+    error = legacyQuery.error;
+    snapshotColumnsUnavailable = !legacyQuery.error;
+  }
   const orders = (data ?? []) as unknown as OrderRow[];
 
   return <main className="shell">
@@ -42,6 +55,7 @@ export default async function OrdersPage() {
     <section className="page-heading"><p className="eyebrow">مراقبة العمليات</p><h1>الطلبات</h1><p>آخر 100 طلب مسجل في منصة JIB، مع حالة الدفع والتوصيل.</p></section>
     <section className="list-panel">
       <div className="section-heading"><h2>سجل الطلبات</h2><span className="count-chip">{orders.length} طلب</span></div>
+      {snapshotColumnsUnavailable ? <p className="error-state">حقول طريقة التنفيذ والولاء ستظهر بعد تطبيق ترحيل قاعدة البيانات على هذه البيئة؛ عُرضت الطلبات بالحقول الأساسية.</p> : null}
       {error ? <p className="error-state">تعذر تحميل الطلبات. تحقق من اتصال قاعدة البيانات وسياسات الوصول.</p> :
         orders.length === 0 ? <div className="empty-state"><strong>لا توجد طلبات بعد</strong><span>ستظهر الطلبات هنا فور تنفيذ أول طلب حقيقي من تطبيق JIB.</span></div> :
         <div className="table-wrap"><table>
@@ -50,8 +64,8 @@ export default async function OrdersPage() {
             <td className="mono">#{order.id.slice(0,8)}</td>
             <td><span className="status-pill">{statusLabels[order.status] ?? order.status}</span></td>
             <td>{order.payment_method === "cash" ? "نقداً عند التسليم" : order.payment_method} · {order.payment_status === "paid" ? "مدفوع" : "غير مدفوع"}</td>
-            <td>{fulfillmentLabels[order.fulfillment_mode_snapshot] ?? order.fulfillment_mode_snapshot}</td>
-            <td>{loyaltyLabels[order.loyalty_mode_snapshot] ?? order.loyalty_mode_snapshot}{order.loyalty_program_name_snapshot ? ` · ${order.loyalty_program_name_snapshot}` : ""}</td>
+            <td>{fulfillmentLabels[order.fulfillment_mode_snapshot ?? "courier_places_order"] ?? order.fulfillment_mode_snapshot ?? "—"}</td>
+            <td>{loyaltyLabels[order.loyalty_mode_snapshot ?? "none"] ?? order.loyalty_mode_snapshot ?? "—"}{order.loyalty_program_name_snapshot ? ` · ${order.loyalty_program_name_snapshot}` : ""}</td>
             <td className="amount">{Number(order.total_mad).toFixed(2)} د.م.</td>
             <td>{new Date(order.created_at).toLocaleString("ar-MA")}</td>
           </tr>)}</tbody>
