@@ -39,6 +39,7 @@ if (task.length < 10 || task.length > 6000) throw new Error("Task must contain 1
 const baseUrl = (process.env.JIB_AI_TEAM_BASE_URL || "").trim().replace(/\/$/, "");
 const apiKey = (process.env.JIB_AI_TEAM_API_KEY || "").trim();
 if (!baseUrl || !apiKey) throw new Error("Provider is not configured; no model request was sent");
+if (!baseUrl.startsWith("https://")) throw new Error("Provider URL must use HTTPS");
 
 const models = loadModels(process.env.JIB_AI_TEAM_FREE_MODELS_JSON);
 const safeTask = redact(`نطاق العمل: ${scope}\nالمهمة: ${task}`);
