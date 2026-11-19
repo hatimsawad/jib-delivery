@@ -42,7 +42,10 @@ export async function createCommercialBrand(data: FormData) {
     try { parsed = new URL(url); } catch { throw new Error("أدخل رابطاً صالحاً يبدأ بـ HTTPS."); }
     if (parsed.protocol !== "https:") throw new Error("يجب أن تكون الروابط HTTPS.");
   }
-  const normalizedName = name.toLocaleLowerCase().normalize("NFKD").replace(/[\\u064B-\\u065F\\u0670\\u0640]/g, "").replace(/[^\\p{L}\\p{N}]+/gu, " ").trim().replace(/\\s+/g, " ");
+  const normalizedName = name.toLocaleLowerCase().normalize("NFKD")
+    .replace(/[\u064B-\u065F\u0670\u0640]/g, "")
+    .replace(/[أإآٱ]/g, "ا").replace(/ى/g, "ي").replace(/ة/g, "ه")
+    .replace(/[^\p{L}\p{N}]+/gu, " ").trim().replace(/\s+/g, " ");
   const { supabase, user } = await requireAdmin();
   const client = supabase as unknown as BrandAdminClient;
   const { error } = await client.from("commercial_brands").insert({
