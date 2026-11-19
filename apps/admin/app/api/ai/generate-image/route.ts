@@ -109,8 +109,8 @@ async function generateWithCloudflare(prompt: string): Promise<Uint8Array> {
   if (!response.ok || payload?.success === false || typeof imageBase64 !== "string" || !imageBase64) {
     const providerMessage = payload?.errors?.map((item) => item.message).filter(Boolean).join("; ") ?? "";
     const safeProviderMessage = providerMessage
-      .replace(/Bearer\\s+[^\\s,;]+/gi, "Bearer [redacted]")
-      .replace(/(api[_-]?token|secret)[=: ]+[^\\s,;]+/gi, "$1=[redacted]")
+      .replace(/Bearer\s+[^\s,;]+/gi, "Bearer [redacted]")
+      .replace(/(api[_-]?token|secret)[=: ]+[^\s,;]+/gi, "$1=[redacted]")
       .slice(0, 240);
     console.error("[JIB Cloudflare AI]", {
       status: response.status,
