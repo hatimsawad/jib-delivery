@@ -59,7 +59,8 @@ values
 on conflict (slug) do nothing;
 
 insert into public.commercial_brand_aliases (brand_id, locale, alias, normalized_alias)
-select b.id, a.locale, a.alias, a.normalized_alias
+select b.id, a.locale, a.alias,
+  lower(trim(regexp_replace(regexp_replace(translate(a.alias, 'أإآٱىة', 'اااايه'), '[^[:alnum:]ء-ي]+', ' ', 'g'), '\\s+', ' ', 'g'))) as normalized_alias
 from public.commercial_brands b
 cross join lateral (values
   ('ar', case b.slug
