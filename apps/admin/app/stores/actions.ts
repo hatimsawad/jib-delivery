@@ -75,6 +75,7 @@ function formValue(formData: FormData, key: string, maxLength = 1000) {
 export async function setStoreStatus(formData: FormData) {
   const storeId = String(formData.get("storeId") ?? "");
   const isActive = String(formData.get("isActive") ?? "") === "true";
+  const isOpen = String(formData.get("isOpen") ?? "") === "true";
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(storeId)) {
     throw new Error("Invalid store id.");
   }
@@ -84,7 +85,7 @@ export async function setStoreStatus(formData: FormData) {
   const { error } = await adminRpc.rpc("admin_set_store_status", {
     p_store_id: storeId,
     p_is_active: isActive,
-    p_is_open: isActive,
+    p_is_open: isActive && isOpen,
   });
   if (error) throw new Error(error.message);
   revalidatePath("/stores");
