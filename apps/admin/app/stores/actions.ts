@@ -105,8 +105,8 @@ export async function saveStoreBranchPolicy(formData: FormData) {
     } catch {
       throw new Error("أدخل رابط HTTPS الرسمي لطلب المتجر قبل اعتماد القناة الرقمية.");
     }
-    if (parsedUrl.protocol !== "https:") {
-      throw new Error("يجب أن يبدأ رابط الطلب الرسمي بـ HTTPS.");
+    if (parsedUrl.protocol !== "https:" || /\s/.test(orderChannelUrl)) {
+      throw new Error("يجب أن يكون رابط الطلب الرسمي HTTPS صالحاً ومن دون فراغات.");
     }
   }
 
