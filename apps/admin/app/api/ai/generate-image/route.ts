@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 const IMAGE_MODEL = "cloudflare/@cf/black-forest-labs/flux-1-schnell";
 const CLOUDFLARE_MODEL = "@cf/black-forest-labs/flux-1-schnell";
-const ESTIMATED_COST_USD = 0.0005;
+const ESTIMATED_COST_USD = 0.000933; // 8-step, single 512px-tile list-price estimate; Workers AI free quota remains unbilled.
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
 type ReservedImageJob = {
@@ -44,26 +44,29 @@ function jsonError(message: string, status: number) {
 }
 
 function buildPrompt(type: "product" | "article", title: string, description: string) {
+  const safeTitle = title.trim().replace(/\\s+/g, " ").slice(0, 180);
+  const safeDescription = description.trim().replace(/\\s+/g, " ").slice(0, 1_100);
   const prompt = type === "product"
     ? [
-        "Create one premium, photorealistic food photograph for a Moroccan food-delivery marketplace.",
-        `Dish name: ${title}.`,
-        `Ingredients and restaurant description: ${description}.`,
-        "Ingredient fidelity is essential: depict only the ingredients and preparation details supplied. Do not invent meat, seafood, dairy, nuts, sauces, toppings, or allergens that are not mentioned.",
-        "Show the finished dish as it would actually be served, appetizing but realistic, with natural textures, accurate proportions, soft studio daylight, and a clean neutral tabletop.",
-        "Single dish, centered composition, square 1:1 framing, high-end commercial restaurant photography.",
-        "No text, no typography, no menu labels, no logos, no watermarks, no packaging, no people, no extra dishes.",
+        "Create a premium, photorealistic commercial food photograph for a high-end Moroccan food-delivery marketplace.",
+        `Exact dish to photograph: ${safeTitle}.`,
+        `Verified ingredients and preparation details: ${safeDescription}.`,
+        "Food accuracy is mandatory: reproduce the named dish and the supplied ingredients faithfully. Never add or substitute meat, seafood, cheese, dairy, nuts, sauces, toppings, garnishes, vegetables, or allergens that were not specified.",
+        "Show one real restaurant serving portion in the correct plate, bowl, wrapper, or serving vessel for that dish. Preserve natural food proportions, believable cooking textures, and appetizing but true-to-life colors.",
+        "Use refined commercial restaurant photography: a close three-quarter 45-degree hero angle, the dish filling about 80 percent of the frame, sharp focus on the food, soft directional window light, gentle natural shadows, realistic highlights, and subtle depth of field.",
+        "Use a clean, understated warm-neutral tabletop and premium modern styling. Keep the food clearly separated from the background. Square 1:1 composition suitable for a mobile product card.",
+        "One dish only. No extra plates, duplicate food, hands, people, utensils crossing the dish, text, letters, labels, logos, watermarks, borders, or packaging.",
       ].join(" ")
     : [
-        "Create one premium editorial cover image for a JIB article.",
-        `Article title: ${title}.`,
-        `Article summary and context: ${description}.`,
-        "Create a clear visual metaphor for the article's central idea, with a refined modern Moroccan editorial feel, strong subject hierarchy, natural lighting, and polished composition.",
-        "Compose the subject centrally so the square image can be safely cropped for article cards.",
-        "No text, no typography, no logos, no watermarks, no fabricated charts or labels.",
+        "Create a premium photorealistic editorial photograph for a JIB magazine article.",
+        `Exact article subject: ${safeTitle}.`,
+        `Article context: ${safeDescription}.`,
+        "Build one clear, visually compelling scene that accurately represents the article context. Use a refined contemporary Moroccan editorial art direction without clichés, with one dominant subject, thoughtful negative space, realistic materials, and natural directional lighting.",
+        "Professional full-frame editorial photography, carefully controlled contrast, natural colors, crisp subject detail, subtle depth of field, and a polished composition.",
+        "Landscape 16:9 framing with the main subject safely inside the central crop area. No text, typography, logos, watermarks, invented charts, labels, or UI elements.",
       ].join(" ");
 
-  // Cloudflare FLUX.1 Schnell accepts prompts up to 2,048 characters.
+  // FLUX.1 Schnell supports prompts up to 2,048 characters.
   return prompt.slice(0, 2048);
 }
 
@@ -82,7 +85,7 @@ async function generateWithCloudflare(prompt: string): Promise<Uint8Array> {
         Authorization: `Bearer ${apiToken}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ prompt, steps: 4 }),
+      body: JSON.stringify({ prompt, steps: 8 }),
       signal: AbortSignal.timeout(50_000),
       cache: "no-store",
     },
