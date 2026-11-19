@@ -60,7 +60,10 @@ export function detectCommercialCategory(value: string): CommercialCategory {
   for (const category of categories) {
     if (category.aliases.some(alias => {
       const key = normalize(alias);
-      return text === key || text.includes(key);
+      // Match complete normalized words/phrases only. Substring matching caused
+      // false positives such as "tea" inside "steak".
+      return text === key || text.startsWith(`${key} `) ||
+        text.endsWith(` ${key}`) || text.includes(` ${key} `);
     })) return category.id;
   }
   return "general-merchandise";
