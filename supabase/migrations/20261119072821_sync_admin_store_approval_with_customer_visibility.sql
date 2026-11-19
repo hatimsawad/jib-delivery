@@ -21,4 +21,4 @@ begin
     raise exception 'المتجر غير موجود';
   end if;
 end;
-$function$
+$function$;
