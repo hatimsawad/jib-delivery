@@ -28,7 +28,6 @@ export default function AdminHeader() {
         <Link href="/users">المستخدمون والمندوبون</Link>
         <Link href="/monitoring">المراقبة والحوادث</Link>
         <Link href="/images">استوديو الصور الذكي</Link>
-        <Link href="/ai-team">فريق الذكاء الاصطناعي</Link>
         <Link href="/settings/notifications">إعدادات AI Manager</Link>
       </nav>
     </>
