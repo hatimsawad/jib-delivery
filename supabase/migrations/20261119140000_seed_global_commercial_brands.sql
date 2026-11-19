@@ -77,7 +77,7 @@ cross join lateral (values
     else null end),
   ('fr', case b.slug
     when 'marjane' then 'Marjane' when 'carrefour' then 'Carrefour'
-    when 'aswak-assalam' then 'Aswak Assalam' when 'mcdonalds' then 'McDonald's'
+    when 'aswak-assalam' then 'Aswak Assalam' when 'mcdonalds' then 'McDonald''s'
     when 'burger-king' then 'Burger King' when 'kfc' then 'KFC'
     when 'starbucks' then 'Starbucks' when 'ikea' then 'IKEA'
     else null end)
