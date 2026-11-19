@@ -100,7 +100,7 @@ export default function ImageGenerator({ initialJobs }: { initialJobs: ImageJob[
     <div className="image-manager">
       <section className="list-panel">
         <div className="section-heading"><h2>إنشاء غلاف مقال</h2><span className="count-chip">AI · 1:1</span></div>
-        <p className="manager-provider-note">اكتب عنوان المقال وملخصه. سيُنشئ JIB صورة تحريرية مناسبة، ثم يعرضها للمراجعة قبل اعتمادها. الحد الحالي 100 طلب صورة شهرياً.</p>
+        <p className="manager-provider-note">اكتب عنوان المقال وملخصه. سيُنشئ JIB صورة تحريرية مناسبة، ثم يعرضها للمراجعة قبل اعتمادها. سقف JIB الداخلي 100 طلب شهرياً، لكنه لا يضمن 100 صورة مجانية؛ الاستخدام المجاني تابع لحصة Cloudflare اليومية المشتركة (10,000 Neurons على Workers Free).</p>
         <form className="image-request-form" onSubmit={generateArticleCover}>
           <label htmlFor="article-title">عنوان المقال</label>
           <input id="article-title" value={title} onChange={(event) => setTitle(event.target.value)} maxLength={160} required placeholder="مثال: أفضل أطباق المطبخ المغربي في الرباط" />
@@ -129,7 +129,7 @@ export default function ImageGenerator({ initialJobs }: { initialJobs: ImageJob[
                 <div className="image-job-copy">
                   <div className="image-job-title"><strong>{job.title}</strong><span className="ai-image-badge">AI GENERATED</span><span className="status-pill">{statusLabels[job.status] ?? job.status}</span></div>
                   <p>{job.request_type === "article" ? "غلاف مقال" : "صورة منتج"} · {new Date(job.created_at).toLocaleString("ar-MA", { timeZone: "Africa/Casablanca" })}</p>
-                  {job.estimated_cost_usd != null && <small>التكلفة التقديرية: ${job.estimated_cost_usd.toFixed(3)}</small>}
+                  {job.estimated_cost_usd != null && <small>السعر المرجعي خارج الحصة المجانية: ${job.estimated_cost_usd.toFixed(3)} · الفوترة الفعلية: 0$ ما دام الحساب على Workers Free وداخل الحصة اليومية</small>}
                   {job.error_message && <small className="form-error">{job.error_message}</small>}
                   {job.status === "ready_for_review" && (
                     <div className="image-job-actions">
