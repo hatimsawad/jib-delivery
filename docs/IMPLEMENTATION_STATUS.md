@@ -1,6 +1,6 @@
 # JIB implementation status
 
-Last updated: 2026-11-18
+Last updated: 2026-11-19
 
 ## Confirmed project structure and deployment history
 
@@ -160,3 +160,19 @@ This review does not mark JIB production-ready. Keep PR #4 as Draft and do not m
 - Customer discovery continues to show only real store records that are active and open. Branch approval and onboarding remain the switch that makes a store available to customers.
 - Seed migration `20261119140000_seed_global_commercial_brands.sql` and the new admin UI are committed to the feature branch only. The migration has not been applied to the live Supabase project.
 - Vercel preview for commit `7fa52aad5d11280faeabddb5aab01c0445e28d5c` reached READY. GitHub CI and Android APK workflows were still queued at the last status check; they must pass before the feature is considered verified.
+
+
+## Authoritative release audit — 2026-11-19 (supersedes earlier pending-migration notes)
+
+- Live Supabase migration history confirms that the commercial catalog, 50-brand seed (plus one previously present/added record), branch fulfillment/loyalty configuration, policy optimization, and image-review hardening migrations are applied. Current read-only count: 51 brand rows, 47 pending verification, 4 approved directory entries; 1 store branch and 1 product row. Directory approval is not branch approval.
+- The only current store row is `blackness`, with `onboarding_status='pending'`. It is intentionally not visible/orderable to customers until a JIB admin approves the actual branch. Do not auto-approve it or create fictitious chain branches.
+- Added database-side customer checkout enforcement requiring the branch to be active, open, and `onboarding_status='approved'`. Customer discovery applies the same onboarding filter. The admin store-approval RPC now changes onboarding status to approved when an administrator activates a branch; the Stores page displays the actual onboarding state and its action can approve a pending branch even if the legacy `is_active` flag was already true.
+- Hardened `jib_ai_manager_review_image_job`: null/missing profile roles no longer bypass product-image review authorization; only supported request types are accepted; anonymous execution is revoked. AI-generated product images are no longer eligible for publication as authentic product photos. Article-cover review remains admin-only.
+- Disabled the text-to-image product endpoint and removed the product AI-generation control from the merchant app. Product catalog images must be uploaded from a real merchant/supplier/product source. Customer UI already labels historical AI-generated product images, but the new release does not create or approve additional AI product photos.
+- Live image-job audit: 18 jobs total, 9 currently ready for review and 4 failed at the audit snapshot; the latest jobs were article-cover requests using Cloudflare FLUX.1 Schnell. No claim is made that image quality meets commercial standards; reject unsuitable article covers.
+- Latest pre-fix CI and Android workflow runs succeeded for commit `6ebc11bd4caba40724a169ab9a27a66e5c06c40c`. New CI run `44479692586` and Android APK run `44479692672` were queued/in progress after the latest image-policy changes; recheck before calling the candidate verified.
+- Latest Vercel preview deployment for commit `0b8f85030af4ef1f5cb9286a445b0c6d98dd3813` was queued at the last check. Do not use the previous READY preview as evidence for the newest source changes. Wait for the latest deployment to reach READY and smoke-test the protected admin routes.
+- Supabase Security Advisor still reports: `pg_net` installed in public; 14 authenticated-callable SECURITY DEFINER functions; and leaked-password protection disabled. Anonymous execution is denied for the reviewed functions; the business RPCs contain auth/role/ownership checks. The image review function was hardened in this pass. Do not remove the scheduled monitor's pg_net dependency without a migration plan. Enable leaked-password protection in Supabase Auth dashboard before public release.
+- The image-generation API now allows article covers only. Cloudflare usage still follows the account's actual billing plan and shared daily allocation. JIB does not upgrade plans or turn on billing; do not assume the API can guarantee a zero-cost call if the Cloudflare account itself is on a paid plan.
+- PR #4 remains Draft and unmerged. Production alias remains unchanged. No final public launch, payment integration, automated branch ordering, courier cash advance, external loyalty accrual, live GPS tracking, or notification delivery is claimed.
+- Next release gates: latest CI + APK workflow pass; latest Vercel preview READY and smoke-tested; branch approval UX test; customer browse/checkout E2E with an approved test branch; unauthorized RPC tests; final Android install/device test; verify Cloudflare account billing plan before enabling article image generation; configure free push notifications or clearly keep notifications disabled; service zones and real delivery pricing; production hosting terms review.
