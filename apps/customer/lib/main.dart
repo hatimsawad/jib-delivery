@@ -289,7 +289,7 @@ class _CustomerHomeState extends State<CustomerHome> {
 
   Future<List<Map<String, dynamic>>> _stores() async {
     final rows = await supabase.from('stores').select('id,name,description,category,address_text,is_open')
-      .eq('is_active', true).eq('is_open', true).order('name');
+      .eq('is_active', true).eq('is_open', true).eq('onboarding_status', 'approved').order('name');
     return List<Map<String, dynamic>>.from(rows);
   }
 
