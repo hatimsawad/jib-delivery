@@ -67,8 +67,10 @@ export async function saveStoreBranchPolicy(formData: FormData) {
   const fulfillmentMode = formValue(formData, "fulfillmentMode", 40);
   let orderPermissionStatus = formValue(formData, "orderPermissionStatus", 24);
   const orderChannelUrl = formValue(formData, "orderChannelUrl", 500);
+  const orderPermissionReference = formValue(formData, "orderPermissionReference", 500);
   const loyaltyMode = formValue(formData, "loyaltyMode", 32);
   let loyaltyPermissionStatus = formValue(formData, "loyaltyPermissionStatus", 24);
+  const loyaltyPermissionReference = formValue(formData, "loyaltyPermissionReference", 500);
   const loyaltyProgramName = formValue(formData, "loyaltyProgramName", 120);
   const operatorNotes = formValue(formData, "operatorNotes", 1000);
 
@@ -88,16 +90,16 @@ export async function saveStoreBranchPolicy(formData: FormData) {
     throw new Error("حالة موافقة برنامج الولاء غير صالحة.");
   }
 
-  if (fulfillmentMode !== "courier_places_order" && orderPermissionStatus !== "approved") {
-    throw new Error("لا يمكن تفعيل طلب JIB أو القناة الرقمية أو API دون موافقة صريحة موثقة لهذا الفرع.");
+  if (orderPermissionStatus === "approved" && !orderPermissionReference) {
+    throw new Error("أدخل مرجعاً يوضح كيفية توثيق موافقة الفرع قبل اعتماد الطلب المركزي.");
   }
 
-  if (fulfillmentMode === "store_digital_order") {
+  if (fulfillmentMode === "store_digital_order" && orderPermissionStatus === "approved") {
     let parsedUrl: URL;
     try {
       parsedUrl = new URL(orderChannelUrl);
     } catch {
-      throw new Error("أدخل رابط HTTPS الرسمي لطلب المتجر.");
+      throw new Error("أدخل رابط HTTPS الرسمي لطلب المتجر قبل اعتماد القناة الرقمية.");
     }
     if (parsedUrl.protocol !== "https:") {
       throw new Error("يجب أن يبدأ رابط الطلب الرسمي بـ HTTPS.");
@@ -105,8 +107,8 @@ export async function saveStoreBranchPolicy(formData: FormData) {
   }
 
   if (loyaltyMode === "jib_business_account" || loyaltyMode === "partner_business_account") {
-    if (loyaltyPermissionStatus !== "approved" || !loyaltyProgramName) {
-      throw new Error("لا يمكن تسجيل نقاط برنامج خارجي إلا بعد الموافقة الصريحة وتحديد اسم البرنامج.");
+    if (loyaltyPermissionStatus === "approved" && (!loyaltyProgramName || !loyaltyPermissionReference)) {
+      throw new Error("يتطلب اعتماد برنامج الولاء الخارجي اسمه ومرجع الموافقة الموثقة.");
     }
   } else {
     loyaltyPermissionStatus = "not_required";
@@ -120,11 +122,13 @@ export async function saveStoreBranchPolicy(formData: FormData) {
     order_channel_url: orderChannelUrl || null,
     order_permission_approved_at: orderPermissionStatus === "approved" ? new Date().toISOString() : null,
     order_permission_approved_by: orderPermissionStatus === "approved" ? user.id : null,
+    order_permission_reference: orderPermissionStatus === "approved" ? orderPermissionReference : null,
     loyalty_mode: loyaltyMode,
     loyalty_program_name: loyaltyMode === "none" ? null : (loyaltyProgramName || (loyaltyMode === "jib_rewards" ? "JIB Rewards" : null)),
     loyalty_permission_status: loyaltyPermissionStatus,
     loyalty_permission_approved_at: loyaltyPermissionStatus === "approved" ? new Date().toISOString() : null,
     loyalty_permission_approved_by: loyaltyPermissionStatus === "approved" ? user.id : null,
+    loyalty_permission_reference: loyaltyPermissionStatus === "approved" ? loyaltyPermissionReference : null,
     operator_notes: operatorNotes || null,
     updated_by: user.id,
     updated_at: new Date().toISOString(),
