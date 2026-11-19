@@ -1,12 +1,42 @@
-# JIB AI Team — Preview configuration
+# JIB AI Development Team — GitHub Actions
 
-This feature is intentionally inert until an administrator configures all required server-side variables.
+## Purpose and location
 
-## Required environment variables
+The multi-model development team belongs to this GitHub repository, not to JIB Manager. It is a repository development tool used to plan, review, secure, and test all four JIB applications:
 
-- `JIB_AI_TEAM_BASE_URL`: base URL of one OpenAI-compatible chat-completions gateway. Do not include the `/chat/completions` suffix.
-- `JIB_AI_TEAM_API_KEY`: provider credential. Keep it in Vercel Preview environment secrets only; never commit it or place it in Flutter/browser variables.
-- `JIB_AI_TEAM_FREE_MODELS_JSON`: JSON array of explicitly approved model entries, for example:
+- Customer app
+- Merchant app
+- Courier app
+- JIB Manager
+
+The entry point is the GitHub Actions workflow `.github/workflows/jib-ai-team.yml`. The runner and orchestration script live in `.github/scripts/jib-ai-team.mjs`.
+
+## How to run
+
+1. Open the JIB repository on GitHub.
+2. Open **Actions**.
+3. Select **JIB AI Development Team**.
+4. Select the application scope (or `all`), enter a task, and run the workflow.
+5. Open the completed run and download the `jib-ai-team-report` artifact.
+
+The workflow is manually dispatched only. It does not run on pull requests, pushes, or production deployments. The workflow file must first be present on the repository's default branch before it appears as a normal manual workflow in GitHub Actions. Until then, keep this implementation on its feature branch.
+
+## Roles
+
+- Architect: smallest compatible design and affected areas.
+- Implementer: concrete implementation plan and proposed file changes.
+- Security: authentication, authorization, RLS, privacy, secrets, and data integrity.
+- QA: regression, integration, edge-case, and platform test plan.
+
+The first version returns independent reports. It does not claim consensus and does not edit files, open PRs, merge, deploy, or access Supabase. A later, separately reviewed phase may add allowlisted read-only repository context and proposed patch artifacts; repository writes must remain behind explicit human approval.
+
+## Free-only configuration
+
+Configure these under GitHub repository **Settings → Secrets and variables → Actions**:
+
+- Variable `JIB_AI_TEAM_BASE_URL`: OpenAI-compatible gateway base URL (without `/chat/completions`).
+- Secret `JIB_AI_TEAM_API_KEY`: provider credential.
+- Variable `JIB_AI_TEAM_FREE_MODELS_JSON`: JSON array of up to four explicitly approved models, for example:
 
 ```json
 [
@@ -17,19 +47,18 @@ This feature is intentionally inert until an administrator configures all requir
 ]
 ```
 
-The `free: true` field is an explicit operator assertion, not automatic proof that a model is free. Before enabling any entry, verify the provider's current free quota, rate limits, data-processing terms, retention policy, and that the model does not require credits or paid billing. A gateway's free-model label alone is not sufficient evidence.
+The `free: true` flag is an operator allowlist assertion, not proof of free usage. Verify current provider pricing, free quotas, rate limits, retention, and data-processing terms before enabling a model. Do not enable any paid fallback, billing, or automatic upgrade. When the free quota is exhausted, that model is reported unavailable.
 
-## Safety rules
+## Security boundaries
 
-- Configure these variables in a Preview environment only until the feature has passed review.
-- Use one gateway endpoint; do not chain gateways.
-- No paid fallback is implemented. A 429 or exhausted quota is returned as a failed model result.
-- The API is admin-only and analysis-only. It has no repository, Supabase, Vercel deployment, shell, or customer messaging tools.
-- Results are not stored in the database.
-- Basic redaction catches common API-token patterns, emails, and phone numbers; it is not a complete privacy filter. Never submit customer information, credentials, access tokens, private merchant information, or other sensitive data.
-- No model call occurs when the model allowlist or provider credentials are missing.
-- The model allowlist accepts at most four entries and only the four declared review roles.
+- Workflow permissions are read-only (`contents: read`); checkout credentials are not persisted.
+- The workflow is manual-only and has no pull-request event trigger.
+- Provider credentials are read from GitHub Actions secrets, never committed.
+- Do not submit customer PII, credentials, tokens, private merchant information, or production secrets. Basic pattern redaction is not a complete privacy filter.
+- This initial phase sends only the task text and selected application scope. It does not send repository source files to the provider.
+- Model responses are untrusted suggestions and require human verification.
+- No automatic source changes, PR creation, merge, production database action, or deployment is permitted.
 
-## Current implementation boundary
+## Current status
 
-The first slice provides an admin-only page and an analysis endpoint. It returns independent role outputs and does not claim consensus. The deterministic comparison/judge, provider health checks, rate limiting, automated tests, and repository read-only context are still pending. Do not enable this in Production or mark it release-ready until those gates are implemented and tested.
+This GitHub Actions implementation is a safe first stage. Provider variables and secret are not configured by this commit, so it will not contact any model until the owner deliberately configures them. It has not been run against a live provider. The old JIB Manager UI/API implementation is removed from this branch; the existing image-generation and notification features are not part of this tool.
