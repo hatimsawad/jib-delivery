@@ -149,3 +149,14 @@ This review does not mark JIB production-ready. Keep PR #4 as Draft and do not m
 - McDonald's, Burger King, KFC and other chains are supported as target partner types in the architecture, but no commercial partnership or live API connection is claimed. These require each brand's authorization, data access and technical credentials.
 - The new migration is committed to the feature branch but has not yet been applied to the live Supabase database. CI/build and preview deployment are required before release.
 - Free-only policy remains in force. No paid provider, subscription, scraping service or billing upgrade was added.
+
+
+## Global commercial brand catalog (2026-11-19)
+
+- Added an initial directory seed of 50 Moroccan and international brand records across food, supermarkets, grocery, beverages, electronics, fashion, beauty, household, sports and toys. This is a starter dataset, not a claim to enumerate every merchant worldwide.
+- Added the JIB Manager `/brands` page to add brands with source metadata and review/approve/reject/suspend their directory status.
+- Added a navigation entry for the global brand directory.
+- Brand-directory approval is deliberately separate from a real branch's merchant onboarding, operating hours, product availability and permission to accept JIB orders. A directory brand does not create a fake store branch or imply a partnership.
+- Customer discovery continues to show only real store records that are active and open. Branch approval and onboarding remain the switch that makes a store available to customers.
+- Seed migration `20261119140000_seed_global_commercial_brands.sql` and the new admin UI are committed to the feature branch only. The migration has not been applied to the live Supabase project.
+- Vercel preview for commit `7fa52aad5d11280faeabddb5aab01c0445e28d5c` reached READY. GitHub CI and Android APK workflows were still queued at the last status check; they must pass before the feature is considered verified.
