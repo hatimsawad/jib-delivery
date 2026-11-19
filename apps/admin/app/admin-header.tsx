@@ -22,7 +22,8 @@ export default function AdminHeader() {
       <nav className="admin-nav" aria-label="التنقل الرئيسي">
         <Link href="/">مركز القيادة</Link>
         <Link href="/orders">الطلبات</Link>
-        <Link href="/stores">المتاجر</Link>
+        <Link href="/stores">المتاجر والفروع</Link>
+        <Link href="/brands">دليل العلامات</Link>
         <Link href="/products">المنتجات</Link>
         <Link href="/users">المستخدمون والمندوبون</Link>
         <Link href="/monitoring">المراقبة والحوادث</Link>
