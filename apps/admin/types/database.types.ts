@@ -415,6 +415,10 @@ export type Database = {
           subtotal_mad: number
           total_mad: number
           updated_at: string
+          fulfillment_mode_snapshot: string
+          loyalty_mode_snapshot: string
+          loyalty_program_name_snapshot: string | null
+          branch_policy_id_snapshot: string | null
         }
         Insert: {
           address_id?: string | null
@@ -431,6 +435,10 @@ export type Database = {
           subtotal_mad: number
           total_mad: number
           updated_at?: string
+          fulfillment_mode_snapshot?: string
+          loyalty_mode_snapshot?: string
+          loyalty_program_name_snapshot?: string | null
+          branch_policy_id_snapshot?: string | null
         }
         Update: {
           address_id?: string | null
@@ -447,6 +455,10 @@ export type Database = {
           subtotal_mad?: number
           total_mad?: number
           updated_at?: string
+          fulfillment_mode_snapshot?: string
+          loyalty_mode_snapshot?: string
+          loyalty_program_name_snapshot?: string | null
+          branch_policy_id_snapshot?: string | null
         }
         Relationships: [
           {
@@ -540,6 +552,71 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      store_branch_policies: {
+        Row: {
+          id: string
+          store_id: string
+          fulfillment_mode: string
+          order_permission_status: string
+          order_channel_url: string | null
+          order_permission_approved_at: string | null
+          order_permission_approved_by: string | null
+          loyalty_mode: string
+          loyalty_program_name: string | null
+          loyalty_permission_status: string
+          loyalty_permission_approved_at: string | null
+          loyalty_permission_approved_by: string | null
+          operator_notes: string | null
+          updated_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          store_id: string
+          fulfillment_mode?: string
+          order_permission_status?: string
+          order_channel_url?: string | null
+          order_permission_approved_at?: string | null
+          order_permission_approved_by?: string | null
+          loyalty_mode?: string
+          loyalty_program_name?: string | null
+          loyalty_permission_status?: string
+          loyalty_permission_approved_at?: string | null
+          loyalty_permission_approved_by?: string | null
+          operator_notes?: string | null
+          updated_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          store_id?: string
+          fulfillment_mode?: string
+          order_permission_status?: string
+          order_channel_url?: string | null
+          order_permission_approved_at?: string | null
+          order_permission_approved_by?: string | null
+          loyalty_mode?: string
+          loyalty_program_name?: string | null
+          loyalty_permission_status?: string
+          loyalty_permission_approved_at?: string | null
+          loyalty_permission_approved_by?: string | null
+          operator_notes?: string | null
+          updated_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_branch_policies_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: true
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       stores: {
         Row: {
