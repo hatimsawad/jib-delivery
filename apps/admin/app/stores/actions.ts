@@ -40,6 +40,34 @@ const loyaltyPermissionStatuses = [
   "suspended",
 ] as const;
 
+type BranchPolicyUpsert = {
+  store_id: string;
+  fulfillment_mode: string;
+  order_permission_status: string;
+  order_channel_url: string | null;
+  order_permission_approved_at: string | null;
+  order_permission_approved_by: string | null;
+  order_permission_reference: string | null;
+  loyalty_mode: string;
+  loyalty_program_name: string | null;
+  loyalty_permission_status: string;
+  loyalty_permission_approved_at: string | null;
+  loyalty_permission_approved_by: string | null;
+  loyalty_permission_reference: string | null;
+  operator_notes: string | null;
+  updated_by: string;
+  updated_at: string;
+};
+
+type BranchPolicyClient = {
+  from(table: "store_branch_policies"): {
+    upsert(
+      values: BranchPolicyUpsert,
+      options: { onConflict: "store_id" },
+    ): Promise<{ error: { message: string } | null }>;
+  };
+};
+
 function formValue(formData: FormData, key: string, maxLength = 1000) {
   return String(formData.get(key) ?? "").trim().slice(0, maxLength);
 }
@@ -122,7 +150,8 @@ export async function saveStoreBranchPolicy(formData: FormData) {
   }
 
   const { supabase, user } = await requireAdmin();
-  const { error } = await supabase.from("store_branch_policies").upsert({
+  const branchPolicyClient = supabase as unknown as BranchPolicyClient;
+  const { error } = await branchPolicyClient.from("store_branch_policies").upsert({
     store_id: storeId,
     fulfillment_mode: fulfillmentMode,
     order_permission_status: orderPermissionStatus,
