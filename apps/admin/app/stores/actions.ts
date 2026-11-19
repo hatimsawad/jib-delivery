@@ -90,6 +90,10 @@ export async function saveStoreBranchPolicy(formData: FormData) {
     throw new Error("حالة موافقة برنامج الولاء غير صالحة.");
   }
 
+  if (fulfillmentMode !== "courier_places_order" && orderPermissionStatus === "not_required") {
+    throw new Error("اختر حالة موافقة الفرع: بانتظار الموافقة أو موافقة موثقة أو مرفوضة أو موقوفة.");
+  }
+
   if (orderPermissionStatus === "approved" && !orderPermissionReference) {
     throw new Error("أدخل مرجعاً يوضح كيفية توثيق موافقة الفرع قبل اعتماد الطلب المركزي.");
   }
@@ -107,6 +111,9 @@ export async function saveStoreBranchPolicy(formData: FormData) {
   }
 
   if (loyaltyMode === "jib_business_account" || loyaltyMode === "partner_business_account") {
+    if (loyaltyPermissionStatus === "not_required") {
+      throw new Error("اختر حالة موافقة برنامج الولاء الخارجي.");
+    }
     if (loyaltyPermissionStatus === "approved" && (!loyaltyProgramName || !loyaltyPermissionReference)) {
       throw new Error("يتطلب اعتماد برنامج الولاء الخارجي اسمه ومرجع الموافقة الموثقة.");
     }
