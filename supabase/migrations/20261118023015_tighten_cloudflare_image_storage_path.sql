@@ -1,0 +1,1 @@
+-- Historical migration already applied to the live project. The final exact bucket/path checks are represented by 20261118022958_switch_jib_image_provider_to_cloudflare.sql and 20261118212236_fix_jib_image_job_storage_owner_text_cast.sql. This marker preserves the applied remote migration version; no additional SQL is required.
