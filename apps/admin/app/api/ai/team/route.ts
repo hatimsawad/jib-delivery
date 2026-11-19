@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "../../admin-data";
+import { requireAdmin } from "../../../admin-data";
 import { getEnabledFreeTeamModels, runTeamAnalysis } from "../../../../lib/ai/team/orchestrator";
 
 export const runtime = "nodejs";
