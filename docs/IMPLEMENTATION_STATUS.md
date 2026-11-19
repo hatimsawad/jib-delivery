@@ -114,3 +114,13 @@ A feature is complete only after code, CI, security checks and a real integratio
 This review does not mark JIB production-ready. Keep PR #4 as Draft and do not merge or repoint production until the remaining blockers and migration tests are complete.
 
 - Storage authorization was re-reviewed. Article uploads are admin-only; product uploads are limited to an authenticated merchant's own store (and admins for authorized support), while public access is read-only through the public buckets. Authenticated deletes are restricted to the owning store or admin. This makes the image-route cleanup attempt work for newly failed uploads without granting public write/delete access. Two historical article-image objects associated with pre-fix failed jobs remain orphaned in Storage; they were identified but not deleted by direct SQL because Storage objects must be removed through the Storage API.
+
+
+## Moroccan culinary image knowledge update
+
+- Added a curated multilingual dish-profile library for Moroccan/French tacos, tajine, couscous, pastilla, harira, rfissa, tanjia, msemen, chebakia, zaalouk, bissara, briouats, maakouda and seffa.
+- Updated image prompting to match both product title and description and place the regional dish definition before generic photography instructions, preventing dish constraints from being truncated behind generic prompt text.
+- Product prompts explicitly prioritize the prepared food itself and reject people, cooks, kitchens, rooms and unrelated lifestyle scenes. Dish-specific exclusions distinguish Moroccan/French tacos from Mexican tacos and Moroccan tajine from generic pots or cooking scenes.
+- Corrected the Image Studio model-step description to eight steps to match the API.
+- Documented free-source licensing and attribution rules in `docs/MOROCCAN_FOOD_KNOWLEDGE.md`. No paid provider or dataset was added.
+- These changes require fresh CI and a new preview image test; they are not yet approved for production.
