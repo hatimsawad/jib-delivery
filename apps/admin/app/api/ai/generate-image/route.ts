@@ -183,6 +183,15 @@ export async function POST(request: Request) {
       return jsonError("عنوان المقال وملخصه مطلوبان.", 400);
     }
 
+    // Product identity must come from an authentic merchant/supplier photo.
+    // The current text-to-image model cannot guarantee exact product fidelity.
+    if (type === "product") {
+      return jsonError(
+        "أوقفنا توليد صور المنتجات مؤقتاً لأن النموذج لا يضمن مطابقة المنتج الحقيقي. أضف صورة أصلية من التاجر أو المورد؛ بقي التوليد متاحاً لأغلفة المقالات فقط.",
+        422,
+      );
+    }
+
     // Validate provider configuration before reserving a monthly image slot.
     const cloudflareAccountId = process.env.CLOUDFLARE_ACCOUNT_ID?.trim() ?? "";
     const cloudflareApiToken = process.env.CLOUDFLARE_API_TOKEN?.trim() ?? "";
