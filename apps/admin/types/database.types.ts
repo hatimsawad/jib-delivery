@@ -562,11 +562,13 @@ export type Database = {
           order_channel_url: string | null
           order_permission_approved_at: string | null
           order_permission_approved_by: string | null
+          order_permission_reference: string | null
           loyalty_mode: string
           loyalty_program_name: string | null
           loyalty_permission_status: string
           loyalty_permission_approved_at: string | null
           loyalty_permission_approved_by: string | null
+          loyalty_permission_reference: string | null
           operator_notes: string | null
           updated_by: string | null
           created_at: string
@@ -580,11 +582,13 @@ export type Database = {
           order_channel_url?: string | null
           order_permission_approved_at?: string | null
           order_permission_approved_by?: string | null
+          order_permission_reference?: string | null
           loyalty_mode?: string
           loyalty_program_name?: string | null
           loyalty_permission_status?: string
           loyalty_permission_approved_at?: string | null
           loyalty_permission_approved_by?: string | null
+          loyalty_permission_reference?: string | null
           operator_notes?: string | null
           updated_by?: string | null
           created_at?: string
@@ -598,11 +602,13 @@ export type Database = {
           order_channel_url?: string | null
           order_permission_approved_at?: string | null
           order_permission_approved_by?: string | null
+          order_permission_reference?: string | null
           loyalty_mode?: string
           loyalty_program_name?: string | null
           loyalty_permission_status?: string
           loyalty_permission_approved_at?: string | null
           loyalty_permission_approved_by?: string | null
+          loyalty_permission_reference?: string | null
           operator_notes?: string | null
           updated_by?: string | null
           created_at?: string
