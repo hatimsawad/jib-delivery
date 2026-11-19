@@ -1,0 +1,1 @@
+-- Historical migration already applied to the live project. Its final merchant enrollment behavior is represented by 20261116113702_secure_merchant_enrollment_and_courier_operations.sql and 20261116114942_enforce_store_and_courier_approval_permissions.sql. This marker preserves the applied remote migration version; no additional SQL is required.
