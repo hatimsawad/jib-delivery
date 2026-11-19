@@ -1,7 +1,7 @@
 import { Buffer } from "node:buffer";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "../../../../types/database.types";
-import { buildMoroccanDishPrompt } from "../../../../lib/ai/moroccan-dishes";
+import { buildCommercialProductPrompt } from "../../../../lib/ai/commercial-catalog";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -45,28 +45,11 @@ function jsonError(message: string, status: number) {
 }
 
 function buildPrompt(type: "product" | "article", title: string, description: string) {
-  const safeTitle = title.trim().replace(/\\s+/g, " ").slice(0, 180);
-  const safeDescription = description.trim().replace(/\\s+/g, " ").slice(0, 1_100);
+  const safeTitle = title.trim().replace(/\s+/g, " ").slice(0, 180);
+  const safeDescription = description.trim().replace(/\s+/g, " ").slice(0, 1_100);
 
   if (type === "product") {
-    // Match against both the product name and its ingredient description.
-    // Put the regional dish definition FIRST so the model cannot lose it
-    // when the provider enforces its 2,048-character prompt limit.
-    const dishReferencePrompt = buildMoroccanDishPrompt(
-      `${safeTitle} ${safeDescription}`,
-    );
-    const photographyPrompt = [
-      "Photograph the actual prepared food product itself, not a person, cook, kitchen, restaurant, room, ingredients-only scene, or lifestyle scene.",
-      "Premium photorealistic commercial food photography for a Moroccan food-delivery marketplace.",
-      `Exact product: ${safeTitle}.`,
-      `Use only these supplied ingredients and preparation details: ${safeDescription}.`,
-      "One real serving, close-up three-quarter hero angle, food fills most of the square frame, crisp realistic food textures, natural appetizing colors, soft directional studio-window light, subtle depth of field, simple warm-neutral tabletop.",
-      "No text, typography, labels, logos, watermarks, borders, people, hands, or unrelated props.",
-    ].join(" ");
-    const prompt = dishReferencePrompt
-      ? `${dishReferencePrompt} ${photographyPrompt}`
-      : photographyPrompt;
-    return prompt.slice(0, 2048);
+    return buildCommercialProductPrompt(safeTitle, safeDescription);
   }
 
   const articlePrompt = [
