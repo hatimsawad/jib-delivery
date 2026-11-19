@@ -46,17 +46,28 @@ function jsonError(message: string, status: number) {
 function buildPrompt(type: "product" | "article", title: string, description: string) {
   const safeTitle = title.trim().replace(/\\s+/g, " ").slice(0, 180);
   const safeDescription = description.trim().replace(/\\s+/g, " ").slice(0, 1_100);
+  const isMoroccanTacos = /\\b(tacos?|taco|تاكوس?|طاكوس?|طاكُوس)\\b/i.test(safeTitle);
+  const productPrompt = [
+    "Create a premium, photorealistic commercial food photograph for a high-end Moroccan food-delivery marketplace.",
+    `Exact dish to photograph: ${safeTitle}.`,
+    `Verified ingredients and preparation details: ${safeDescription}.`,
+    "Food accuracy is mandatory: reproduce the named dish and supplied ingredients faithfully. Never add or substitute allergens or unlisted fillings.",
+    "Use believable restaurant preparation, natural food proportions, realistic textures, appetizing but true-to-life colors, and professional commercial food photography.",
+    "Close three-quarter hero angle, sharp focus on the food, soft directional light, gentle natural shadows, realistic highlights, subtle depth of field, warm-neutral premium tabletop, square 1:1 composition.",
+    "One serving only. No text, labels, logos, watermarks, borders, or people.",
+  ];
+  if (isMoroccanTacos) {
+    productPrompt.push(
+      "CRITICAL REGIONAL DISH DEFINITION: This is a MOROCCAN / FRENCH-STYLE TACOS SANDWICH (tacos français), NOT Mexican tacos.",
+      "Show one large rectangular flour-wheat tortilla folded into a compact sealed square burrito-style sandwich, then pressed and toasted on a contact grill until the outside is flat, golden, crisp, and marked with subtle grill browning.",
+      "The sandwich must be CLOSED and WRAPPED around its filling, with straight folded edges and a compact rectangular envelope shape. It may be cut once diagonally to reveal the cross-section.",
+      "Show the characteristic inside filling as a compact layered mixture of the specified chicken, fries/potato sticks, and creamy cheese sauce; include spicy sauce only when specified. Keep the filling inside the folded tortilla, not scattered around the plate.",
+      "Serve as one substantial toasted Moroccan tacos sandwich on a simple plate. The visual silhouette must unmistakably read as a grilled rectangular wrap.",
+      "ABSOLUTELY DO NOT show Mexican tacos: no U-shaped shells, no open or upright folded taco shells, no small corn tortillas, no two separate tacos, no taco boats, no nachos, no Mexican street-taco presentation, no lime wedges or cilantro garnish unless explicitly listed in the product ingredients.",
+    );
+  }
   const prompt = type === "product"
-    ? [
-        "Create a premium, photorealistic commercial food photograph for a high-end Moroccan food-delivery marketplace.",
-        `Exact dish to photograph: ${safeTitle}.`,
-        `Verified ingredients and preparation details: ${safeDescription}.`,
-        "Food accuracy is mandatory: reproduce the named dish and the supplied ingredients faithfully. Never add or substitute meat, seafood, cheese, dairy, nuts, sauces, toppings, garnishes, vegetables, or allergens that were not specified.",
-        "Show one real restaurant serving portion in the correct plate, bowl, wrapper, or serving vessel for that dish. Preserve natural food proportions, believable cooking textures, and appetizing but true-to-life colors.",
-        "Use refined commercial restaurant photography: a close three-quarter 45-degree hero angle, the dish filling about 80 percent of the frame, sharp focus on the food, soft directional window light, gentle natural shadows, realistic highlights, and subtle depth of field.",
-        "Use a clean, understated warm-neutral tabletop and premium modern styling. Keep the food clearly separated from the background. Square 1:1 composition suitable for a mobile product card.",
-        "One dish only. No extra plates, duplicate food, hands, people, utensils crossing the dish, text, letters, labels, logos, watermarks, borders, or packaging.",
-      ].join(" ")
+    ? productPrompt.join(" ")
     : [
         "Create a premium photorealistic editorial photograph for a JIB magazine article.",
         `Exact article subject: ${safeTitle}.`,
