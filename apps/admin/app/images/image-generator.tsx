@@ -115,7 +115,7 @@ export default function ImageGenerator({ initialJobs }: { initialJobs: ImageJob[
       <section className="list-panel">
         <div className="section-heading"><h2>طلبات الصور الأخيرة</h2><span className="count-chip">{jobs.length} طلب</span></div>
         {jobs.length === 0 ? (
-          <div className="empty-state"><strong>لا توجد صور مولدة بعد</strong><span>ستظهر هنا صور المقالات والمنتجات بعد طلب إنشائها.</span></div>
+          <div className="empty-state"><strong>لا توجد صور مولدة بعد</strong><span>ستظهر هنا أغلفة المقالات بعد طلب إنشائها.</span></div>
         ) : (
           <div className="image-job-grid">
             {jobs.map((job) => (
@@ -131,12 +131,14 @@ export default function ImageGenerator({ initialJobs }: { initialJobs: ImageJob[
                   <p>{job.request_type === "article" ? "غلاف مقال" : "صورة منتج"} · {new Date(job.created_at).toLocaleString("ar-MA", { timeZone: "Africa/Casablanca" })}</p>
                   {job.estimated_cost_usd != null && <small>السعر المرجعي خارج الحصة المجانية: ${job.estimated_cost_usd.toFixed(3)} · الفوترة الفعلية: 0$ ما دام الحساب على Workers Free وداخل الحصة اليومية</small>}
                   {job.error_message && <small className="form-error">{job.error_message}</small>}
-                  {job.status === "ready_for_review" && (
+                  {job.status === "ready_for_review" && job.request_type === "product" ? (
+                    <p className="form-error">هذه صورة منتج مولدة آلياً ولا يمكن اعتمادها كصورة أصلية. ارفع صورة حقيقية من التاجر أو المورد.</p>
+                  ) : job.status === "ready_for_review" ? (
                     <div className="image-job-actions">
-                      <button type="button" onClick={() => review(job.id, true)}>اعتماد الصورة</button>
+                      <button type="button" onClick={() => review(job.id, true)}>اعتماد غلاف المقال</button>
                       <button type="button" className="secondary-button" onClick={() => review(job.id, false)}>رفض</button>
                     </div>
-                  )}
+                  ) : null}
                   {job.status === "approved" && job.generated_image_url && (
                     <a href={job.generated_image_url} target="_blank" rel="noreferrer">فتح الصورة المعتمدة ↗</a>
                   )}
