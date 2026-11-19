@@ -1,3 +1,5 @@
+import { buildMoroccanDishPrompt } from "./moroccan-dishes";
+
 export type CommercialCategory =
   | "prepared-food"
   | "bakery"
@@ -87,4 +89,3 @@ export function buildCommercialProductPrompt(title: string, description: string)
   return base.join(" ").slice(0, 2048);
 }
 
-import { buildMoroccanDishPrompt } from "./moroccan-dishes";
