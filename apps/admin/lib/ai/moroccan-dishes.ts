@@ -60,6 +60,36 @@ const profiles: MoroccanDishProfile[] = [
     visualBrief: "AUTHENTIC MOROCCAN CHEBAKIA: intricately folded flower-like sesame dough pastries, deep golden and glossy with honey, sprinkled with sesame seeds, arranged in a small neat pile. Show the characteristic knotted rosette shape.",
     exclusions: "No doughnuts, croissants, baklava triangles, or generic cookies.",
   },
+  {
+    id: "moroccan-zaalouk",
+    aliases: ["zaalouk", "zaaluk", "زعلوك", "الزعلوك"],
+    visualBrief: "AUTHENTIC MOROCCAN ZAALOUK: a rustic cooked eggplant and tomato salad/dip, softly mashed but visibly textured, glossy with olive oil and herbs, served in a small traditional Moroccan ceramic dish. Match the supplied ingredient description.",
+    exclusions: "No baba ganoush with tahini, hummus, guacamole, or raw salad.",
+  },
+  {
+    id: "moroccan-bissara",
+    aliases: ["bissara", "بيصارة", "بصارة", "البيصارة"],
+    visualBrief: "AUTHENTIC MOROCCAN BISSARA: thick pale cream-to-green fava bean or split-pea purée soup in a rustic bowl, finished only with the specified olive oil, cumin and paprika. Show its dense silky soup texture.",
+    exclusions: "No hummus bowl, mashed potatoes, green guacamole, or thin clear soup.",
+  },
+  {
+    id: "moroccan-briouat",
+    aliases: ["briouat", "briouates", "briwat", "بريوات", "بريوة"],
+    visualBrief: "AUTHENTIC MOROCCAN BRIOUATS: small crisp golden warqa pastry parcels, triangular or cigar-shaped according to the described variety, with the exact sweet or savory filling. Show delicate crisp pastry layers.",
+    exclusions: "No samosas unless explicitly requested, no spring rolls, no dumplings, no croissants.",
+  },
+  {
+    id: "moroccan-maakouda",
+    aliases: ["maakouda", "maaqouda", "معقودة", "المعقودة"],
+    visualBrief: "AUTHENTIC MOROCCAN MAAKOUDA: round flattened potato fritters, golden and crisp outside with a soft potato interior, served as the actual fritters and matched to the specified sandwich or plate presentation.",
+    exclusions: "No hash browns, French fries pile, pancakes, or meat patties.",
+  },
+  {
+    id: "moroccan-seffa",
+    aliases: ["seffa", "سفة", "السفة", "سفة مدفونة"],
+    visualBrief: "AUTHENTIC MOROCCAN SEFFA: a carefully piled mound of fine steamed vermicelli or couscous (use the exact type in the description), lightly dusted with powdered sugar and cinnamon only when specified, with almonds/raisins only if listed.",
+    exclusions: "No spaghetti with tomato sauce, rice pudding, or western pasta salad.",
+  },
 ];
 
 function normalizeDishText(value: string): string {
