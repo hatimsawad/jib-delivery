@@ -22,13 +22,24 @@ const statusLabels: Record<string,string> = {
   draft:"مسودة", pending_verification:"بانتظار المراجعة",
   approved:"معتمدة في الكتالوج", rejected:"مرفوضة", suspended:"موقوفة",
 };
+type BrandCatalogClient = {
+  from(table: "commercial_brands"): {
+    select(columns: string): {
+      order(column: "name", options: { ascending: boolean }): {
+        limit(count: number): Promise<{ data: unknown[] | null; error: { message: string } | null }>;
+      };
+    };
+  };
+};
+
 export const dynamic = "force-dynamic";
 
 export default async function BrandsPage() {
   const { supabase } = await requireAdmin();
-  const { data, error } = await supabase.from("commercial_brands")
+  const catalog = supabase as unknown as BrandCatalogClient;
+  const { data, error } = await catalog.from("commercial_brands")
     .select("id,name,slug,category,website_url,country_code,status,source_name,created_at")
-    .order("name").limit(500);
+    .order("name", { ascending: true }).limit(500);
   const brands = (data ?? []) as unknown as BrandRow[];
   return <main className="shell">
     <AdminHeader />
