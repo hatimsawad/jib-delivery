@@ -13,9 +13,11 @@ type BranchPolicyRow = {
   fulfillment_mode: string;
   order_permission_status: string;
   order_channel_url: string | null;
+  order_permission_reference: string | null;
   loyalty_mode: string;
   loyalty_program_name: string | null;
   loyalty_permission_status: string;
+  loyalty_permission_reference: string | null;
   operator_notes: string | null;
 };
 
@@ -58,7 +60,7 @@ export default async function StoresPage() {
       .select("id,name,category,phone,address_text,is_active,is_open,created_at")
       .order("created_at", { ascending: false }).limit(100),
     supabase.from("store_branch_policies")
-      .select("id,store_id,fulfillment_mode,order_permission_status,order_channel_url,loyalty_mode,loyalty_program_name,loyalty_permission_status,operator_notes"),
+      .select("id,store_id,fulfillment_mode,order_permission_status,order_channel_url,order_permission_reference,loyalty_mode,loyalty_program_name,loyalty_permission_status,loyalty_permission_reference,operator_notes"),
   ]);
 
   const stores = (data ?? []) as unknown as StoreRow[];
@@ -120,6 +122,9 @@ export default async function StoresPage() {
                           <option value="suspended">موقوفة</option>
                         </select>
                       </label>
+                      <label>مرجع موافقة الفرع على طريقة الطلب (رقم الاتفاق / محضر / ملاحظة موثقة)
+                        <input name="orderPermissionReference" type="text" maxLength={500} placeholder="مثال: موافقة مدير الفرع بتاريخ ..." defaultValue={policy?.order_permission_reference ?? ""} />
+                      </label>
                       <label>الرابط الرسمي للطلب الرقمي (HTTPS)
                         <input name="orderChannelUrl" type="url" placeholder="https://..." defaultValue={policy?.order_channel_url ?? ""} />
                       </label>
@@ -139,6 +144,9 @@ export default async function StoresPage() {
                           <option value="rejected">مرفوضة</option>
                           <option value="suspended">موقوفة</option>
                         </select>
+                      </label>
+                      <label>مرجع موافقة برنامج الولاء الخارجي (رقم الاتفاق / محضر / ملاحظة موثقة)
+                        <input name="loyaltyPermissionReference" type="text" maxLength={500} placeholder="مرجع موافقة البرنامج أو الفرع" defaultValue={policy?.loyalty_permission_reference ?? ""} />
                       </label>
                       <label>اسم برنامج الولاء
                         <input name="loyaltyProgramName" type="text" maxLength={120} placeholder="مثال: Club Carrefour" defaultValue={policy?.loyalty_program_name ?? ""} />
