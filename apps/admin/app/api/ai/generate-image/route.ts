@@ -1,6 +1,7 @@
 import { Buffer } from "node:buffer";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "../../../../types/database.types";
+import { buildMoroccanDishPrompt } from "../../../../lib/ai/moroccan-dishes";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -44,9 +45,8 @@ function jsonError(message: string, status: number) {
 }
 
 function buildPrompt(type: "product" | "article", title: string, description: string) {
-  const safeTitle = title.trim().replace(/\\s+/g, " ").slice(0, 180);
-  const safeDescription = description.trim().replace(/\\s+/g, " ").slice(0, 1_100);
-  const isMoroccanTacos = /\\b(tacos?|taco|تاكوس?|طاكوس?|طاكُوس)\\b/i.test(safeTitle);
+  const safeTitle = title.trim().replace(/\s+/g, " ").slice(0, 180);
+  const safeDescription = description.trim().replace(/\s+/g, " ").slice(0, 1_100);
   const productPrompt = [
     "Create a premium, photorealistic commercial food photograph for a high-end Moroccan food-delivery marketplace.",
     `Exact dish to photograph: ${safeTitle}.`,
@@ -56,16 +56,8 @@ function buildPrompt(type: "product" | "article", title: string, description: st
     "Close three-quarter hero angle, sharp focus on the food, soft directional light, gentle natural shadows, realistic highlights, subtle depth of field, warm-neutral premium tabletop, square 1:1 composition.",
     "One serving only. No text, labels, logos, watermarks, borders, or people.",
   ];
-  if (isMoroccanTacos) {
-    productPrompt.push(
-      "CRITICAL REGIONAL DISH DEFINITION: This is a MOROCCAN / FRENCH-STYLE TACOS SANDWICH (tacos français), NOT Mexican tacos.",
-      "Show one large rectangular flour-wheat tortilla folded into a compact sealed square burrito-style sandwich, then pressed and toasted on a contact grill until the outside is flat, golden, crisp, and marked with subtle grill browning.",
-      "The sandwich must be CLOSED and WRAPPED around its filling, with straight folded edges and a compact rectangular envelope shape. It may be cut once diagonally to reveal the cross-section.",
-      "Show the characteristic inside filling as a compact layered mixture of the specified chicken, fries/potato sticks, and creamy cheese sauce; include spicy sauce only when specified. Keep the filling inside the folded tortilla, not scattered around the plate.",
-      "Serve as one substantial toasted Moroccan tacos sandwich on a simple plate. The visual silhouette must unmistakably read as a grilled rectangular wrap.",
-      "ABSOLUTELY DO NOT show Mexican tacos: no U-shaped shells, no open or upright folded taco shells, no small corn tortillas, no two separate tacos, no taco boats, no nachos, no Mexican street-taco presentation, no lime wedges or cilantro garnish unless explicitly listed in the product ingredients.",
-    );
-  }
+  const dishReferencePrompt = buildMoroccanDishPrompt(safeTitle);
+  if (dishReferencePrompt) productPrompt.push(dishReferencePrompt);
   const prompt = type === "product"
     ? productPrompt.join(" ")
     : [
