@@ -82,7 +82,7 @@ begin
   return query
   select v_job_id, v_store_id, v_product_id, p_request_type, v_title, v_description;
 end;
-$function$
+$function$;
 
 revoke all on function public.jib_ai_manager_reserve_image_job(text, uuid, text, text) from public, anon;
 grant execute on function public.jib_ai_manager_reserve_image_job(text, uuid, text, text) to authenticated;
