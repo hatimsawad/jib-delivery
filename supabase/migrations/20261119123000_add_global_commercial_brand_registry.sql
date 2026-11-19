@@ -52,6 +52,12 @@ alter table public.products
 create index if not exists stores_brand_id_idx on public.stores(brand_id);
 create index if not exists products_brand_id_idx on public.products(brand_id);
 
+-- Explicit Data API grants; RLS below remains the row-level security boundary.
+grant select on public.commercial_brands to anon, authenticated;
+grant insert, update, delete on public.commercial_brands to authenticated;
+grant select on public.commercial_brand_aliases to anon, authenticated;
+grant insert, update, delete on public.commercial_brand_aliases to authenticated;
+
 alter table public.commercial_brands enable row level security;
 alter table public.commercial_brand_aliases enable row level security;
 
