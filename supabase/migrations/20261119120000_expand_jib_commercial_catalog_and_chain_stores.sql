@@ -55,24 +55,6 @@ create policy "store_integrations_owner_read"
     where s.id = store_id and s.owner_id = (select auth.uid())
   ));
 
-create policy "store_integrations_owner_insert"
-  on public.store_integrations for insert to authenticated
-  with check (exists (
-    select 1 from public.stores s
-    where s.id = store_id and s.owner_id = (select auth.uid())
-  ));
-
-create policy "store_integrations_owner_update"
-  on public.store_integrations for update to authenticated
-  using (exists (
-    select 1 from public.stores s
-    where s.id = store_id and s.owner_id = (select auth.uid())
-  ))
-  with check (exists (
-    select 1 from public.stores s
-    where s.id = store_id and s.owner_id = (select auth.uid())
-  ));
-
 create policy "store_integrations_admin_all"
   on public.store_integrations for all to authenticated
   using (exists (
