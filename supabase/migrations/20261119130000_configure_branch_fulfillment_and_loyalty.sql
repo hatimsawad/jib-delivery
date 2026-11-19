@@ -65,7 +65,7 @@ create table if not exists public.store_branch_policies (
       or (
         order_channel_url is not null
         and left(lower(order_channel_url), 8) = 'https://'
-        and position(' ' in order_channel_url) = 0
+        and order_channel_url !~ '[[:space:]]'
       )
     ),
   constraint store_branch_policies_loyalty_approval_evidence_check
@@ -88,7 +88,7 @@ create table if not exists public.store_branch_policies (
       order_channel_url is null
       or (
         left(lower(order_channel_url), 8) = 'https://'
-        and position(' ' in order_channel_url) = 0
+        and order_channel_url !~ '[[:space:]]'
       )
     )
 );
@@ -178,10 +178,12 @@ begin
     raise exception 'Invalid delivery address';
   end if;
 
-  if not exists (
-    select 1 from public.stores s
-    where s.id = p_store_id and s.is_active = true and s.is_open = true
-  ) then
+  perform 1
+  from public.stores s
+  where s.id = p_store_id and s.is_active = true and s.is_open = true
+  for share;
+
+  if not found then
     raise exception 'Store is not accepting orders';
   end if;
 
@@ -202,7 +204,8 @@ begin
     v_loyalty_permission_status,
     v_loyalty_program_name
   from public.store_branch_policies bp
-  where bp.store_id = p_store_id;
+  where bp.store_id = p_store_id
+  for share;
 
   if not found then
     v_branch_policy_id := null;
@@ -223,7 +226,7 @@ begin
      and (
        v_order_channel_url is null
        or left(lower(v_order_channel_url), 8) <> 'https://'
-       or position(' ' in v_order_channel_url) > 0
+       or v_order_channel_url ~ '[[:space:]]'
      ) then
     raise exception 'The branch official HTTPS ordering URL is missing or invalid';
   end if;
