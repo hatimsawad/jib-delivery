@@ -112,7 +112,11 @@ export function findMoroccanDishProfile(title: string): MoroccanDishProfile | nu
   for (const profile of profiles) {
     const matched = profile.aliases.some((alias) => {
       const normalizedAlias = normalizeDishText(alias);
-      return normalizedTitle === normalizedAlias || normalizedTitle.includes(normalizedAlias);
+      // Match whole words or phrases only; substring matches can confuse unrelated products.
+      return normalizedTitle === normalizedAlias ||
+        normalizedTitle.startsWith(`${normalizedAlias} `) ||
+        normalizedTitle.endsWith(` ${normalizedAlias}`) ||
+        normalizedTitle.includes(` ${normalizedAlias} `);
     });
     if (matched) return profile;
   }
