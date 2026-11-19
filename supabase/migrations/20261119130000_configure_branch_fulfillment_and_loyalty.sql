@@ -37,6 +37,16 @@ create table if not exists public.store_branch_policies (
   updated_by uuid references auth.users(id) on delete set null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
+  constraint store_branch_policies_order_permission_required_check
+    check (
+      fulfillment_mode = 'courier_places_order'
+      or order_permission_status <> 'not_required'
+    ),
+  constraint store_branch_policies_loyalty_permission_required_check
+    check (
+      loyalty_mode not in ('jib_business_account', 'partner_business_account')
+      or loyalty_permission_status <> 'not_required'
+    ),
   constraint store_branch_policies_order_approval_evidence_check
     check (
       order_permission_status <> 'approved'
