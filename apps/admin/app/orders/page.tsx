@@ -36,7 +36,7 @@ export default async function OrdersPage() {
     .select("id,status,payment_method,payment_status,subtotal_mad,delivery_fee_mad,total_mad,created_at,fulfillment_mode_snapshot,loyalty_mode_snapshot,loyalty_program_name_snapshot")
     .order("created_at", { ascending: false }).limit(100);
 
-  let data = snapshotQuery.data;
+  let data: unknown = snapshotQuery.data;
   let error = snapshotQuery.error;
   let snapshotColumnsUnavailable = false;
   if (snapshotQuery.error) {
