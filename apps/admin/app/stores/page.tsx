@@ -90,11 +90,22 @@ export default async function StoresPage() {
               <td>{store.address_text || "—"}</td>
               <td>{store.phone || "—"}</td>
               <td><span className={store.onboarding_status === "approved" && store.is_active ? "status-pill status-good" : "status-pill"}>{store.onboarding_status !== "approved" ? (store.onboarding_status === "suspended" ? "موقوف" : store.onboarding_status === "rejected" ? "مرفوض" : "بانتظار الاعتماد") : (store.is_active ? (store.is_open ? "معتمد ومفتوح" : "معتمد ومغلق") : "معتمد وغير نشط")}</span></td>
-              <td><form action={setStoreStatus}>
-                <input type="hidden" name="storeId" value={store.id} />
-                <input type="hidden" name="isActive" value={String(!store.is_active || store.onboarding_status !== "approved")} />
-                <button className="logout-button inline-action" type="submit">{store.is_active && store.onboarding_status === "approved" ? "إيقاف المتجر" : "اعتماد وفتح المتجر"}</button>
-              </form></td>
+              <td>
+                <form action={setStoreStatus}>
+                  <input type="hidden" name="storeId" value={store.id} />
+                  <input type="hidden" name="isActive" value="true" />
+                  <input type="hidden" name="isOpen" value={String(!store.is_active || store.onboarding_status !== "approved" || !store.is_open)} />
+                  <button className="logout-button inline-action" type="submit">{store.onboarding_status !== "approved" || !store.is_active ? "اعتماد وفتح المتجر" : store.is_open ? "إغلاق مؤقت" : "فتح المتجر"}</button>
+                </form>
+                {store.is_active && (
+                  <form action={setStoreStatus}>
+                    <input type="hidden" name="storeId" value={store.id} />
+                    <input type="hidden" name="isActive" value="false" />
+                    <input type="hidden" name="isOpen" value="false" />
+                    <button className="logout-button inline-action" type="submit">تعطيل المتجر</button>
+                  </form>
+                )}
+              </td>
               <td>
                 <details className="branch-policy-details">
                   <summary>إعدادات الطلب والولاء</summary>
