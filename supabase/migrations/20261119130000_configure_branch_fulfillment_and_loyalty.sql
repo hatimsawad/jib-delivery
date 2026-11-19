@@ -60,26 +60,19 @@ create table if not exists public.store_branch_policies (
     check (
       fulfillment_mode <> 'store_digital_order'
       or order_permission_status <> 'approved'
-      or order_channel_url ~ '^https://[^[:space:]]+
-  constraint store_branch_policies_loyalty_approval_evidence_check
-    check (
-      loyalty_permission_status <> 'approved'
       or (
-        loyalty_permission_approved_at is not null
-        and loyalty_permission_approved_by is not null
-        and nullif(trim(loyalty_permission_reference), '') is not null
+        order_channel_url is not null
+        and left(lower(order_channel_url), 8) = 'https://'
+        and position(' ' in order_channel_url) = 0
       )
-    ),
-  constraint store_branch_policies_external_loyalty_permission_check
-    check (
-      loyalty_mode not in ('jib_business_account', 'partner_business_account')
-      or loyalty_permission_status <> 'approved'
-      or nullif(trim(loyalty_program_name), '') is not null
     ),
   constraint store_branch_policies_urls_check
     check (
       order_channel_url is null
-      or (order_channel_url is not null and order_channel_url ~ '^https://[^[:space:]]+
+      or (
+        left(lower(order_channel_url), 8) = 'https://'
+        and position(' ' in order_channel_url) = 0
+      )
     )
 );
 
