@@ -1,7 +1,6 @@
 import { Buffer } from "node:buffer";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "../../../../types/database.types";
-import { buildCommercialProductPrompt } from "../../../../lib/ai/commercial-catalog";
 import { buildMoroccanDishPrompt } from "../../../../lib/ai/moroccan-dishes";
 import { NextResponse } from "next/server";
 
@@ -16,7 +15,6 @@ const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
 type ReservedImageJob = {
   job_id: string;
-  store_id: string | null;
   title: string;
   description: string;
 };
@@ -29,8 +27,7 @@ type ImageJobRpcClient = {
 };
 
 type ImageRequest = {
-  type?: "product" | "article";
-  productId?: string;
+  type?: string;
   title?: string;
   description?: string;
 };
@@ -45,13 +42,9 @@ function jsonError(message: string, status: number) {
   return NextResponse.json({ error: message }, { status });
 }
 
-function buildPrompt(type: "product" | "article", title: string, description: string) {
+function buildPrompt(title: string, description: string) {
   const safeTitle = title.trim().replace(/\s+/g, " ").slice(0, 180);
   const safeDescription = description.trim().replace(/\s+/g, " ").slice(0, 1_100);
-
-  if (type === "product") {
-    return buildCommercialProductPrompt(safeTitle, safeDescription);
-  }
 
   const dishPrompt = buildMoroccanDishPrompt(`${safeTitle} ${safeDescription}`);
   if (dishPrompt) {
@@ -173,23 +166,21 @@ export async function POST(request: Request) {
 
     const body = (await request.json()) as ImageRequest;
     const type = body.type;
-    if (type !== "product" && type !== "article") {
+    if (type !== "article" && type !== "product") {
       return jsonError("نوع طلب الصورة غير صالح.", 400);
-    }
-    if (type === "product" && !body.productId) {
-      return jsonError("معرّف المنتج مطلوب.", 400);
-    }
-    if (type === "article" && (!body.title?.trim() || !body.description?.trim())) {
-      return jsonError("عنوان المقال وملخصه مطلوبان.", 400);
     }
 
     // Product identity must come from an authentic merchant/supplier photo.
     // The current text-to-image model cannot guarantee exact product fidelity.
     if (type === "product") {
       return jsonError(
-        "أوقفنا توليد صور المنتجات مؤقتاً لأن النموذج لا يضمن مطابقة المنتج الحقيقي. أضف صورة أصلية من التاجر أو المورد؛ بقي التوليد متاحاً لأغلفة المقالات فقط.",
+        "أوقفنا توليد صور المنتجات لأن النموذج لا يضمن مطابقة المنتج الحقيقي. أضف صورة أصلية من التاجر أو المورد؛ التوليد متاح لأغلفة المقالات فقط.",
         422,
       );
+    }
+
+    if (!body.title?.trim() || !body.description?.trim()) {
+      return jsonError("عنوان المقال وملخصه مطلوبان.", 400);
     }
 
     // Validate provider configuration before reserving a monthly image slot.
@@ -203,10 +194,10 @@ export async function POST(request: Request) {
     const { data: reserved, error: reserveError } = await imageRpc.rpc(
       "jib_ai_manager_reserve_image_job",
       {
-        p_request_type: type,
-        p_product_id: type === "product" ? body.productId : null,
-        p_title: type === "article" ? body.title?.trim() : null,
-        p_description: body.description?.trim() ?? null,
+        p_request_type: "article",
+        p_product_id: null,
+        p_title: body.title.trim(),
+        p_description: body.description.trim(),
       },
     );
 
@@ -222,12 +213,10 @@ export async function POST(request: Request) {
     if (!job?.job_id) return jsonError("تعذر حجز طلب إنشاء الصورة.", 500);
     jobId = String(job.job_id);
 
-    const prompt = buildPrompt(type, String(job.title), String(job.description));
+    const prompt = buildPrompt(String(job.title), String(job.description));
     const imageBytes = await generateWithCloudflare(prompt);
-    const bucket = type === "product" ? "product-images" : "article-images";
-    const storagePath = type === "product"
-      ? `${job.store_id}/ai-drafts/${jobId}.jpg`
-      : `articles/${jobId}.jpg`;
+    const bucket = "article-images";
+    const storagePath = `articles/${jobId}.jpg`;
 
     const { error: uploadError } = await supabase.storage
       .from(bucket)
