@@ -18,14 +18,14 @@ export default async function ImagesPage() {
       <section className="page-heading">
         <p className="eyebrow">JIB AI MANAGER · IMAGE STUDIO</p>
         <h1>استوديو الصور الذكي</h1>
-        <p>صور أطباق حسب المكونات والوصف، وأغلفة مقالات حسب الفكرة. كل صورة مولدة تحمل وسم AI وتحتاج موافقة بشرية قبل النشر.</p>
+        <p>التوليد بالذكاء الاصطناعي مخصص حالياً لأغلفة المقالات فقط. صور المنتجات يجب أن تكون صوراً أصلية من التاجر أو المورد حتى لا نعرض صورة لا تطابق السلعة الحقيقية.</p>
       </section>
       {error ? (
         <p className="error-state">تعذر تحميل طلبات الصور. تحقق من صلاحيات المدير واتصال قاعدة البيانات.</p>
       ) : (
         <ImageGenerator initialJobs={(data ?? []) as unknown as ImageJob[]} />
       )}
-      <p className="manager-provider-note">الموديل: Black Forest Labs FLUX.1 Schnell عبر Cloudflare Workers AI، بثماني خطوات توليد، مع أولوية لملف الطبق المغربي المطابق عند التعرف عليه. حد JIB الحالي 100 طلب شهرياً، وتخضع الطلبات أيضاً للحصة المجانية اليومية المتاحة في حساب Cloudflare.</p>
+      <p className="manager-provider-note">الموديل: Black Forest Labs FLUX.1 Schnell عبر Cloudflare Workers AI لأغلفة المقالات فقط. يخضع الاستخدام لحصة وخطة Cloudflare الفعلية؛ لا يقوم JIB بترقية الخطة أو تفعيل الفوترة، وتتوقف الخدمة عند عدم توفر الحصة المجانية.</p>
     </main>
   );
 }
