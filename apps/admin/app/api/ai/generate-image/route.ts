@@ -45,32 +45,39 @@ function jsonError(message: string, status: number) {
 }
 
 function buildPrompt(type: "product" | "article", title: string, description: string) {
-  const safeTitle = title.trim().replace(/\s+/g, " ").slice(0, 180);
-  const safeDescription = description.trim().replace(/\s+/g, " ").slice(0, 1_100);
-  const productPrompt = [
-    "Create a premium, photorealistic commercial food photograph for a high-end Moroccan food-delivery marketplace.",
-    `Exact dish to photograph: ${safeTitle}.`,
-    `Verified ingredients and preparation details: ${safeDescription}.`,
-    "Food accuracy is mandatory: reproduce the named dish and supplied ingredients faithfully. Never add or substitute allergens or unlisted fillings.",
-    "Use believable restaurant preparation, natural food proportions, realistic textures, appetizing but true-to-life colors, and professional commercial food photography.",
-    "Close three-quarter hero angle, sharp focus on the food, soft directional light, gentle natural shadows, realistic highlights, subtle depth of field, warm-neutral premium tabletop, square 1:1 composition.",
-    "One serving only. No text, labels, logos, watermarks, borders, or people.",
-  ];
-  const dishReferencePrompt = buildMoroccanDishPrompt(safeTitle);
-  if (dishReferencePrompt) productPrompt.push(dishReferencePrompt);
-  const prompt = type === "product"
-    ? productPrompt.join(" ")
-    : [
-        "Create a premium photorealistic editorial photograph for a JIB magazine article.",
-        `Exact article subject: ${safeTitle}.`,
-        `Article context: ${safeDescription}.`,
-        "Build one clear, visually compelling scene that accurately represents the article context. Use a refined contemporary Moroccan editorial art direction without clichés, with one dominant subject, thoughtful negative space, realistic materials, and natural directional lighting.",
-        "Professional full-frame editorial photography, carefully controlled contrast, natural colors, crisp subject detail, subtle depth of field, and a polished composition.",
-        "Landscape 16:9 framing with the main subject safely inside the central crop area. No text, typography, logos, watermarks, invented charts, labels, or UI elements.",
-      ].join(" ");
+  const safeTitle = title.trim().replace(/\\s+/g, " ").slice(0, 180);
+  const safeDescription = description.trim().replace(/\\s+/g, " ").slice(0, 1_100);
 
-  // FLUX.1 Schnell supports prompts up to 2,048 characters.
-  return prompt.slice(0, 2048);
+  if (type === "product") {
+    // Match against both the product name and its ingredient description.
+    // Put the regional dish definition FIRST so the model cannot lose it
+    // when the provider enforces its 2,048-character prompt limit.
+    const dishReferencePrompt = buildMoroccanDishPrompt(
+      `${safeTitle} ${safeDescription}`,
+    );
+    const photographyPrompt = [
+      "Photograph the actual prepared food product itself, not a person, cook, kitchen, restaurant, room, ingredients-only scene, or lifestyle scene.",
+      "Premium photorealistic commercial food photography for a Moroccan food-delivery marketplace.",
+      `Exact product: ${safeTitle}.`,
+      `Use only these supplied ingredients and preparation details: ${safeDescription}.`,
+      "One real serving, close-up three-quarter hero angle, food fills most of the square frame, crisp realistic food textures, natural appetizing colors, soft directional studio-window light, subtle depth of field, simple warm-neutral tabletop.",
+      "No text, typography, labels, logos, watermarks, borders, people, hands, or unrelated props.",
+    ].join(" ");
+    const prompt = dishReferencePrompt
+      ? `${dishReferencePrompt} ${photographyPrompt}`
+      : photographyPrompt;
+    return prompt.slice(0, 2048);
+  }
+
+  const articlePrompt = [
+    "Create a premium photorealistic editorial photograph for a JIB magazine article.",
+    `Exact article subject: ${safeTitle}.`,
+    `Article context: ${safeDescription}.`,
+    "Build one clear, visually compelling scene that accurately represents the article context. Use refined contemporary Moroccan editorial art direction, one dominant subject, thoughtful negative space, realistic materials, and natural directional lighting.",
+    "Professional editorial photography, natural colors, crisp subject detail, subtle depth of field, polished landscape 16:9 composition.",
+    "No text, typography, logos, watermarks, invented charts, labels, or UI elements.",
+  ].join(" ");
+  return articlePrompt.slice(0, 2048);
 }
 
 async function generateWithCloudflare(prompt: string): Promise<Uint8Array> {
