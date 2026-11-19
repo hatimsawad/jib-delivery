@@ -41,6 +41,9 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Validate runner syntax
+        run: node --check .github/scripts/jib-ai-team.mjs
+
       - name: Run free-only AI team
         env:
           JIB_AI_TEAM_BASE_URL: ${{ vars.JIB_AI_TEAM_BASE_URL }}
