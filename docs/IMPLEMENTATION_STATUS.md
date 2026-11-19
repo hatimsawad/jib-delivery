@@ -124,3 +124,15 @@ This review does not mark JIB production-ready. Keep PR #4 as Draft and do not m
 - Corrected the Image Studio model-step description to eight steps to match the API.
 - Documented free-source licensing and attribution rules in `docs/MOROCCAN_FOOD_KNOWLEDGE.md`. No paid provider or dataset was added.
 - These changes require fresh CI and a new preview image test; they are not yet approved for production.
+
+
+## Universal commercial catalog and chain-store scope (2026-11-19)
+
+- Added `apps/admin/lib/ai/commercial-catalog.ts`: multilingual category detection and category-specific e-commerce image direction for prepared food, bakery, beverages, grocery, fresh produce, meat/seafood, household, personal care, electronics, fashion, beauty, flowers/gifts, toys, books/stationery, pet supplies, sports/outdoors, automotive and pharmacy/general merchandise.
+- Image generation now uses the universal commercial catalog prompt for every product request, while retaining the Moroccan dish visual profiles as a specialized food reference. It requires the actual sellable item, avoids unrelated people/interiors, and prohibits invented logos, packaging text, claims and features.
+- Fixed whitespace normalization in the image API prompt builder.
+- Added an additive migration for store brand/chain metadata, product category/brand/SKU/barcode/attributes/external IDs, and a store integration registry. Integration credentials are expressly excluded from this table; admin-only integration management is enforced by RLS.
+- Updated product specification for chain-level accounts, branches, menu/catalog onboarding, manual import, official partner API and POS pathways.
+- McDonald's, Burger King, KFC and other chains are supported as target partner types in the architecture, but no commercial partnership or live API connection is claimed. These require each brand's authorization, data access and technical credentials.
+- The new migration is committed to the feature branch but has not yet been applied to the live Supabase database. CI/build and preview deployment are required before release.
+- Free-only policy remains in force. No paid provider, subscription, scraping service or billing upgrade was added.
