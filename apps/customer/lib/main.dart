@@ -572,6 +572,126 @@ class _CustomerHomeState extends State<CustomerHome> {
                     onTap: () => _openStore(store),
                   ),
                 )),
+              const SizedBox(height: 26),
+              const Row(
+                children: [
+                  Expanded(child: Text('علامات JIB التجارية', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900))),
+                  _ServicePill(label: '51 علامة'),
+                ],
+              ),
+              const SizedBox(height: 5),
+              const Text('تعرّف على العلامات الموجودة في دليل JIB. ظهور العلامة لا يعني أن الطلب منها مفتوح حالياً.', style: TextStyle(color: Color(0xFF68736B), fontSize: 11)),
+              const SizedBox(height: 12),
+              FutureBuilder<List<Map<String, dynamic>>>(
+                future: supabase.from('commercial_brands')
+                    .select('id,name,category,website_url,logo_url')
+                    .eq('status', 'approved')
+                    .order('name')
+                    .then((rows) => List<Map<String, dynamic>>.from(rows)),
+                builder: (context, brandSnapshot) {
+                  if (brandSnapshot.connectionState == ConnectionState.waiting) {
+                    return const Padding(
+                      padding: EdgeInsets.all(20),
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                  }
+                  if (brandSnapshot.hasError) {
+                    return const Card(child: Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Text('تعذر تحميل دليل العلامات حالياً.'),
+                    ));
+                  }
+                  final brands = (brandSnapshot.data ?? []).where((brand) {
+                    final value = '${brand['name']} ${brand['category']}'.toLowerCase();
+                    return value.contains(_search.toLowerCase());
+                  }).toList();
+                  if (brands.isEmpty) {
+                    return const Card(child: Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Text('لا توجد علامة مطابقة لبحثك.'),
+                    ));
+                  }
+                  return GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: brands.length,
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      mainAxisSpacing: 9,
+                      crossAxisSpacing: 9,
+                      childAspectRatio: 1.55,
+                    ),
+                    itemBuilder: (context, index) {
+                      final brand = brands[index];
+                      final name = brand['name']?.toString() ?? 'علامة تجارية';
+                      final category = brand['category']?.toString() ?? '';
+                      final categoryLabel = const {
+                        'prepared-food': 'مطاعم ومأكولات',
+                        'beverages': 'مشروبات',
+                        'grocery': 'بقالة ومواد غذائية',
+                        'fashion': 'ملابس وأزياء',
+                        'electronics': 'إلكترونيات',
+                        'beauty': 'جمال وعناية',
+                        'personal-care': 'عناية شخصية',
+                        'household': 'المنزل',
+                        'sports-outdoors': 'رياضة',
+                        'toys-games': 'ألعاب',
+                        'general-merchandise': 'متاجر متنوعة',
+                      }[category] ?? 'علامة ضمن دليل JIB';
+                      final logo = brand['logo_url']?.toString() ?? '';
+                      final logoUri = Uri.tryParse(logo);
+                      final hasLogo = logoUri != null && (logoUri.scheme == 'https' || logoUri.scheme == 'http');
+                      return Card(
+                        margin: EdgeInsets.zero,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(22),
+                          onTap: () => _notify('تم إدراج $name في دليل JIB. الطلب من هذه العلامة غير مفتوح بعد.'),
+                          child: Padding(
+                            padding: const EdgeInsets.all(11),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 43,
+                                  height: 43,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFFE8E8),
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  clipBehavior: Clip.antiAlias,
+                                  child: hasLogo
+                                      ? Image.network(logo, fit: BoxFit.contain,
+                                          errorBuilder: (_, __, ___) => Center(
+                                            child: Text(name.isEmpty ? 'J' : name.characters.first,
+                                              style: const TextStyle(color: jibRed, fontWeight: FontWeight.w900, fontSize: 18)),
+                                          ))
+                                      : Center(child: Text(name.isEmpty ? 'J' : name.characters.first,
+                                          style: const TextStyle(color: jibRed, fontWeight: FontWeight.w900, fontSize: 18))),
+                                ),
+                                const SizedBox(width: 9),
+                                Expanded(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(name, maxLines: 2, overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900)),
+                                      const SizedBox(height: 4),
+                                      Text(categoryLabel, maxLines: 1, overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(fontSize: 9, color: Color(0xFF68736B))),
+                                      const SizedBox(height: 5),
+                                      const Text('ضمن دليل JIB', style: TextStyle(fontSize: 9, color: jibGreen, fontWeight: FontWeight.w800)),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
             ],
           );
         },
