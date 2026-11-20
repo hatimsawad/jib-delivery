@@ -32,7 +32,7 @@ export default async function Home() {
     supabase.from("orders").select("id", { count: "exact", head: true }),
     supabase.from("orders").select("id", { count: "exact", head: true }).eq("status", "pending"),
     supabase.from("stores").select("id", { count: "exact", head: true }).eq("is_active", true).eq("onboarding_status", "approved"),
-    supabase.from("stores").select("id", { count: "exact", head: true }).neq("onboarding_status", "approved"),
+    supabase.from("stores").select("id", { count: "exact", head: true }).eq("onboarding_status", "pending"),
     supabase.from("stores").select("id", { count: "exact", head: true }),
     supabase.from("products").select("id", { count: "exact", head: true }),
     supabase.from("courier_profiles").select("user_id", { count: "exact", head: true }).eq("is_active", true),
