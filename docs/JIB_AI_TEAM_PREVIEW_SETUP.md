@@ -28,7 +28,7 @@ The workflow is manually dispatched for model analysis. A push to `feature/jib-a
 - Security: authentication, authorization, RLS, privacy, secrets, and data integrity.
 - QA: regression, integration, edge-case, and platform test plan.
 
-The first version returns independent reports. It does not claim consensus and does not edit files, open PRs, merge, deploy, or access Supabase. A later, separately reviewed phase may add allowlisted read-only repository context and proposed patch artifacts; repository writes must remain behind explicit human approval.
+The current version returns independent reports. It does not claim consensus and does not edit files, open PRs, merge, deploy, execute SQL, or access live Supabase data. It reads only an explicit allowlist of repository documentation and app source files from `feature/jib-manager-standalone`, with a 42,000-character total limit. Those excerpts and the task are sent to the configured provider after basic secret, email, phone, and JWT-like pattern redaction. Pattern redaction is not perfect; never submit confidential or customer data. Repository writes remain prohibited.
 
 ## Free-only configuration
 
@@ -36,7 +36,7 @@ Configure these under GitHub repository **Settings → Secrets and variables →
 
 - Variable `JIB_AI_TEAM_BASE_URL`: OpenAI-compatible gateway base URL (without `/chat/completions`).
 - Secret `JIB_AI_TEAM_API_KEY`: provider credential.
-- Variable `JIB_AI_TEAM_FREE_MODELS_JSON`: JSON array of up to four explicitly approved models, for example:
+- Variable `JIB_AI_TEAM_FREE_MODELS_JSON`: JSON array of exactly four explicitly approved models, for example:
 
 ```json
 [
@@ -55,10 +55,10 @@ The `free: true` flag is an operator allowlist assertion, not proof of free usag
 - The workflow is manual-only and has no pull-request event trigger.
 - Provider credentials are read from GitHub Actions secrets, never committed.
 - Do not submit customer PII, credentials, tokens, private merchant information, or production secrets. Basic pattern redaction is not a complete privacy filter.
-- This initial phase sends only the task text and selected application scope. It does not send repository source files to the provider.
+- Only allowlisted source/specification excerpts and the task are sent to the provider after pattern redaction. The allowlist excludes environment files, secrets, database rows, and production records.
 - Model responses are untrusted suggestions and require human verification.
 - No automatic source changes, PR creation, merge, production database action, or deployment is permitted.
 
 ## Current status
 
-This GitHub Actions implementation is a safe first stage. The latest feature-branch syntax validation is expected to pass before provider setup. Provider variables and secret are not configured by this commit, so it will not contact any model until the owner deliberately configures them. No successful live four-model run is claimed. The old JIB Manager UI/API implementation is removed from this branch; the existing image-generation and notification features are not part of this tool.
+This GitHub Actions implementation is a safe first stage. The latest syntax validation run `44767158256` passed. The actual multi-model job was skipped because the event was a push, not a manual dispatch. Provider variables and secret are not verified as configured, so no successful live four-model run is claimed. This independent branch contains only the GitHub development assistant and its documentation; JIB Manager remains in PR #4.
