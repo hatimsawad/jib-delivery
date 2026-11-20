@@ -1,6 +1,6 @@
 # JIB Multi-Model AI Development Team — GitHub-native architecture
 
-**Status:** GitHub workflow and bounded repository context are implemented on `feature/jib-multi-model-ai-manager`. Runner syntax check passed on 2026-11-20. Provider configuration and a successful model-response run are still pending.
+**Status:** GitHub workflow and bounded repository context are implemented on `feature/jib-multi-model-ai-manager`. Runner syntax check passed on 2026-11-20. Provider configuration and a successful four-model response run are still pending. A separate draft PR is required before the workflow can be enabled from GitHub Actions on the default branch.
 
 ## Goal
 
@@ -44,7 +44,7 @@ Configure these GitHub Actions values only after verifying the provider's terms,
 - `JIB_AI_TEAM_API_KEY`: server-side GitHub Actions secret; never commit or paste it into source/chat.
 - `JIB_AI_TEAM_FREE_MODELS_JSON`: repository variable containing at most four explicit free model entries, each with a unique role from `architect`, `implementer`, `security`, `qa`, a model identifier, and `free: true`.
 
-The runner accepts a generic OpenAI-compatible endpoint so FreeLLMAPI can serve both developer assistance and the planned JIB AI Manager integration after separate security review. This does not mean FreeLLMAPI or any gateway is already deployed or connected.
+The runner accepts a generic OpenAI-compatible endpoint so FreeLLMAPI can serve both developer assistance and the planned JIB AI Manager integration after separate security review. This does not mean FreeLLMAPI or any gateway is already deployed or connected. The upstream FreeLLMAPI project documents a self-hosted gateway that aggregates third-party free provider tiers; it is not a hosted free API account. It requires a persistent host, an encryption key, and separately authorized upstream provider keys. Its own project README describes the project as personal experimentation and learning, not a stable production inference substrate. Therefore JIB must not use it for production customer data until hosting, security, privacy, terms, and continuity are independently approved. The JIB AI Manager route added to the application is advisory-only, HTTPS-only, server-side, and disabled until the three Vercel environment variables are configured.
 
 ## Provider/router evaluation order
 
@@ -67,3 +67,12 @@ All candidates must be checked for free persistent hosting, license, provider te
 ## Important availability limitation
 
 The workflow currently exists on the feature branch, not the default branch. The push-triggered syntax validation works on this branch. GitHub's manual workflow-dispatch availability must be confirmed after the workflow is included in an approved default-branch version. Keep PR #4 Draft and do not merge it merely to activate this workflow.
+
+
+## GitHub activation and test state (2026-11-20)
+
+- The workflow is isolated on `feature/jib-multi-model-ai-manager`; pushes run syntax validation only.
+- The latest recorded validation run completed successfully. The multi-model job was skipped because it was a push event, not a manual dispatch.
+- GitHub Actions requires a `workflow_dispatch` workflow to exist on the repository default branch before it can be manually dispatched from the Actions UI. This feature branch therefore needs a separate reviewed PR before the owner can dispatch it from GitHub Actions.
+- No GitHub Actions secrets or repository variables are available through the connected GitHub actions in this session. Do not claim the models are connected. The owner must add the three values through GitHub Settings → Secrets and variables → Actions.
+- Never place the API key in a repository variable, file, commit, issue, or chat. Store it only as `JIB_AI_TEAM_API_KEY` secret.
