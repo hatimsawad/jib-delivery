@@ -290,6 +290,17 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 }
 
+class _ServicePill extends StatelessWidget {
+  final String label;
+  const _ServicePill({required this.label});
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(30), border: Border.all(color: const Color(0xFFDCE9DF))),
+    child: Text(label, style: const TextStyle(color: jibGreen, fontSize: 11, fontWeight: FontWeight.w800)),
+  );
+}
+
 class CustomerHome extends StatefulWidget {
   const CustomerHome({super.key});
 
@@ -502,6 +513,31 @@ class _CustomerHomeState extends State<CustomerHome> {
               ),
               const SizedBox(height: 22),
               const Text('اكتشف ما تحب', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900)),
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF7FBF8),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: jibGreen.withValues(alpha: .18)),
+                ),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Row(children: [
+                    Icon(Icons.auto_awesome, color: Color(0xFFB99A54), size: 15),
+                    SizedBox(width: 6),
+                    Text('عالم JIB', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
+                  ]),
+                  const SizedBox(height: 10),
+                  Wrap(spacing: 7, runSpacing: 7, children: const [
+                    _ServicePill(label: 'المطاعم والمأكولات'),
+                    _ServicePill(label: 'المشروبات'),
+                    _ServicePill(label: 'الحلويات'),
+                    _ServicePill(label: 'البقالة'),
+                  ]),
+                  const SizedBox(height: 8),
+                  const Text('تنضم هذه الفئات تدريجياً إلى JIB في الرباط', style: TextStyle(color: Color(0xFF68736B), fontSize: 11)),
+                ]),
+              ),
               const SizedBox(height: 12),
               Wrap(spacing: 8, children: List.generate(_categories.length, (index) => ChoiceChip(
                 label: Text(_categories[index]),
