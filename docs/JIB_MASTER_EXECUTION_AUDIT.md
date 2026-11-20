@@ -157,3 +157,13 @@ This section supersedes stale status statements above where they conflict.
 - FreeLLMAPI/GitHub AI model credentials are not configured or tested.
 - Supabase leaked-password protection and adversarial RPC authorization tests remain open.
 - No merge, production deployment, billing activation, or paid provider activation is authorized by this audit.
+
+
+## Latest hardening work — 2026-11-20
+
+- Android APK workflow permissions were narrowed: only the courier build receives location and foreground-service permissions; customer and merchant receive only Internet permission. The courier app uses a visible, user-consented foreground service with an ongoing notification. Do not add `ACCESS_BACKGROUND_LOCATION` without a separate necessity review; the foreground service is started while the app is visible and continues while the app is backgrounded.
+- JIB AI Manager server route now redacts common API keys, JWT-like tokens, emails, phone numbers, and precise coordinate pairs before forwarding prompts to FreeLLMAPI. It never sends the unsanitized prompt.
+- Added migration `20261120160000_jib_ai_manager_chat_rate_limit.sql` for an atomic, private, per-admin limit of 20 messages per hour. The route fails closed (503) if this RPC is unavailable. **This migration is committed to the feature branch but has not been applied to the live Supabase project**, so the AI chat remains unavailable until the migration is explicitly approved and applied.
+- The FreeLLMAPI endpoint, key, and free model are still not verified in Vercel. The route remains disabled until all three server-only values are configured. No provider key is available through the connected GitHub actions in this session.
+- The GitHub AI-team workflow remains separate in PR #6. Its syntax-validation run passed; the four-model analysis was skipped on push and still needs the owner to configure the HTTPS endpoint, API key secret, and four explicitly free model entries.
+- A new CI/APK run is required for the latest prompt-redaction, rate-limit, and courier-only Android permission changes. Treat them as pending until the run for the final PR #4 head is green.
