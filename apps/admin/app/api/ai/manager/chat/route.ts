@@ -23,8 +23,9 @@ export async function POST(request: Request) {
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) return jsonError("يجب تسجيل الدخول أولاً.", 401);
 
-  const { data: profile, error: profileError } = await supabase
+  const { data: profileData, error: profileError } = await supabase
     .from("profiles").select("role").eq("id", user.id).maybeSingle();
+  const profile = profileData as unknown as { role: string } | null;
   if (profileError || profile?.role !== "admin") return jsonError("هذه الخدمة متاحة لمدير JIB فقط.", 403);
 
   const baseUrl = process.env.FREELLMAPI_BASE_URL?.trim();
