@@ -63,13 +63,15 @@ function redact(text) {
 
 function loadModels(raw) {
   const parsed = JSON.parse(raw || "[]");
-  if (!Array.isArray(parsed)) throw new Error("JIB_AI_TEAM_FREE_MODELS_JSON must be an array");
+  if (!Array.isArray(parsed) || parsed.length !== 4) {
+    throw new Error("JIB_AI_TEAM_FREE_MODELS_JSON must contain exactly four model entries");
+  }
   const valid = parsed.filter((item) =>
     item && Object.hasOwn(roles, item.role) &&
     typeof item.model === "string" &&
     /^[a-zA-Z0-9._:/-]{1,120}$/.test(item.model) &&
     item.free === true
-  ).slice(0, 4);
+  );
   const uniqueRoles = new Set(valid.map((item) => item.role));
   if (valid.length !== 4 || uniqueRoles.size !== 4) {
     throw new Error("Configure exactly one explicitly approved free model for each role: architect, implementer, security, qa");
@@ -88,7 +90,15 @@ if (task.length < 10 || task.length > 6000) throw new Error("Task must contain 1
 const baseUrl = (process.env.JIB_AI_TEAM_BASE_URL || "").trim().replace(/\/$/, "");
 const apiKey = (process.env.JIB_AI_TEAM_API_KEY || "").trim();
 if (!baseUrl || !apiKey) throw new Error("Provider is not configured; no model request was sent");
-if (!baseUrl.startsWith("https://")) throw new Error("Provider URL must use HTTPS");
+let providerUrl;
+try {
+  providerUrl = new URL(baseUrl);
+} catch {
+  throw new Error("Provider URL is invalid; no model request was sent");
+}
+if (providerUrl.protocol !== "https:" || providerUrl.username || providerUrl.password) {
+  throw new Error("Provider URL must use HTTPS and must not embed credentials");
+}
 
 const models = loadModels(process.env.JIB_AI_TEAM_FREE_MODELS_JSON);
 const repositoryContext = await loadRepositoryContext(scope);
