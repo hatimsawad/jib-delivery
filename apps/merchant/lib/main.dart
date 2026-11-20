@@ -51,14 +51,20 @@ String networkErrorMessage(Object error) {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Supabase.initialize(url: supabaseUrl, publishableKey: supabasePublishableKey);
-  runApp(const JibMerchantApp());
+  String? startupError;
+  try {
+    await Supabase.initialize(url: supabaseUrl, publishableKey: supabasePublishableKey);
+  } catch (error) {
+    startupError = networkErrorMessage(error);
+  }
+  runApp(JibMerchantApp(startupError: startupError));
 }
 
 final db = Supabase.instance.client;
 
 class JibMerchantApp extends StatelessWidget {
-  const JibMerchantApp({super.key});
+  final String? startupError;
+  const JibMerchantApp({super.key, this.startupError});
   @override
   Widget build(BuildContext context) => MaterialApp(
     title: 'JIB التاجر', debugShowCheckedModeBanner: false,
@@ -100,7 +106,34 @@ class JibMerchantApp extends StatelessWidget {
         ),
       ),
     ),
-    home: const Directionality(textDirection: TextDirection.rtl, child: MerchantGate()),
+    home: Directionality(
+      textDirection: TextDirection.rtl,
+      child: startupError == null
+          ? const MerchantGate()
+          : MerchantStartupConnectionError(message: startupError!, onRetry: main),
+    ),
+  );
+}
+
+class MerchantStartupConnectionError extends StatelessWidget {
+  final String message;
+  final Future<void> Function() onRetry;
+  const MerchantStartupConnectionError({super.key, required this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    body: Center(child: Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        const Icon(Icons.cloud_off, color: jibRed, size: 52),
+        const SizedBox(height: 12),
+        const Text('تعذر الاتصال بخدمة JIB', style: TextStyle(fontSize: 21, fontWeight: FontWeight.w900)),
+        const SizedBox(height: 10),
+        Text(message, textAlign: TextAlign.center),
+        const SizedBox(height: 18),
+        FilledButton.icon(onPressed: onRetry, icon: const Icon(Icons.refresh), label: const Text('إعادة المحاولة')),
+      ]),
+    )),
   );
 }
 
