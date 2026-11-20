@@ -477,7 +477,7 @@ class _MerchantHomeState extends State<MerchantHome> {
                   ),
                   clipBehavior: Clip.antiAlias,
                   child: selectedImage != null
-                      ? Image.file(File(selectedImage.path), fit: BoxFit.cover)
+                      ? Image.file(File(selectedImage?.path ?? ''), fit: BoxFit.cover)
                       : (currentImageUrl != null && currentImageUrl.trim().isNotEmpty
                           ? Image.network(
                               currentImageUrl,
