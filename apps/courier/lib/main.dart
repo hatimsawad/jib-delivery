@@ -214,7 +214,7 @@ class _CourierLoginState extends State<CourierLogin> {
               gradient: const LinearGradient(
                 begin: Alignment.topRight,
                 end: Alignment.bottomLeft,
-                colors: [Color(0xFFEF3A40), Color(0xFF9F1118)],
+                colors: [Color(0xFFE31E24), Color(0xFFB9161D)],
               ),
               borderRadius: BorderRadius.circular(26),
               boxShadow: const [BoxShadow(color: Color(0x26E31E24), blurRadius: 24, offset: Offset(0, 10))],
@@ -224,7 +224,7 @@ class _CourierLoginState extends State<CourierLogin> {
           ),
           const SizedBox(height: 18),
           const Text('جيب JIB · المندوب', textAlign: TextAlign.center, style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900)),
-          const Text('JIB SIGNATURE  /  COURIER', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF82766F), fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.1)),
+          const Text('Jib وتكايس على jib', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF82766F), fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.1)),
           const SizedBox(height: 6),
           const Text('توصيلاتك بوضوح، خطوة بخطوة', textAlign: TextAlign.center),
           const SizedBox(height: 24),
