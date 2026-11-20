@@ -1,6 +1,8 @@
 name: JIB AI Development Team
 
 on:
+  push:
+    branches: [feature/jib-multi-model-ai-manager]
   workflow_dispatch:
     inputs:
       scope:
@@ -26,7 +28,21 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  validate:
+    name: Validate AI team runner
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: node --check .github/scripts/jib-ai-team.mjs
+
   analyze:
+    if: github.event_name == 'workflow_dispatch'
+    needs: validate
     name: Multi-model development analysis
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -40,9 +56,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22"
-
-      - name: Validate runner syntax
-        run: node --check .github/scripts/jib-ai-team.mjs
 
       - name: Run free-only AI team
         env:
