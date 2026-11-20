@@ -176,3 +176,17 @@ This review does not mark JIB production-ready. Keep PR #4 as Draft and do not m
 - The image-generation API now allows article covers only. Cloudflare usage still follows the account's actual billing plan and shared daily allocation. JIB does not upgrade plans or turn on billing; do not assume the API can guarantee a zero-cost call if the Cloudflare account itself is on a paid plan.
 - PR #4 remains Draft and unmerged. Production alias remains unchanged. No final public launch, payment integration, automated branch ordering, courier cash advance, external loyalty accrual, live GPS tracking, or notification delivery is claimed.
 - Next release gates: latest CI + APK workflow pass; latest Vercel preview READY and smoke-tested; branch approval UX test; customer browse/checkout E2E with an approved test branch; unauthorized RPC tests; final Android install/device test; verify Cloudflare account billing plan before enabling article image generation; configure free push notifications or clearly keep notifications disabled; service zones and real delivery pricing; production hosting terms review.
+
+
+## تحديث تنفيذ 2026-11-20 — GPS وAI Manager
+- أضيفت تبعيات `geolocator` و`shared_preferences` إلى تطبيق المندوب.
+- يطلب التطبيق موافقة صريحة قبل مشاركة الموقع، ويعرض سبب التتبع وفترة الاحتفاظ 90 يوماً وإشعار Android الدائم، ويوفر إيقاف المشاركة.
+- يستخدم Android foreground location notification مع تحديث كل 30 ثانية أو بعد انتقال 25 متراً؛ يتم إرسال الإحداثيات إلى RPC محمي لا يقبل إلا المندوب المعتمد الذي فعّل الموافقة.
+- أضيفت صلاحيات ACCESS_FINE_LOCATION وACCESS_COARSE_LOCATION وACCESS_BACKGROUND_LOCATION وFOREGROUND_SERVICE وFOREGROUND_SERVICE_LOCATION وPOST_NOTIFICATIONS إلى مشروع Android المولد في workflow.
+- أضيفت جداول `courier_location_tracking` و`courier_location_events` بسياسات RLS، وفحص انقطاع بعد 60 ثانية كل دقيقة، وتنظيف مجدول لنقاط الموقع الأقدم من 90 يوماً.
+- أضيفت صفحة JIB Manager `/tracking` لعرض جلسات المشاركة وآخر نقطة وحالة الانقطاع، وأضيف نوع الحدث إلى شاشة المراقبة.
+- تم تطبيق migration `20261120154500_add_consent_based_courier_location_tracking.sql` على مشروع Supabase المرتبط. جرى التحقق من وجود مهمتي cron للفحص والتنظيف. لا توجد نقاط GPS حالياً لأن لا مندوباً فعلياً وافق وبدأ الإرسال.
+- أضيفت واجهة `/ai-manager` وAPI محمي للمدير فقط يرسل إلى FreeLLMAPI عبر HTTPS، ويوقف الطلب عند نفاد الحصة أو فشل المزود، دون paid fallback أو أدوات تنفيذ أو SQL.
+- FreeLLMAPI غير مربوط بعد: متغيرات Vercel السرية `FREELLMAPI_BASE_URL`, `FREELLMAPI_API_KEY`, `FREELLMAPI_FREE_MODEL` لم يتم التحقق من وجودها/قيمها. لا تضع المفتاح في Git.
+- فريق GitHub متعدد النماذج مستقل على `feature/jib-multi-model-ai-manager`. فحص syntax للـrunner نجح، لكن تشغيل النماذج يتطلب endpoint HTTPS ومفتاح GitHub Actions وأربعة model IDs موثقة كمجانية. لا يوجد paid fallback.
+- يلزم نجاح CI وAPK على هذه التغييرات، ثم اختبار ميداني حقيقي لخدمة الموقع في الخلفية. لا نعد GPS مكتملاً ميدانياً قبل الاختبار على أجهزة Android.

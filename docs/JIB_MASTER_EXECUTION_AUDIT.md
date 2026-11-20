@@ -33,7 +33,7 @@ This document separates verified implementation from unfinished work. A feature 
 
 ### Courier app
 - Verified source includes authentication/enrollment, approval gate, available/assigned orders, atomic claim, pickup/delivery status changes, and order timeline display.
-- **GPS tracking is not implemented in the current courier source.** The reviewed app file contains no location plugin, location permission flow, background location service, or position upload flow.
+- GPS tracking has now been added to the courier source using Geolocator Android foreground-location service, explicit consent, persistent notification, secure RPC upload, 60-second cron disconnect checks, 90-day retention, and a JIB Manager tracking page. Real-device background/closed-app validation is still pending.
 - Required but not yet implemented: explicit courier consent; Android foreground/background location permissions; persistent tracking notification; start/stop tied to the approved availability/login-to-logout policy; tracking behavior for active jobs; heartbeat/disconnect monitoring; and secure route retention.
 - The approved operational requirements remain: tracking from login until logout with explicit informed consent and Android permissions; disconnect alert after 60 seconds; retain route history for 90 days. Do not silently weaken or reinterpret these rules.
 - Latest CI courier analyze and widget tests passed. Courier APK build was still running at audit time.
@@ -112,3 +112,12 @@ Read-only checks on 2026-11-20 confirmed:
 - Do not enable paid services, paid model fallbacks, billing, subscriptions, paid messaging, or paid hosting without explicit approval.
 - Never put provider secrets in source code, GitHub commits, mobile apps, logs, or prompts.
 - Keep the multi-model development assistant separate from the JIB Manager runtime and enforce human approval for code changes.
+
+
+## Addendum — execution after the initial audit (2026-11-20)
+- Courier foreground GPS code and Android manifest permissions are now implemented on the feature branch. Supabase migration `20261120154500_add_consent_based_courier_location_tracking` has been applied, with cron checks every minute and daily 90-day retention cleanup.
+- JIB Manager now includes `/tracking` and `/ai-manager`; the latter is an admin-only, advisory chat endpoint with a FreeLLMAPI OpenAI-compatible adapter. It remains disabled until secure HTTPS endpoint, key and free model are configured.
+- The independent GitHub multi-model runner remains read-only and free-only. Its provider secrets/models are not configured or verified; a successful four-model run has not been demonstrated.
+- The latest GPS/AI code changes triggered fresh CI and APK workflows. Treat these as pending until the newest run for the final commit is green.
+- A READY APK from an earlier commit does not include the GPS implementation. Use only artifacts from the final successful run after GPS changes.
+- Device testing, approved test branch/order E2E, live provider configuration, notification provider setup, service-zone pricing, and production release review remain required.

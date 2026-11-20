@@ -1,4 +1,7 @@
 name: JIB CI
+concurrency:
+  group: jib-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 on:
   pull_request:
   push:

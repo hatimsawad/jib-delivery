@@ -149,3 +149,29 @@ tbody tr:last-child td{border-bottom:0}
   .branch-policy-grid { grid-template-columns: 1fr; }
   .branch-policy-details[open], .branch-policy-form { min-width: min(320px, 75vw); }
 }
+
+/* JIB AI Manager chat */
+.manager-ai-input {
+  width: 100%;
+  min-height: 120px;
+  resize: vertical;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  padding: 13px 15px;
+  color: var(--ink);
+  background: #fff;
+  font: inherit;
+  line-height: 1.8;
+}
+.manager-ai-input:focus { outline: 2px solid #e9a3a5; outline-offset: 1px; }
+.manager-ai-send {
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 16px;
+  background: var(--red);
+  color: #fff;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+.manager-ai-send:disabled { opacity: .55; cursor: wait; }
