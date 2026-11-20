@@ -8,7 +8,7 @@ export default function AdminHeader() {
       <div className="top-actions"><span className="status">دخول إداري موثّق</span><LogoutButton /></div>
     </header>
     <nav className="admin-nav" aria-label="التنقل الرئيسي">
-      <Link href="/">الرئيسية</Link><Link href="/stores">المتاجر والمطاعم</Link><Link href="/orders">الطلبات</Link><Link href="/products">المنتجات</Link><Link href="/users">المستخدمون والمندوبون</Link>
+      <Link href="/">الرئيسية</Link><Link href="/stores">المتاجر والمطاعم</Link><Link href="/orders">الطلبات</Link><Link href="/products">المنتجات الفعلية</Link><Link href="/catalog">قوالب المنتجات</Link><Link href="/users">المستخدمون والمندوبون</Link>
       <details className="admin-more"><summary>أدوات الإدارة</summary><div className="admin-more-menu">
         <Link href="/brands">دليل العلامات التجارية</Link><Link href="/tracking">تتبع المندوبين</Link><Link href="/monitoring">المراقبة والحوادث</Link><Link href="/ai-manager">JIB AI Manager</Link><Link href="/images">استوديو الصور</Link><Link href="/settings/notifications">إعدادات الإشعارات</Link>
       </div></details>
