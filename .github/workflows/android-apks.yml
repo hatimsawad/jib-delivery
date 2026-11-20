@@ -1,6 +1,6 @@
 name: JIB Android APKs
 concurrency:
-  group: jib-apks-${{ github.event.pull_request.number || github.ref }}
+  group: jib-apks-${{ github.sha }}
   cancel-in-progress: false
 on:
   workflow_dispatch:
