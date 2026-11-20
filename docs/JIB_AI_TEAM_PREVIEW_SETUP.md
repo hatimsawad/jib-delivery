@@ -19,7 +19,7 @@ The entry point is the GitHub Actions workflow `.github/workflows/jib-ai-team.ym
 4. Select the application scope (or `all`), enter a task, and run the workflow.
 5. Open the completed run and download the `jib-ai-team-report` artifact.
 
-The workflow is manually dispatched only. It does not run on pull requests, pushes, or production deployments. The workflow file must first be present on the repository's default branch before it appears as a normal manual workflow in GitHub Actions. Until then, keep this implementation on its feature branch.
+The workflow is manually dispatched for model analysis. A push to `feature/jib-ai-team-standalone` runs syntax validation only; it does not contact a model. The model job requires the three provider values below. The workflow file must first be present on the repository's default branch before it appears as a normal manual workflow in GitHub Actions. Until then, keep this implementation on its feature branch.
 
 ## Roles
 
@@ -61,4 +61,4 @@ The `free: true` flag is an operator allowlist assertion, not proof of free usag
 
 ## Current status
 
-This GitHub Actions implementation is a safe first stage. Provider variables and secret are not configured by this commit, so it will not contact any model until the owner deliberately configures them. It has not been run against a live provider. The old JIB Manager UI/API implementation is removed from this branch; the existing image-generation and notification features are not part of this tool.
+This GitHub Actions implementation is a safe first stage. The latest feature-branch syntax validation is expected to pass before provider setup. Provider variables and secret are not configured by this commit, so it will not contact any model until the owner deliberately configures them. No successful live four-model run is claimed. The old JIB Manager UI/API implementation is removed from this branch; the existing image-generation and notification features are not part of this tool.
