@@ -1,10 +1,10 @@
 # JIB Multi-Model AI Development Team — GitHub-native architecture
 
-Status: implementation moved to GitHub Actions on `feature/jib-multi-model-ai-manager`.
+**Status:** GitHub workflow and bounded repository context are implemented on `feature/jib-multi-model-ai-manager`. Runner syntax check passed on 2026-11-20. Provider configuration and a successful model-response run are still pending.
 
 ## Goal
 
-A development assistant in the GitHub repository, used across Customer, Merchant, Courier, and Manager applications. It is not a JIB Manager product feature.
+A development assistant in the GitHub repository, used across Customer, Merchant, Courier, and JIB Manager. It is a developer tool, not a JIB Manager runtime feature.
 
 ## Architecture
 
@@ -13,6 +13,8 @@ GitHub repository
   └── Actions: JIB AI Development Team (manual dispatch)
        └── GitHub-hosted runner
             └── .github/scripts/jib-ai-team.mjs
+                 ├── bounded allowlisted repository context
+                 ├── secret/PII redaction
                  ├── Architect model
                  ├── Implementation model
                  ├── Security model
@@ -20,24 +22,48 @@ GitHub repository
                       └── downloadable report artifact
 ```
 
-## Authority and safety
+## Implemented safeguards
 
-- Manual invocation only in the first phase.
-- Read-only GitHub workflow permissions.
-- Free models only; no paid fallback.
-- No provider credentials in source code.
-- No customer or production secrets in prompts.
+- Manual task execution only; a push to this feature branch runs syntax validation only.
+- GitHub workflow permissions are read-only (`contents: read`).
+- Context is loaded only from explicit allowlisted documentation and app entrypoints, with a 42,000-character total budget and per-file truncation.
+- Secret redaction covers common API/GitHub/Supabase token formats, JWT-like tokens, email addresses, and phone numbers.
+- HTTPS provider endpoint is required.
+- Only model entries explicitly marked `free: true` are accepted; paid fallback is not implemented.
+- Provider failures, quota/rate limits, and timeouts are reported; they do not trigger a paid fallback.
+- No customer database rows, production secrets, environment files, or Supabase service-role credentials are included in repository context.
 - No automatic repository writes, PR creation, merges, deployments, or database changes.
-- The human owner approves every proposed code change.
-- A model majority cannot override approved JIB specifications.
-- Disagreements and unknowns must be shown rather than hidden behind a false consensus.
+- A model majority cannot override approved JIB specifications. Disagreements and unknowns must be shown.
+- Human owner approval is required for every proposed code change.
+
+## Provider configuration still required
+
+Configure these GitHub Actions values only after verifying the provider's terms, privacy, and free-tier conditions:
+
+- `JIB_AI_TEAM_BASE_URL`: HTTPS OpenAI-compatible endpoint (FreeLLMAPI or an approved router).
+- `JIB_AI_TEAM_API_KEY`: server-side GitHub Actions secret; never commit or paste it into source/chat.
+- `JIB_AI_TEAM_FREE_MODELS_JSON`: repository variable containing at most four explicit free model entries, each with a unique role from `architect`, `implementer`, `security`, `qa`, a model identifier, and `free: true`.
+
+The runner accepts a generic OpenAI-compatible endpoint so FreeLLMAPI can serve both developer assistance and the planned JIB AI Manager integration after separate security review. This does not mean FreeLLMAPI or any gateway is already deployed or connected.
+
+## Provider/router evaluation order
+
+- **OmniRoute:** primary routing candidate.
+- **LiteLLM:** fallback/router candidate.
+- **OpenRouter free models:** optional free model source, subject to current availability and terms.
+- **FreeLLMAPI-Extended:** test candidate.
+- **Bifrost, New API, One API:** alternatives to evaluate; do not deploy all routers simultaneously.
+
+All candidates must be checked for free persistent hosting, license, provider terms, data handling, model availability, and enforceable no-billing behavior. No paid account, card, subscription, or paid fallback is permitted without explicit owner approval.
 
 ## Phases
 
-1. **GitHub analysis team:** independent role reports, free-only provider routing, artifact output.
-2. **Read-only repository context:** explicitly allowlisted files, secret scanning/redaction, bounded context, and source citations.
-3. **Patch proposals:** create a patch artifact or draft branch only after a separately reviewed design; never auto-merge.
-4. **Quality gates:** app-specific Flutter/Next.js tests, static analysis, security checks, and human review.
-5. **Controlled pull requests:** only after explicit approval and least-privilege GitHub permissions.
+1. **GitHub analysis team:** implemented; independent role reports and artifact output.
+2. **Read-only repository context:** implemented with allowlisted files, bounded context, redaction, and file-path references requested in reports.
+3. **Patch proposals:** not implemented; future patches must be artifacts or draft branches after separate review, never auto-merged.
+4. **Quality gates:** app-specific Flutter/Next.js tests and security checks remain required for every accepted patch.
+5. **Controlled pull requests:** only after explicit owner approval and least-privilege GitHub permissions.
 
-The GitHub Actions workflow must remain separate from the JIB Manager runtime. JIB Manager's existing image-generation and notification responsibilities remain unchanged.
+## Important availability limitation
+
+The workflow currently exists on the feature branch, not the default branch. The push-triggered syntax validation works on this branch. GitHub's manual workflow-dispatch availability must be confirmed after the workflow is included in an approved default-branch version. Keep PR #4 Draft and do not merge it merely to activate this workflow.
