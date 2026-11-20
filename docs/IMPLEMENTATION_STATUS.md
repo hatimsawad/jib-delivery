@@ -185,7 +185,7 @@ This review does not mark JIB production-ready. Keep PR #4 as Draft and do not m
 - أضيفت صلاحيات ACCESS_FINE_LOCATION وACCESS_COARSE_LOCATION وACCESS_BACKGROUND_LOCATION وFOREGROUND_SERVICE وFOREGROUND_SERVICE_LOCATION وPOST_NOTIFICATIONS إلى مشروع Android المولد في workflow.
 - أضيفت جداول `courier_location_tracking` و`courier_location_events` بسياسات RLS، وفحص انقطاع بعد 60 ثانية كل دقيقة، وتنظيف مجدول لنقاط الموقع الأقدم من 90 يوماً.
 - أضيفت صفحة JIB Manager `/tracking` لعرض جلسات المشاركة وآخر نقطة وحالة الانقطاع، وأضيف نوع الحدث إلى شاشة المراقبة.
-- تم تطبيق migration `20261120154500_add_consent_based_courier_location_tracking.sql` على مشروع Supabase المرتبط. جرى التحقق من وجود مهمتي cron للفحص والتنظيف. لا توجد نقاط GPS حالياً لأن لا مندوباً فعلياً وافق وبدأ الإرسال.
+- تم تطبيق migration `20261120153458_add_consent_based_courier_location_tracking.sql` على مشروع Supabase المرتبط. جرى التحقق من وجود مهمتي cron للفحص والتنظيف. لا توجد نقاط GPS حالياً لأن لا مندوباً فعلياً وافق وبدأ الإرسال.
 - أضيفت واجهة `/ai-manager` وAPI محمي للمدير فقط يرسل إلى FreeLLMAPI عبر HTTPS، ويوقف الطلب عند نفاد الحصة أو فشل المزود، دون paid fallback أو أدوات تنفيذ أو SQL.
 - FreeLLMAPI غير مربوط بعد: متغيرات Vercel السرية `FREELLMAPI_BASE_URL`, `FREELLMAPI_API_KEY`, `FREELLMAPI_FREE_MODEL` لم يتم التحقق من وجودها/قيمها. لا تضع المفتاح في Git.
 - فريق GitHub متعدد النماذج مستقل على `feature/jib-multi-model-ai-manager`. فحص syntax للـrunner نجح، لكن تشغيل النماذج يتطلب endpoint HTTPS ومفتاح GitHub Actions وأربعة model IDs موثقة كمجانية. لا يوجد paid fallback.
