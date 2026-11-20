@@ -511,7 +511,6 @@ class _MerchantHomeState extends State<MerchantHome> {
                         setDialogState(() {
                           selectedImage = picked;
                           currentImageIsAiGenerated = false;
-                          generatedImage = null;
                         });
                       }
                     } catch (_) {
