@@ -18,6 +18,15 @@ function jsonError(error: string, status: number) {
   return NextResponse.json({ error }, { status, headers: { "Cache-Control": "no-store" } });
 }
 
+function redactSensitivePrompt(value: string) {
+  return value
+    .replace(/\\b(?:sk-[A-Za-z0-9_-]{16,}|gh[pousr]_[A-Za-z0-9]{20,}|sb_(?:publishable|secret)_[A-Za-z0-9_-]{12,})\\b/g, "[REDACTED_SECRET]")
+    .replace(/\\beyJ[A-Za-z0-9_-]{30,}(?:\\.[A-Za-z0-9_-]+){1,2}\\b/g, "[REDACTED_TOKEN]")
+    .replace(/\\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}\\b/gi, "[REDACTED_EMAIL]")
+    .replace(/\\b(?:\\+?\\d[\\d\\s().-]{7,}\\d)\\b/g, "[REDACTED_PHONE]")
+    .replace(/\\b-?\\d{1,2}\\.\\d{4,}\\s*[,;]\\s*-?\\d{1,3}\\.\\d{4,}\\b/g, "[REDACTED_PRECISE_COORDINATES]");
+}
+
 export async function POST(request: Request) {
   const supabase = await createClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -54,10 +63,21 @@ export async function POST(request: Request) {
     return jsonError("عنوان FreeLLMAPI غير صالح.", 400);
   }
 
+
   const normalizedBase = endpoint.toString().replace(/\/$/, "");
   const chatUrl = normalizedBase.endsWith("/v1")
     ? `${normalizedBase}/chat/completions`
     : `${normalizedBase}/v1/chat/completions`;
+  const safePrompt = redactSensitivePrompt(prompt.trim());
+
+  const { data: withinRateLimit, error: rateLimitError } = await supabase.rpc("jib_ai_manager_consume_chat_rate_limit");
+  if (rateLimitError) {
+    return jsonError("خدمة تحديد الاستخدام غير مهيأة بعد. لن يتم إرسال الرسالة إلى المزود حتى تكتمل حماية الاستخدام.", 503);
+  }
+  if (withinRateLimit !== true) {
+    return jsonError("وصلت إلى الحد المجاني المسموح به: 20 رسالة في الساعة. حاول لاحقاً؛ لا يوجد تحويل إلى نموذج مدفوع.", 429);
+  }
+
 
   try {
     const upstream = await fetch(chatUrl, {
