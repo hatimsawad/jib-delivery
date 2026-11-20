@@ -2,7 +2,7 @@ import AdminHeader from "../admin-header";
 import { requireAdmin } from "../admin-data";
 
 type OrderRow = {
-  id: string; status: string; payment_method: string; payment_status: string;
+  id: string; status: string; courier_id?: string | null; payment_method: string; payment_status: string;
   subtotal_mad: number; delivery_fee_mad: number; total_mad: number; created_at: string;
   fulfillment_mode_snapshot?: string; loyalty_mode_snapshot?: string; loyalty_program_name_snapshot?: string | null;
 };
@@ -33,7 +33,7 @@ export const dynamic = "force-dynamic";
 export default async function OrdersPage() {
   const { supabase } = await requireAdmin();
   const snapshotQuery = await supabase.from("orders")
-    .select("id,status,payment_method,payment_status,subtotal_mad,delivery_fee_mad,total_mad,created_at,fulfillment_mode_snapshot,loyalty_mode_snapshot,loyalty_program_name_snapshot")
+    .select("id,status,courier_id,payment_method,payment_status,subtotal_mad,delivery_fee_mad,total_mad,created_at,fulfillment_mode_snapshot,loyalty_mode_snapshot,loyalty_program_name_snapshot")
     .order("created_at", { ascending: false }).limit(100);
 
   let data: unknown = snapshotQuery.data;
@@ -59,11 +59,12 @@ export default async function OrdersPage() {
       {error ? <p className="error-state">تعذر تحميل الطلبات. تحقق من اتصال قاعدة البيانات وسياسات الوصول.</p> :
         orders.length === 0 ? <div className="empty-state"><strong>لا توجد طلبات بعد</strong><span>ستظهر الطلبات هنا فور تنفيذ أول طلب حقيقي من تطبيق JIB.</span></div> :
         <div className="table-wrap"><table>
-          <thead><tr><th>رقم الطلب</th><th>الحالة</th><th>الدفع</th><th>طريقة التنفيذ</th><th>الولاء</th><th>المجموع</th><th>التاريخ</th></tr></thead>
+          <thead><tr><th>رقم الطلب</th><th>الحالة</th><th>الدفع</th><th>المندوب</th><th>طريقة التنفيذ</th><th>الولاء</th><th>المجموع</th><th>التاريخ</th></tr></thead>
           <tbody>{orders.map(order => <tr key={order.id}>
             <td className="mono">#{order.id.slice(0,8)}</td>
             <td><span className="status-pill">{statusLabels[order.status] ?? order.status}</span></td>
             <td>{order.payment_method === "cash" ? "نقداً عند التسليم" : order.payment_method} · {order.payment_status === "paid" ? "مدفوع" : "غير مدفوع"}</td>
+            <td>{order.courier_id ? `#${order.courier_id.slice(0, 8)}` : "بانتظار الإسناد"}</td>
             <td>{fulfillmentLabels[order.fulfillment_mode_snapshot ?? "courier_places_order"] ?? order.fulfillment_mode_snapshot ?? "—"}</td>
             <td>{loyaltyLabels[order.loyalty_mode_snapshot ?? "none"] ?? order.loyalty_mode_snapshot ?? "—"}{order.loyalty_program_name_snapshot ? ` · ${order.loyalty_program_name_snapshot}` : ""}</td>
             <td className="amount">{Number(order.total_mad).toFixed(2)} د.م.</td>
