@@ -56,7 +56,7 @@ Widget _productImage(Object? rawUrl, {double size = 78}) {
   final fallback = Container(
     width: size,
     height: size,
-    decoration: BoxDecoration(color: const Color(0xFFF4EFEB), borderRadius: BorderRadius.circular(16)),
+    decoration: BoxDecoration(color: const Color(0xFFF4F7F4), borderRadius: BorderRadius.circular(16)),
     child: const Icon(Icons.shopping_bag_outlined, color: Color(0xFF9A8F87), size: 30),
   );
   if (!valid) return fallback;
@@ -79,9 +79,9 @@ class JibApp extends StatelessWidget {
           useMaterial3: true,
           colorScheme: ColorScheme.fromSeed(seedColor: jibRed, primary: jibRed, surface: Colors.white)
               .copyWith(onSurface: const Color(0xFF19191C)),
-          scaffoldBackgroundColor: const Color(0xFFF7F5F2),
+          scaffoldBackgroundColor: const Color(0xFFFFFFFF),
           appBarTheme: const AppBarTheme(
-            backgroundColor: Color(0xFFF7F5F2),
+            backgroundColor: Color(0xFFFFFFFF),
             foregroundColor: Color(0xFF19191C),
             elevation: 0,
             centerTitle: false,
@@ -93,7 +93,7 @@ class JibApp extends StatelessWidget {
             margin: const EdgeInsets.only(bottom: 12),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(22),
-              side: const BorderSide(color: Color(0xFFECE8E3)),
+              side: const BorderSide(color: Color(0xFFE7ECE8)),
             ),
           ),
           inputDecorationTheme: InputDecorationTheme(
@@ -256,7 +256,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 18),
                     const Text('جيب JIB', textAlign: TextAlign.center, style: TextStyle(fontSize: 30, letterSpacing: -.5, fontWeight: FontWeight.w900)),
-                    const Text('JIB SIGNATURE  ·  كلشي قريب ليك', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF82766F), fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1.1)),
+                    const Text('Jib وتكايس على jib', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF82766F), fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1.1)),
                     const SizedBox(height: 28),
                     Text(_register ? 'إنشاء حساب زبون' : 'مرحباً بعودتك', style: const TextStyle(fontSize: 21, fontWeight: FontWeight.bold)),
                     if (_register) ...[
@@ -306,8 +306,8 @@ class _CustomerHomeState extends State<CustomerHome> {
   String? _cartStoreId;
   bool _checkoutBusy = false;
 
-  static const _categories = ['الكل', 'مطاعم', 'بقالة', 'متاجر'];
-  static const _categoryKeys = [null, 'restaurant', 'grocery', 'shop'];
+  static const _categories = ['الكل', 'مطاعم', 'بقالة'];
+  static const _categoryKeys = [null, 'restaurant', 'grocery'];
 
   @override
   void dispose() {
@@ -481,7 +481,7 @@ class _CustomerHomeState extends State<CustomerHome> {
                         gradient: const LinearGradient(
                           begin: Alignment.topRight,
                           end: Alignment.bottomLeft,
-                          colors: [Color(0xFFEE343B), Color(0xFF94131A)],
+                          colors: [jibRed, Color(0xFFB9161D)],
                         ),
                         borderRadius: BorderRadius.circular(26),
                         boxShadow: const [
@@ -489,9 +489,9 @@ class _CustomerHomeState extends State<CustomerHome> {
                         ],
                       ),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const Text('JIB SIGNATURE  /  الرباط', style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 1.2)),
+                  const Text('JIB · الرباط', style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 1.2)),
                   const SizedBox(height: 8),
-                  const Text('شنو بغيتي نوصّلو ليك اليوم؟', style: TextStyle(color: Colors.white, fontSize: 23, fontWeight: FontWeight.w900)),
+                  const Text('كل شيأ تحبه في مكان واحد', style: TextStyle(color: Colors.white, fontSize: 23, fontWeight: FontWeight.w900)),
                   const SizedBox(height: 16),
                   TextField(
                     controller: _searchController,
@@ -501,24 +501,24 @@ class _CustomerHomeState extends State<CustomerHome> {
                 ]),
               ),
               const SizedBox(height: 22),
-              const Text('اكتشف الفئات', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900)),
+              const Text('اكتشف ما تحب', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900)),
               const SizedBox(height: 12),
               Wrap(spacing: 8, children: List.generate(_categories.length, (index) => ChoiceChip(
                 label: Text(_categories[index]),
                 selected: _category == index,
                 onSelected: (_) => setState(() => _category = index),
-                selectedColor: jibRed.withValues(alpha: .14),
+                selectedColor: jibGreen.withValues(alpha: .13),
                 showCheckmark: false,
               ))),
               const SizedBox(height: 22),
-              const Text('المتاجر المتاحة الآن', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900)),
+              const Text('المطاعم والمتاجر المتاحة الآن', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900)),
               const SizedBox(height: 12),
               if (stores.isEmpty)
                 const Card(child: Padding(padding: EdgeInsets.all(22), child: Column(children: [
                   Icon(Icons.store_mall_directory_outlined, size: 42, color: Colors.black38),
                   SizedBox(height: 8),
                   Text('لا توجد متاجر متاحة حالياً', style: TextStyle(fontWeight: FontWeight.bold)),
-                  Text('سنُظهر هنا المتاجر التي تنضم إلى JIB وتفتح استقبال الطلبات.', textAlign: TextAlign.center, style: TextStyle(color: Colors.black54, fontSize: 12)),
+                  Text('المطاعم والمأكولات والمشروبات والحلويات والبقالة تنضم تدريجياً. الإلكترونيات والملابس وباقي المتاجر قريباً.', textAlign: TextAlign.center, style: TextStyle(color: Colors.black54, fontSize: 12)),
                 ])))
               else
                 ...stores.map((store) => Card(
