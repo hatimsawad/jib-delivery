@@ -38,8 +38,13 @@ String networkErrorMessage(Object error) {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Supabase.initialize(url: supabaseUrl, publishableKey: supabasePublishableKey);
-  runApp(const JibApp());
+  String? startupError;
+  try {
+    await Supabase.initialize(url: supabaseUrl, publishableKey: supabasePublishableKey);
+  } catch (error) {
+    startupError = networkErrorMessage(error);
+  }
+  runApp(JibApp(startupError: startupError));
 }
 
 final supabase = Supabase.instance.client;
@@ -63,7 +68,8 @@ Widget _productImage(Object? rawUrl, {double size = 78}) {
 }
 
 class JibApp extends StatelessWidget {
-  const JibApp({super.key});
+  final String? startupError;
+  const JibApp({super.key, this.startupError});
 
   @override
   Widget build(BuildContext context) => MaterialApp(
@@ -113,11 +119,35 @@ class JibApp extends StatelessWidget {
             labelTextStyle: WidgetStateProperty.all(const TextStyle(fontWeight: FontWeight.w700, fontSize: 11)),
           ),
         ),
-        home: const Directionality(
+        home: Directionality(
           textDirection: TextDirection.rtl,
-          child: AuthGate(),
+          child: startupError == null
+              ? const AuthGate()
+              : StartupConnectionError(message: startupError!, onRetry: main),
         ),
       );
+}
+
+class StartupConnectionError extends StatelessWidget {
+  final String message;
+  final Future<void> Function() onRetry;
+  const StartupConnectionError({super.key, required this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    body: Center(child: Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        const Icon(Icons.cloud_off, color: jibRed, size: 52),
+        const SizedBox(height: 12),
+        const Text('تعذر الاتصال بخدمة JIB', style: TextStyle(fontSize: 21, fontWeight: FontWeight.w900)),
+        const SizedBox(height: 10),
+        Text(message, textAlign: TextAlign.center),
+        const SizedBox(height: 18),
+        FilledButton.icon(onPressed: onRetry, icon: const Icon(Icons.refresh), label: const Text('إعادة المحاولة')),
+      ]),
+    )),
+  );
 }
 
 class AuthGate extends StatelessWidget {
