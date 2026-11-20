@@ -94,7 +94,7 @@ export async function setStoreStatus(formData: FormData) {
 export async function saveStoreBranchPolicy(formData: FormData) {
   const storeId = formValue(formData, "storeId", 36);
   const fulfillmentMode = formValue(formData, "fulfillmentMode", 40);
-  let orderPermissionStatus = formValue(formData, "orderPermissionStatus", 24);
+  const orderPermissionStatus = formValue(formData, "orderPermissionStatus", 24);
   const orderChannelUrl = formValue(formData, "orderChannelUrl", 500);
   const orderPermissionReference = formValue(formData, "orderPermissionReference", 500);
   const loyaltyMode = formValue(formData, "loyaltyMode", 32);

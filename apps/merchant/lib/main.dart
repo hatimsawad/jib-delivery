@@ -477,10 +477,10 @@ class _MerchantHomeState extends State<MerchantHome> {
                   ),
                   clipBehavior: Clip.antiAlias,
                   child: selectedImage != null
-                      ? Image.file(File(selectedImage!.path), fit: BoxFit.cover)
-                      : (currentImageUrl != null && currentImageUrl!.trim().isNotEmpty
+                      ? Image.file(File(selectedImage.path), fit: BoxFit.cover)
+                      : (currentImageUrl != null && currentImageUrl.trim().isNotEmpty
                           ? Image.network(
-                              currentImageUrl!,
+                              currentImageUrl,
                               fit: BoxFit.cover,
                               errorBuilder: (_, __, ___) => const Center(
                                 child: Icon(Icons.add_photo_alternate_outlined, size: 42, color: Color(0xFF9A8F87)),

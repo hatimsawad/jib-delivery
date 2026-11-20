@@ -1,3 +1,4 @@
+import Link from "next/link";
 import LoginForm from "./login-form";
 
 type LoginPageProps = {
@@ -20,7 +21,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         {params.passwordUpdated === "1" && <p className="form-success" role="status">تم تحديث كلمة المرور بنجاح. سجّل الدخول بكلمة المرور الجديدة.</p>}
         {params.denied === "1" && <p className="form-error" role="alert">هذا الحساب لا يملك صلاحية إدارة منصة JIB.</p>}
         <LoginForm />
-        <a className="back-link" href="/">العودة إلى مركز القيادة</a>
+        <Link className="back-link" href="/">العودة إلى مركز القيادة</Link>
       </section>
     </main>
   );
