@@ -70,12 +70,12 @@ export default async function CourierTrackingPage() {
           <div className="manager-event-list">
             {trackingRows.map((row) => {
               const point = latest.get(row.courier_id);
-              const stale = row.tracking_enabled && (!row.last_location_at || Date.now() - new Date(row.last_location_at).getTime() > 60_000);
+              const statusTone = !row.tracking_enabled ? "resolved" : !row.last_location_at ? "warning" : "info";
               return (
-                <article className={`manager-event manager-event-${stale ? "warning" : row.tracking_enabled ? "info" : "resolved"}`} key={row.courier_id}>
+                <article className={`manager-event manager-event-${statusTone}`} key={row.courier_id}>
                   <div className="manager-event-heading">
                     <strong>مندوب · {row.courier_id.slice(0, 8)}</strong>
-                    <span>{!row.tracking_enabled ? "متوقف بموافقة المندوب" : stale ? "انقطاع أكثر من 60 ثانية" : "يرسل الموقع"}</span>
+                    <span>{!row.tracking_enabled ? "متوقف بموافقة المندوب" : !row.last_location_at ? "بانتظار أول تحديث" : "مشاركة الموقع مفعّلة"}</span>
                   </div>
                   <p>{ageLabel(row.last_location_at)}</p>
                   {point && (
