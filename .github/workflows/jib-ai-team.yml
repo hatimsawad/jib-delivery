@@ -1,0 +1,80 @@
+name: JIB AI Development Team
+
+on:
+  push:
+    branches: [feature/jib-multi-model-ai-manager]
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: "Which JIB application is this task about?"
+        required: true
+        type: choice
+        options:
+          - all
+          - customer
+          - merchant
+          - courier
+          - manager
+      task:
+        description: "Describe the development task (do not include secrets or customer data)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: jib-ai-team-manual
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate AI team runner
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: node --check .github/scripts/jib-ai-team.mjs
+
+  analyze:
+    if: github.event_name == 'workflow_dispatch'
+    needs: validate
+    name: Multi-model development analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Fetch current JIB application branch for analysis context
+        run: |
+          git fetch --no-tags origin feature/jib-manager-standalone
+          git worktree add --detach /tmp/jib-context FETCH_HEAD
+
+      - name: Run free-only AI team
+        env:
+          JIB_AI_TEAM_CONTEXT_DIR: /tmp/jib-context
+          JIB_AI_TEAM_BASE_URL: ${{ vars.JIB_AI_TEAM_BASE_URL }}
+          JIB_AI_TEAM_API_KEY: ${{ secrets.JIB_AI_TEAM_API_KEY }}
+          JIB_AI_TEAM_FREE_MODELS_JSON: ${{ vars.JIB_AI_TEAM_FREE_MODELS_JSON }}
+        run: node .github/scripts/jib-ai-team.mjs
+
+      - name: Publish analysis report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jib-ai-team-report
+          path: jib-ai-team-report.md
+          if-no-files-found: ignore
+          retention-days: 7
