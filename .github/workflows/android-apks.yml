@@ -83,7 +83,7 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: jib-${{ matrix.app }}-android-apk
+          name: jib-${{ matrix.app }}-android-apk-${{ github.sha }}
           path: apps/${{ matrix.app }}/build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
           retention-days: 30
