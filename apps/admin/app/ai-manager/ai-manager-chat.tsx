@@ -47,7 +47,7 @@ export default function AiManagerChat() {
       />
       <div className="section-heading">
         <small>{message.length}/6000</small>
-        <button className="primary-button" type="button" disabled={busy || !message.trim()} onClick={send}>
+        <button className="manager-ai-send" type="button" disabled={busy || !message.trim()} onClick={send}>
           {busy ? "جارٍ الاتصال..." : "إرسال إلى المساعد"}
         </button>
       </div>
