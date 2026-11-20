@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 const green = Color(0xFF00843D);
@@ -273,11 +275,158 @@ class CourierHome extends StatefulWidget {
 
 class _CourierHomeState extends State<CourierHome> {
   bool loading = true, active = false;
-  String? error;
+  bool trackingEnabled = false, trackingBusy = false;
+  String? error, trackingMessage;
+  StreamSubscription<Position>? _locationSubscription;
   List<Map<String, dynamic>> orders = [];
 
   @override
   void initState() { super.initState(); load(); }
+
+  @override
+  void dispose() {
+    _locationSubscription?.cancel();
+    super.dispose();
+  }
+
+  String get _consentKey => 'jib_courier_location_consent_${db.auth.currentUser?.id ?? 'unknown'}';
+
+  Future<void> _resumeTrackingIfConsented() async {
+    if (!active || _locationSubscription != null || trackingBusy) return;
+    final preferences = await SharedPreferences.getInstance();
+    if (preferences.getBool(_consentKey) == true && mounted) {
+      await _startLocationTracking(registerConsent: true, silent: true);
+    }
+  }
+
+  Future<bool> _ensureLocationPermission() async {
+    if (!await Geolocator.isLocationServiceEnabled()) {
+      if (mounted) notify('فعّل خدمة الموقع GPS في هاتفك ثم حاول مجدداً.');
+      return false;
+    }
+    var permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
+      if (mounted) {
+        notify(permission == LocationPermission.deniedForever
+            ? 'إذن الموقع مرفوض نهائياً. افتح إعدادات التطبيق واسمح بالموقع.'
+            : 'يلزم السماح بالوصول إلى الموقع لتفعيل التتبع.');
+        if (permission == LocationPermission.deniedForever) {
+          await Geolocator.openAppSettings();
+        }
+      }
+      return false;
+    }
+    return true;
+  }
+
+  Future<void> _requestLocationConsent() async {
+    final accepted = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('موافقتك على مشاركة الموقع'),
+        content: const Text(
+          'يشارك تطبيق JIB موقعك أثناء عملك كمندوب، من تسجيل الدخول إلى تسجيل الخروج، حتى نتمكن من متابعة التوصيلات وحماية سير العمل. '
+          'قد يستمر التتبع عندما تكون واجهة التطبيق في الخلفية أو مغلقة، مع ظهور إشعار دائم على هاتفك. '
+          'تُحفظ نقاط المسار لمدة 90 يوماً ثم تُحذف آلياً. يمكنك إيقاف المشاركة من التطبيق، كما تتوقف عند تسجيل الخروج. '
+          'لن يبدأ التتبع دون موافقتك وإذن Android.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('ليس الآن')),
+          FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('أوافق وأفعّل الموقع')),
+        ],
+      ),
+    );
+    if (accepted == true) await _startLocationTracking(registerConsent: true);
+  }
+
+  Future<void> _startLocationTracking({required bool registerConsent, bool silent = false}) async {
+    if (trackingBusy || _locationSubscription != null) return;
+    setState(() { trackingBusy = true; trackingMessage = null; });
+    try {
+      if (!await _ensureLocationPermission()) return;
+      if (registerConsent) {
+        await db.rpc('set_courier_location_consent', params: {'p_enabled': true});
+        final preferences = await SharedPreferences.getInstance();
+        await preferences.setBool(_consentKey, true);
+      }
+      final LocationSettings settings = defaultTargetPlatform == TargetPlatform.android
+          ? AndroidSettings(
+              accuracy: LocationAccuracy.high,
+              distanceFilter: 25,
+              intervalDuration: const Duration(seconds: 30),
+              foregroundNotificationConfig: const ForegroundNotificationConfig(
+                notificationTitle: 'JIB — مشاركة الموقع نشطة',
+                notificationText: 'موقعك يُشارك أثناء عملك كمندوب. يمكنك إيقاف المشاركة من تطبيق JIB.',
+                notificationChannelName: 'JIB courier location',
+                enableWakeLock: true,
+                setOngoing: true,
+              ),
+            )
+          : const LocationSettings(
+              accuracy: LocationAccuracy.high,
+              distanceFilter: 25,
+            );
+      _locationSubscription = Geolocator.getPositionStream(locationSettings: settings).listen(
+        (position) async {
+          try {
+            await db.rpc('record_courier_location', params: {
+              'p_latitude': position.latitude,
+              'p_longitude': position.longitude,
+              'p_accuracy_m': position.accuracy,
+            });
+            if (mounted && trackingMessage != null) {
+              setState(() => trackingMessage = null);
+            }
+          } catch (e) {
+            if (mounted) setState(() => trackingMessage = 'تعذر إرسال تحديث الموقع. تحقق من الاتصال.');
+          }
+        },
+        onError: (Object e) {
+          _locationSubscription?.cancel();
+          _locationSubscription = null;
+          if (mounted) setState(() {
+            trackingEnabled = false;
+            trackingMessage = 'توقف تحديث الموقع: تحقق من أذونات Android وخدمة GPS.';
+          });
+        },
+      );
+      if (mounted) setState(() {
+        trackingEnabled = true;
+        trackingMessage = 'مشاركة الموقع مفعّلة مع إشعار Android دائم.';
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(() => trackingMessage = silent
+            ? 'تعذر استئناف مشاركة الموقع. افتح التطبيق وتحقق من الإذن والإنترنت.'
+            : 'تعذر تفعيل الموقع: ${e.toString()}');
+      }
+    } finally {
+      if (mounted) setState(() => trackingBusy = false);
+    }
+  }
+
+  Future<void> _stopLocationTracking({bool persistChoice = true}) async {
+    await _locationSubscription?.cancel();
+    _locationSubscription = null;
+    try {
+      await db.rpc('set_courier_location_consent', params: {'p_enabled': false});
+    } catch (_) {}
+    final preferences = await SharedPreferences.getInstance();
+    if (persistChoice) await preferences.setBool(_consentKey, false);
+    if (mounted) setState(() {
+      trackingEnabled = false;
+      trackingMessage = 'تم إيقاف مشاركة الموقع.';
+    });
+  }
+
+  Future<void> _logout() async {
+    await _stopLocationTracking();
+    await db.auth.signOut();
+  }
 
   void notify(String message) {
     if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
@@ -300,6 +449,7 @@ class _CourierHomeState extends State<CourierHome> {
       if (profile == null) throw const AuthException('تعذر إنشاء ملف المندوب.');
       active = profile['is_active'] == true;
       if (active) {
+        await _resumeTrackingIfConsented();
         final rows = await db.rpc('courier_dashboard');
         orders = (rows as List<dynamic>).map((e) => Map<String, dynamic>.from(e as Map)).toList();
         try {
@@ -478,7 +628,7 @@ class _CourierHomeState extends State<CourierHome> {
       ]),
       actions: [
         IconButton(onPressed: load, icon: const Icon(Icons.refresh), tooltip: 'تحديث'),
-        IconButton(onPressed: () => db.auth.signOut(), icon: const Icon(Icons.logout), tooltip: 'تسجيل الخروج'),
+        IconButton(onPressed: _logout, icon: const Icon(Icons.logout), tooltip: 'تسجيل الخروج'),
       ],
     ),
     body: loading
@@ -524,6 +674,40 @@ class _CourierHomeState extends State<CourierHome> {
                   ]),
                 ),
                 const SizedBox(height: 18),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                      Row(children: [
+                        Icon(trackingEnabled ? Icons.location_on : Icons.location_off,
+                            color: trackingEnabled ? green : Colors.orange),
+                        const SizedBox(width: 8),
+                        Expanded(child: Text(
+                          trackingEnabled ? 'مشاركة الموقع مفعّلة' : 'مشاركة الموقع غير مفعّلة',
+                          style: const TextStyle(fontWeight: FontWeight.w900),
+                        )),
+                      ]),
+                      if (trackingMessage != null) Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Text(trackingMessage!, style: const TextStyle(fontSize: 12)),
+                      ),
+                      const SizedBox(height: 8),
+                      if (trackingEnabled)
+                        OutlinedButton.icon(
+                          onPressed: trackingBusy ? null : () => _stopLocationTracking(),
+                          icon: const Icon(Icons.location_disabled),
+                          label: const Text('إيقاف مشاركة الموقع'),
+                        )
+                      else
+                        FilledButton.icon(
+                          onPressed: trackingBusy ? null : _requestLocationConsent,
+                          icon: const Icon(Icons.my_location),
+                          label: Text(trackingBusy ? 'جارٍ التفعيل...' : 'الموافقة وتفعيل مشاركة الموقع'),
+                        ),
+                    ]),
+                  ),
+                ),
+                const SizedBox(height: 14),
                 Text('الطلبات (' + orders.length.toString() + ')', style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900)),
                 const SizedBox(height: 10),
                 if (orders.isEmpty)
