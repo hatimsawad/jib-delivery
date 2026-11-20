@@ -353,7 +353,7 @@ class _CourierHomeState extends State<CourierHome> {
         final preferences = await SharedPreferences.getInstance();
         await preferences.setBool(_consentKey, true);
       }
-      final LocationSettings settings = defaultTargetPlatform == TargetPlatform.android
+      final LocationSettings settings = Platform.isAndroid
           ? AndroidSettings(
               accuracy: LocationAccuracy.high,
               distanceFilter: 25,
