@@ -16,7 +16,7 @@ Widget _merchantProductImage(Object? rawUrl) {
   final fallback = Container(
     width: 58,
     height: 58,
-    decoration: BoxDecoration(color: const Color(0xFFF4EFEB), borderRadius: BorderRadius.circular(15)),
+    decoration: BoxDecoration(color: const Color(0xFFF4F7F4), borderRadius: BorderRadius.circular(15)),
     child: const Icon(Icons.inventory_2_outlined, color: Color(0xFF9A8F87)),
   );
   if (!valid) return fallback;
@@ -70,11 +70,11 @@ class JibMerchantApp extends StatelessWidget {
     title: 'JIB التاجر', debugShowCheckedModeBanner: false,
     theme: ThemeData(
       useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(seedColor: jibRed, primary: jibRed, surface: Colors.white)
+      colorScheme: ColorScheme.fromSeed(seedColor: jibRed, primary: jibRed, surface: Colors.white, tertiary: const Color(0xFF00843D))
           .copyWith(onSurface: const Color(0xFF19191C)),
-      scaffoldBackgroundColor: const Color(0xFFF7F5F2),
+      scaffoldBackgroundColor: const Color(0xFFFFFFFF),
       appBarTheme: const AppBarTheme(
-        backgroundColor: Color(0xFFF7F5F2),
+        backgroundColor: Color(0xFFFFFFFF),
         foregroundColor: Color(0xFF19191C),
         elevation: 0,
         titleTextStyle: TextStyle(color: Color(0xFF19191C), fontSize: 19, fontWeight: FontWeight.w900),
@@ -85,7 +85,7 @@ class JibMerchantApp extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 12),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(22),
-          side: const BorderSide(color: Color(0xFFECE8E3)),
+          side: const BorderSide(color: Color(0xFFE7ECE8)),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
