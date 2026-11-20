@@ -575,12 +575,12 @@ class _CustomerHomeState extends State<CustomerHome> {
               const SizedBox(height: 26),
               const Row(
                 children: [
-                  Expanded(child: Text('علامات JIB التجارية', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900))),
-                  _ServicePill(label: '51 علامة'),
+                  Expanded(child: Text('الأكل والبقالة أولاً', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900))),
+                  _ServicePill(label: 'تركيز JIB'),
                 ],
               ),
               const SizedBox(height: 5),
-              const Text('تعرّف على العلامات الموجودة في دليل JIB. ظهور العلامة لا يعني أن الطلب منها مفتوح حالياً.', style: TextStyle(color: Color(0xFF68736B), fontSize: 11)),
+              const Text('ابدأ بالفطور والمخابز والمطاعم والمشروبات والسوبرماركت، ثم استكشف بقية العلامات. ظهور العلامة لا يعني أن الطلب منها مفتوح حالياً.', style: TextStyle(color: Color(0xFF68736B), fontSize: 11)),
               const SizedBox(height: 12),
               FutureBuilder<List<Map<String, dynamic>>>(
                 future: supabase.from('commercial_brands')
@@ -604,7 +604,22 @@ class _CustomerHomeState extends State<CustomerHome> {
                   final brands = (brandSnapshot.data ?? []).where((brand) {
                     final value = '${brand['name']} ${brand['category']}'.toLowerCase();
                     return value.contains(_search.toLowerCase());
-                  }).toList();
+                  }).toList()
+                    ..sort((a, b) {
+                      const priority = {
+                        'bakery': 0,
+                        'prepared-food': 1,
+                        'beverages': 2,
+                        'grocery': 3,
+                        'fresh-produce': 4,
+                        'meat-seafood': 5,
+                      };
+                      final aRank = priority[a['category']] ?? 6;
+                      final bRank = priority[b['category']] ?? 6;
+                      final rankCompare = aRank.compareTo(bRank);
+                      if (rankCompare != 0) return rankCompare;
+                      return (a['name']?.toString() ?? '').compareTo(b['name']?.toString() ?? '');
+                    });
                   if (brands.isEmpty) {
                     return const Card(child: Padding(
                       padding: EdgeInsets.all(16),
@@ -626,6 +641,7 @@ class _CustomerHomeState extends State<CustomerHome> {
                       final name = brand['name']?.toString() ?? 'علامة تجارية';
                       final category = brand['category']?.toString() ?? '';
                       final categoryLabel = const {
+                        'bakery': 'فطور ومخابز',
                         'prepared-food': 'مطاعم ومأكولات',
                         'beverages': 'مشروبات',
                         'grocery': 'بقالة ومواد غذائية',
