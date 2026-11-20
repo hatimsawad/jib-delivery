@@ -51,11 +51,11 @@ class CourierApp extends StatelessWidget {
     debugShowCheckedModeBanner: false,
     theme: ThemeData(
       useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(seedColor: red, primary: red, surface: Colors.white)
+      colorScheme: ColorScheme.fromSeed(seedColor: red, primary: red, surface: Colors.white, tertiary: const Color(0xFF00843D))
           .copyWith(onSurface: const Color(0xFF19191C)),
-      scaffoldBackgroundColor: const Color(0xFFF7F5F2),
+      scaffoldBackgroundColor: const Color(0xFFFFFFFF),
       appBarTheme: const AppBarTheme(
-        backgroundColor: Color(0xFFF7F5F2),
+        backgroundColor: Color(0xFFFFFFFF),
         foregroundColor: Color(0xFF19191C),
         elevation: 0,
         titleTextStyle: TextStyle(color: Color(0xFF19191C), fontSize: 19, fontWeight: FontWeight.w900),
@@ -66,7 +66,7 @@ class CourierApp extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 12),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(22),
-          side: const BorderSide(color: Color(0xFFECE8E3)),
+          side: const BorderSide(color: Color(0xFFE7ECE8)),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
