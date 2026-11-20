@@ -31,7 +31,7 @@ type ManagerEvent = {
 };
 
 const severityLabels = { info: "معلومة", warning: "تحذير", critical: "حرج" } as const;
-const eventTypeLabels: Record<string, string> = { health_check: "مراقبة النظام", order_status: "تحديث طلب", product_change: "تغيير منتج", store_change: "تغيير متجر", profile_role_change: "تغيير صلاحية", courier_approval: "اعتماد مندوب", health_check_resolution: "حل مشكلة تشغيلية", image_generation_requested: "طلب صورة ذكية", image_generation_ready: "صورة جاهزة للمراجعة", image_generation_failed: "فشل إنشاء صورة", image_generation_reviewed: "مراجعة صورة ذكية" };
+const eventTypeLabels: Record<string, string> = { health_check: "مراقبة النظام", order_status: "تحديث طلب", product_change: "تغيير منتج", store_change: "تغيير متجر", profile_role_change: "تغيير صلاحية", courier_approval: "اعتماد مندوب", health_check_resolution: "حل مشكلة تشغيلية", image_generation_requested: "طلب صورة ذكية", image_generation_ready: "صورة جاهزة للمراجعة", image_generation_failed: "فشل إنشاء صورة", image_generation_reviewed: "مراجعة صورة ذكية", courier_location_disconnected: "انقطاع موقع مندوب" };
 
 const statusLabels = {
   healthy: "سليم",
