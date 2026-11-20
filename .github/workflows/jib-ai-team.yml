@@ -2,7 +2,7 @@ name: JIB AI Development Team
 
 on:
   push:
-    branches: [feature/jib-multi-model-ai-manager]
+    branches: [feature/jib-ai-team-standalone]
   workflow_dispatch:
     inputs:
       scope:
