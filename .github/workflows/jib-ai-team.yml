@@ -57,8 +57,14 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Fetch current JIB application branch for analysis context
+        run: |
+          git fetch --no-tags origin feature/jib-manager-standalone
+          git worktree add --detach /tmp/jib-context FETCH_HEAD
+
       - name: Run free-only AI team
         env:
+          JIB_AI_TEAM_CONTEXT_DIR: /tmp/jib-context
           JIB_AI_TEAM_BASE_URL: ${{ vars.JIB_AI_TEAM_BASE_URL }}
           JIB_AI_TEAM_API_KEY: ${{ secrets.JIB_AI_TEAM_API_KEY }}
           JIB_AI_TEAM_FREE_MODELS_JSON: ${{ vars.JIB_AI_TEAM_FREE_MODELS_JSON }}
