@@ -18,10 +18,14 @@ const contextFilesByScope = {
     "docs/IMPLEMENTATION_STATUS.md",
     "docs/JIB_MANAGER_SPEC.md",
     "docs/SECURITY_REVIEW.md",
+    "docs/JIB_MASTER_EXECUTION_AUDIT.md",
     "apps/customer/lib/main.dart",
     "apps/merchant/lib/main.dart",
     "apps/courier/lib/main.dart",
     "apps/admin/README.md",
+    "apps/admin/app/tracking/page.tsx",
+    "apps/admin/app/ai-manager/page.tsx",
+    "apps/admin/app/api/ai/manager/chat/route.ts",
   ],
   customer: ["docs/PRODUCT_SPEC.md", "docs/ARCHITECTURE.md", "apps/customer/lib/main.dart"],
   merchant: ["docs/PRODUCT_SPEC.md", "docs/ARCHITECTURE.md", "apps/merchant/lib/main.dart"],
@@ -36,7 +40,8 @@ async function loadRepositoryContext(scope) {
   for (const relativePath of files) {
     if (remaining <= 0) break;
     try {
-      const absolutePath = resolve(process.cwd(), relativePath);
+      const contextRoot = process.env.JIB_AI_TEAM_CONTEXT_DIR || process.cwd();
+      const absolutePath = resolve(contextRoot, relativePath);
       const content = await readFile(absolutePath, "utf8");
       const excerpt = content.slice(0, Math.min(12000, remaining));
       sections.push(`### ${relativePath}\n${excerpt}`);
