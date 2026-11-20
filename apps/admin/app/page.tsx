@@ -4,6 +4,15 @@ import { requireAdmin } from "./admin-data";
 
 export const dynamic = "force-dynamic";
 
+type DashboardStore = {
+  id: string; name: string; category: string; onboarding_status: string;
+  is_active: boolean; is_open: boolean; created_at: string;
+};
+type DashboardOrder = {
+  id: string; status: string; total_mad: number; created_at: string;
+  stores: { name: string } | null;
+};
+
 const categoryLabels: Record<string, string> = {
   restaurant: "مطعم", grocery: "بقالة", shop: "متجر",
 };
@@ -31,6 +40,8 @@ export default async function Home() {
     supabase.from("stores").select("id,name,category,onboarding_status,is_active,is_open,created_at").order("created_at", { ascending: false }).limit(8),
   ]);
   const errors = [allOrders,pendingOrders,activeStores,pendingStores,allStores,products,couriers,recentOrders,storeRows].some(x => x.error);
+  const dashboardStores = (storeRows.data ?? []) as DashboardStore[];
+  const dashboardOrders = (recentOrders.data ?? []) as DashboardOrder[];
   const metrics = [
     {label:"المتاجر والمطاعم",value:allStores.count ?? "—",note:"كل الفروع المسجلة",tone:"green"},
     {label:"تنتظر الاعتماد",value:pendingStores.count ?? "—",note:"طلبات انضمام تحتاج مراجعة",tone:"gold"},
@@ -51,18 +62,18 @@ export default async function Home() {
     <section className="manager-columns">
       <div className="manager-section">
         <div className="manager-section-head"><div><p className="eyebrow">الشركاء</p><h2>المطاعم والمتاجر</h2></div><Link href="/stores">عرض الكل ←</Link></div>
-        {storeRows.error ? <p className="error-state">تعذر قراءة قائمة المتاجر.</p> : (storeRows.data ?? []).length === 0 ?
+        {storeRows.error ? <p className="error-state">تعذر قراءة قائمة المتاجر.</p> : dashboardStores.length === 0 ?
           <div className="manager-empty"><strong>لا توجد متاجر مسجلة بعد</strong><p>ستظهر هنا طلبات انضمام المطاعم والمتاجر فور تسجيلها.</p><Link href="/stores">فتح إدارة المتاجر</Link></div> :
-          <div className="manager-store-list">{(storeRows.data ?? []).map((s:any)=><Link href="/stores" className="manager-store-row" key={s.id}>
+          <div className="manager-store-list">{dashboardStores.map((s)=><Link href="/stores" className="manager-store-row" key={s.id}>
             <span className="store-avatar">▣</span><span className="store-main"><strong>{s.name}</strong><small>{categoryLabels[s.category] ?? s.category}</small></span>
             <span className={`store-status ${s.onboarding_status==="approved" && s.is_active ? "is-approved" : "is-pending"}`}>{storeStatus(s.onboarding_status,s.is_active,s.is_open)}</span>
           </Link>)}</div>}
       </div>
       <div className="manager-section">
         <div className="manager-section-head"><div><p className="eyebrow">التشغيل اليومي</p><h2>أحدث الطلبات</h2></div><Link href="/orders">عرض الكل ←</Link></div>
-        {recentOrders.error ? <p className="error-state">تعذر قراءة الطلبات.</p> : (recentOrders.data ?? []).length === 0 ?
+        {recentOrders.error ? <p className="error-state">تعذر قراءة الطلبات.</p> : dashboardOrders.length === 0 ?
           <div className="manager-empty"><strong>لا توجد طلبات بعد</strong><p>ستظهر طلبات الزبائن وحالاتها هنا.</p></div> :
-          <div className="manager-order-list">{(recentOrders.data ?? []).map((o:any)=><Link href="/orders" className="manager-order-row" key={o.id}>
+          <div className="manager-order-list">{dashboardOrders.map((o)=><Link href="/orders" className="manager-order-row" key={o.id}>
             <span className="order-dot"/><span className="order-main"><strong>{o.stores?.name ?? "طلب JIB"}</strong><small>#{String(o.id).slice(0,8)} · {new Date(o.created_at).toLocaleString("ar-MA")}</small></span>
             <span className="order-meta"><b>{o.total_mad} د.م</b><small>{orderStatus[o.status] ?? o.status}</small></span>
           </Link>)}</div>}
