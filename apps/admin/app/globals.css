@@ -225,3 +225,40 @@ body{background:#fff;color:#202124}
 .manager-quick-links strong{font-size:13px}.manager-quick-links span{font-size:11px;color:#69716D}
 @media(max-width:850px){.manager-columns{grid-template-columns:1fr}.manager-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){.shell{padding:14px}.manager-welcome{align-items:flex-start;flex-direction:column}.primary-action{width:100%;text-align:center}.manager-metrics{gap:8px}.manager-metric{padding:14px}.manager-metric b{font-size:27px}.manager-quick-links{grid-template-columns:1fr}.admin-nav{overflow:visible;flex-wrap:wrap}.admin-nav>a,.admin-more>summary{font-size:11px;padding:8px 10px}}
+
+/* JIB Signature manager dashboard refresh */
+.manager-shell{max-width:1320px}
+.manager-welcome-signature{position:relative;overflow:hidden;display:flex;justify-content:space-between;align-items:center;gap:24px;margin:26px 0 22px;padding:32px;border-radius:26px;background:linear-gradient(118deg,#a90f18 0%,#e31e24 58%,#00843d 100%);color:#fff;box-shadow:0 18px 44px #9d18201f}
+.manager-welcome-signature:after{content:"JIB";position:absolute;inset-inline-end:4%;top:-36px;font-size:170px;font-weight:900;letter-spacing:-12px;color:#ffffff12;pointer-events:none}
+.manager-welcome-signature>div,.manager-welcome-actions{position:relative;z-index:1}
+.manager-welcome-signature .eyebrow,.manager-welcome-signature p{color:#fff}
+.manager-welcome-signature h1{font-size:clamp(30px,5vw,52px);margin:7px 0;line-height:1.25}
+.manager-welcome-signature .manager-tagline{font-size:20px;font-weight:800;margin:5px 0 8px}
+.manager-welcome-actions{display:flex;flex-wrap:wrap;gap:10px}
+.manager-welcome-signature .primary-action,.manager-welcome-signature .secondary-action{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;border-radius:13px;padding:12px 17px;font-weight:800;font-size:13px}
+.manager-welcome-signature .primary-action{background:#fff;color:#b9151d}
+.manager-welcome-signature .secondary-action{border:1px solid #ffffff9c;color:#fff;background:#ffffff12}
+.manager-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.manager-metric{background:#fff;border:1px solid var(--line);border-radius:18px;padding:19px;box-shadow:0 7px 22px #17251b08}
+.manager-metric b{font-size:36px;line-height:1.25}
+.metric-red{border-top:4px solid var(--red)}.metric-green{border-top:4px solid var(--green)}.metric-gold{border-top:4px solid #c99a36}
+.manager-catalog-strip{display:flex;justify-content:space-between;align-items:center;gap:18px;margin:16px 0;padding:17px 20px;background:#fff;border:1px solid #e8e8e3;border-inline-start:5px solid var(--green);border-radius:16px}
+.manager-catalog-strip>div{display:flex;align-items:center;gap:13px}.manager-catalog-strip strong,.manager-catalog-strip small{display:block}.manager-catalog-strip small{color:var(--muted);font-size:12px;margin-top:3px}.manager-catalog-strip>a{color:var(--green);font-weight:800;text-decoration:none;white-space:nowrap}
+.manager-catalog-icon{display:grid;place-items:center;width:42px;height:42px;border-radius:13px;background:#e8f5ed;color:var(--green);font-size:22px}
+.manager-primary-columns{grid-template-columns:1.1fr 1fr;gap:16px}
+.manager-section{min-width:0;background:#fff;border:1px solid var(--line);border-radius:20px;padding:20px;box-shadow:0 7px 22px #17251b08}
+.manager-section-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px}.manager-section-head h2{margin:2px 0;font-size:21px}.manager-section-head>a{color:var(--red);font-weight:800;text-decoration:none;font-size:12px}
+.manager-store-list,.manager-order-list{display:grid;gap:7px}
+.manager-store-row,.manager-order-row{display:flex;align-items:center;gap:11px;padding:12px;border:1px solid #f0f0ed;border-radius:13px;text-decoration:none;color:inherit;min-width:0}
+.manager-store-row:hover,.manager-order-row:hover{border-color:#b9dbc6;background:#fbfefc}
+.store-avatar{display:grid;place-items:center;flex:0 0 38px;height:38px;border-radius:12px;background:#fff0f0;color:var(--red);font-size:18px}
+.store-main,.order-main{display:grid;gap:3px;min-width:0;flex:1}.store-main strong,.order-main strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.store-main small,.order-main small,.order-meta small{font-size:11px;color:var(--muted)}
+.store-status{font-size:10px;font-weight:800;border-radius:20px;padding:6px 9px;white-space:nowrap;background:#fff5e5;color:#946200}
+.store-status.is-approved{background:#e8f5ed;color:var(--green)}
+.order-dot{flex:0 0 9px;width:9px;height:9px;border-radius:50%;background:var(--red)}
+.order-meta{display:grid;gap:3px;text-align:left;white-space:nowrap}.order-meta b{font-size:13px}
+.manager-empty{padding:30px 18px;text-align:center;border:1px dashed #d8ded8;border-radius:14px;background:#fbfcfa}.manager-empty strong{font-size:15px}.manager-empty p{font-size:12px;color:var(--muted);line-height:1.9}.manager-empty a{color:var(--green);font-size:12px;font-weight:800}
+.manager-secondary-tools{margin-top:16px}
+.manager-secondary-tools a{border-radius:14px}
+@media(max-width:850px){.manager-primary-columns{grid-template-columns:1fr}.manager-welcome-signature{align-items:flex-start;flex-direction:column}.manager-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){.manager-welcome-signature{padding:23px 19px}.manager-welcome-signature h1{font-size:31px}.manager-catalog-strip{align-items:flex-start;flex-direction:column}.manager-section{padding:14px}.store-status{max-width:112px;white-space:normal;text-align:center}.manager-metric{padding:14px}.manager-metric b{font-size:29px}}
