@@ -217,7 +217,7 @@ class _MerchantLoginState extends State<MerchantLogin> {
               gradient: const LinearGradient(
                 begin: Alignment.topRight,
                 end: Alignment.bottomLeft,
-                colors: [Color(0xFFEF3A40), Color(0xFF9F1118)],
+                colors: [Color(0xFFE31E24), Color(0xFFB9161D)],
               ),
               borderRadius: BorderRadius.circular(26),
               boxShadow: const [BoxShadow(color: Color(0x26E31E24), blurRadius: 24, offset: Offset(0, 10))],
@@ -227,7 +227,7 @@ class _MerchantLoginState extends State<MerchantLogin> {
           ),
           const SizedBox(height: 18),
           const Text('JIB · فضاء التاجر', textAlign: TextAlign.center, style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900)),
-          const Text('JIB SIGNATURE  /  BUSINESS', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF82766F), fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.1)),
+          const Text('Jib وتكايس على jib', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF82766F), fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.1)),
           Text(creating ? 'أنشئ حساب التاجر ومتجرك على JIB' : 'سجّل الدخول لإدارة متجرك وطلباتك', textAlign: TextAlign.center, style: const TextStyle(color: Colors.black54)),
           const SizedBox(height: 20),
           if (creating) ...[
