@@ -65,7 +65,10 @@ function loadModels(raw) {
     /^[a-zA-Z0-9._:/-]{1,120}$/.test(item.model) &&
     item.free === true
   ).slice(0, 4);
-  if (!valid.length) throw new Error("No explicitly approved free models are configured");
+  const uniqueRoles = new Set(valid.map((item) => item.role));
+  if (valid.length !== 4 || uniqueRoles.size !== 4) {
+    throw new Error("Configure exactly one explicitly approved free model for each role: architect, implementer, security, qa");
+  }
   return valid;
 }
 
