@@ -121,3 +121,39 @@ Read-only checks on 2026-11-20 confirmed:
 - The latest GPS/AI code changes triggered fresh CI and APK workflows. Treat these as pending until the newest run for the final commit is green.
 - A READY APK from an earlier commit does not include the GPS implementation. Use only artifacts from the final successful run after GPS changes.
 - Device testing, approved test branch/order E2E, live provider configuration, notification provider setup, service-zone pricing, and production release review remain required.
+
+
+## Verified correction and execution update — 2026-11-20 (latest GitHub/Supabase checks)
+
+This section supersedes stale status statements above where they conflict.
+
+### GitHub failures reviewed
+- Historical CI run `44765591064` on the superseded AI-team branch/PR #5 failed for two concrete reasons: ESLint 9 could not find an `eslint.config.*` file in that merge checkout, and Merchant Flutter had an undefined `generatedImage` reference at `apps/merchant/lib/main.dart:514`.
+- PR #5 is closed, unmerged, and superseded. PR #6 is the clean standalone AI-team proposal based directly on `main`.
+- The current JIB Manager branch's latest CI run `44766029532` passed all four jobs: admin, courier, merchant, and customer.
+- A newer APK workflow run `44766029819` passed analyze/tests for all three apps; release APK build and upload were still in progress at the last poll. No APK download artifact was yet listed for that run.
+- The earlier APK run `44765591105` had a Merchant failure due to the same obsolete `generatedImage` reference; do not use artifacts from that run.
+- The AI-team runner validation run `44765747010` succeeded. Its multi-model analysis job was skipped because the event was a push, not a manual dispatch. This does not prove any model provider is connected.
+
+### Courier tracking — database state verified
+- The current courier app includes explicit consent, Geolocator Android foreground-location notification, authenticated location upload RPCs, a visible stop-sharing control, and stop-on-logout behavior.
+- Supabase confirms migrations `20261120153458_add_consent_based_courier_location_tracking` and `20261120154227_auto_assign_nearest_consenting_courier` are applied.
+- Supabase confirms three active cron jobs: stale-location check every minute; 90-day history pruning daily at 03:17 UTC; and unassigned-order dispatch retry every minute.
+- The stale-location function flags a last location older than 60 seconds. Because it is cron-driven every minute, the incident may become visible up to one cron interval after the 60-second threshold.
+- The courier APK workflow generates Android project files at build time. Its permission step has now been corrected so only the courier app receives coarse/fine location, foreground-service, location foreground-service, and notification permissions. Customer and merchant receive Internet permission only.
+- The revised Android permission workflow and updated courier README were committed after run `44766029819`; therefore a fresh APK run is required before treating the permission-scoping change as validated.
+- Real-device testing remains mandatory for background behavior, persistent notification, force-stop, battery restrictions, permission revocation, and network loss/recovery.
+
+### Independent GitHub AI team
+- PR #6 is open and Draft, with only four files: the workflow, runner script, setup guide, and architecture document. It is separate from JIB Manager PR #4.
+- Latest validation succeeded, but the four-model execution remains untested. GitHub Actions values `JIB_AI_TEAM_BASE_URL`, `JIB_AI_TEAM_API_KEY`, and `JIB_AI_TEAM_FREE_MODELS_JSON` are not verified as configured. The API key must be added only as a GitHub Actions secret.
+- The workflow is read-only and requires four distinct explicitly free model entries. Do not claim FreeLLMAPI or another provider is live until a successful manual run returns four responses and an artifact.
+
+### Remaining launch blockers
+- All three APK release artifacts from the final post-permission-change commit must finish and be checked; physical installation is still unverified.
+- Authenticated JIB Manager preview smoke tests and a full customer → merchant → courier E2E order remain pending. The live database has no approved/open orderable store; do not activate the pending store without owner approval.
+- Rabat delivery zones/pricing remain unapproved; checkout still uses the temporary 15 MAD fee.
+- Notification delivery remains disabled pending a verified no-cost provider and owner-approved configuration.
+- FreeLLMAPI/GitHub AI model credentials are not configured or tested.
+- Supabase leaked-password protection and adversarial RPC authorization tests remain open.
+- No merge, production deployment, billing activation, or paid provider activation is authorized by this audit.
