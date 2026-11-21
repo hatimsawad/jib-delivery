@@ -236,8 +236,8 @@ class _CustomerHomeState extends State<CustomerHome> {
           return Card(elevation:0,color:selected?const Color(0xFFE7F0E8):Colors.white,child:ListTile(
             onTap:()=>setState(()=>_selectedBrand=selected?null:b['id'] as String),
             leading:CircleAvatar(backgroundColor:const Color(0xFF145A3A),child:logo==null||logo.isEmpty
-              ?Text((b['name'] as String).characters.first.toUpperCase(),style:const TextStyle(color:Colors.white,fontWeight:FontWeight.w900))
-              :Image.network(logo,width:34,height:34,errorBuilder:(_,_,_)=>Text((b['name'] as String).characters.first.toUpperCase(),style:const TextStyle(color:Colors.white)))),
+              ?Text((b['name'] as String).substring(0,1).toUpperCase(),style:const TextStyle(color:Colors.white,fontWeight:FontWeight.w900))
+              :Image.network(logo,width:34,height:34,errorBuilder:(_,_,_)=>Text((b['name'] as String).substring(0,1).toUpperCase(),style:const TextStyle(color:Colors.white)))),
             title:Text(b['name'] as String,style:const TextStyle(fontWeight:FontWeight.bold)),
             subtitle:Text((b['category']??'') as String),
             trailing:Icon(selected?Icons.check_circle:Icons.chevron_left,color:const Color(0xFF145A3A)),
