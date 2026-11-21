@@ -1,37 +1,43 @@
 # JIB — جيب
 
-جيب · كلشي قريب ليك
+**جيب · كلشي قريب ليك**
 
-منصة توصيل متعددة الفئات تنطلق من الرباط، المغرب، وتجمع الزبائن والمتاجر والمطاعم والسائقين.
+منصة توصيل متعددة الفئات تنطلق من الرباط، المغرب، وتجمع الزبائن والمتاجر والمطاعم والمندوبين.
 
 ## مكونات المشروع
-- apps/customer — تطبيق الزبون
-- apps/courier — تطبيق السائق
-- apps/merchant — تطبيق التاجر
-- apps/admin — لوحة الإدارة
-- backend — خدمات الخادم وواجهات API
-- supabase — قاعدة البيانات وسياسات الوصول
-- docs — مواصفات المشروع وخطة التنفيذ
 
-## الهوية البصرية
-- الأحمر: #E31E24
-- الأخضر: #00843D
-- الأبيض والأسود لونان مساعدان
+- `apps/customer`: تطبيق الزبون (Flutter).
+- `apps/merchant`: تطبيق التاجر (Flutter).
+- `apps/courier`: تطبيق المندوب (Flutter).
+- `apps/admin`: لوحة JIB Manager (Next.js).
+- `supabase`: PostgreSQL وAuth وRLS وStorage وEdge Functions.
+- `docs`: مواصفات المنتج والبنية وخطة التنفيذ وحالة التحقق.
 
-## نطاق النسخة الأولى
-إطلاق تجريبي في الرباط، مع المطاعم والبقالة والمتاجر المحلية. يبدأ الدفع نقداً عند التسليم، وتضاف وسائل الدفع الإلكتروني بعد التعاقد والاختبار.
+## الهوية
 
-## حالة المشروع
-هذا المستودع هو نقطة الانطلاق. وجود الملفات والوثائق لا يعني أن التطبيق منشور أو جاهز للإنتاج.
+- الأحمر: `#E31E24`
+- الأخضر: `#00843D`
+- الأبيض والفحمي ألوان مساعدة.
+- الواجهة تدعم RTL وتستهدف العربية والفرنسية والإنجليزية؛ لا تزال الترجمة الشاملة تحتاج استكمالاً واختباراً.
 
-راجع docs/PRODUCT_SPEC.md و docs/ARCHITECTURE.md و docs/ROADMAP.md.
+## الوضع الهندسي
 
+- قاعدة البيانات الأساسية والتسجيل والأدوار وحماية RLS وإجراءات الطلب والتاجر والمندوب موجودة.
+- لوحة JIB Manager تشمل لوحة تشغيل وإدارة ومراقبة صحّة دورية وسجل أحداث واستوديو صور.
+- مسار توليد الصور يستخدم Cloudflare Workers AI مباشرة، ويحفظ الصور كمسودات تتطلب مراجعة بشرية قبل اعتمادها.
+- التطبيقات الثلاثة لديها مسارات Flutter متصلة بالخدمات الأساسية، وتُفحص عبر GitHub Actions.
+- GitHub CI وفحوصات Flutter والبناء الإداري اجتازت آخر تشغيل مكتمل موثق؛ راجع حالة أحدث تشغيل قبل استعمال أي APK.
 
-## Application workspaces
+## سياسة التكلفة
 
-- `apps/customer`: Flutter customer app starter (Arabic RTL home/discovery screen).
-- `apps/courier`: Flutter courier app starter.
-- `apps/merchant`: Flutter merchant app starter.
-- `apps/admin`: Next.js Arabic RTL operations dashboard starter.
+المشروع مصمم للاستفادة من الخطط والحصص المجانية فقط. لا تُضف بطاقة أو ترقِّ أي خدمة أو تفعّل فوترة مدفوعة دون موافقة صريحة. حصة Cloudflare Workers AI المجانية مشتركة على مستوى الحساب (10,000 Neurons يومياً على Workers Free)، وليست عدداً ثابتاً من الصور. يتوقف التوليد عند بلوغ الحصة. حدود Supabase وVercel/Cloudflare تخضع لشروط كل مزود وخطة الحساب.
 
-The mobile screens currently use placeholder/sample data. Authentication, live backend integration, payments, maps, notifications and production builds remain pending. See [implementation status](docs/IMPLEMENTATION_STATUS.md).
+## الإطلاق
+
+هذه النسخة **ليست جاهزة للإطلاق التجاري بعد**. يجب أولاً اعتماد مناطق وأسعار التوصيل في الرباط، اختبار رحلة طلب كاملة بين الأجهزة، تفعيل واختبار إشعارات التطبيق، إعداد الخرائط والتتبع، إكمال مراجعة الصلاحيات وإعدادات Auth، التحقق من توقيع APK/AAB، واختيار استضافة تسمح بالاستخدام التجاري دون خرق شروط الخطة المجانية الحالية. Vercel Hobby مخصص للاستخدام الشخصي وغير التجاري؛ يجري تقييم ترحيل JIB Manager إلى Cloudflare Workers قبل توجيه الإنتاج.
+
+راجع:
+- `docs/PRODUCT_SPEC.md`
+- `docs/ARCHITECTURE.md`
+- `docs/ROADMAP.md`
+- `docs/IMPLEMENTATION_STATUS.md`

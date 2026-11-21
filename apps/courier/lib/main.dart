@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 const green = Color(0xFF00843D);
@@ -49,11 +51,11 @@ class CourierApp extends StatelessWidget {
     debugShowCheckedModeBanner: false,
     theme: ThemeData(
       useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(seedColor: red, primary: red, surface: Colors.white)
+      colorScheme: ColorScheme.fromSeed(seedColor: red, primary: red, surface: Colors.white, tertiary: const Color(0xFF00843D))
           .copyWith(onSurface: const Color(0xFF19191C)),
-      scaffoldBackgroundColor: const Color(0xFFF7F5F2),
+      scaffoldBackgroundColor: const Color(0xFFFFFFFF),
       appBarTheme: const AppBarTheme(
-        backgroundColor: Color(0xFFF7F5F2),
+        backgroundColor: Color(0xFFFFFFFF),
         foregroundColor: Color(0xFF19191C),
         elevation: 0,
         titleTextStyle: TextStyle(color: Color(0xFF19191C), fontSize: 19, fontWeight: FontWeight.w900),
@@ -64,7 +66,7 @@ class CourierApp extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 12),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(22),
-          side: const BorderSide(color: Color(0xFFECE8E3)),
+          side: const BorderSide(color: Color(0xFFE7ECE8)),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
@@ -212,7 +214,7 @@ class _CourierLoginState extends State<CourierLogin> {
               gradient: const LinearGradient(
                 begin: Alignment.topRight,
                 end: Alignment.bottomLeft,
-                colors: [Color(0xFFEF3A40), Color(0xFF9F1118)],
+                colors: [Color(0xFFE31E24), Color(0xFFB9161D)],
               ),
               borderRadius: BorderRadius.circular(26),
               boxShadow: const [BoxShadow(color: Color(0x26E31E24), blurRadius: 24, offset: Offset(0, 10))],
@@ -222,7 +224,7 @@ class _CourierLoginState extends State<CourierLogin> {
           ),
           const SizedBox(height: 18),
           const Text('جيب JIB · المندوب', textAlign: TextAlign.center, style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900)),
-          const Text('JIB SIGNATURE  /  COURIER', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF82766F), fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.1)),
+          const Text('Jib وتكايس على jib', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF82766F), fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.1)),
           const SizedBox(height: 6),
           const Text('توصيلاتك بوضوح، خطوة بخطوة', textAlign: TextAlign.center),
           const SizedBox(height: 24),
@@ -273,11 +275,158 @@ class CourierHome extends StatefulWidget {
 
 class _CourierHomeState extends State<CourierHome> {
   bool loading = true, active = false;
-  String? error;
+  bool trackingEnabled = false, trackingBusy = false;
+  String? error, trackingMessage;
+  StreamSubscription<Position>? _locationSubscription;
   List<Map<String, dynamic>> orders = [];
 
   @override
   void initState() { super.initState(); load(); }
+
+  @override
+  void dispose() {
+    _locationSubscription?.cancel();
+    super.dispose();
+  }
+
+  String get _consentKey => 'jib_courier_location_consent_${db.auth.currentUser?.id ?? 'unknown'}';
+
+  Future<void> _resumeTrackingIfConsented() async {
+    if (!active || _locationSubscription != null || trackingBusy) return;
+    final preferences = await SharedPreferences.getInstance();
+    if (preferences.getBool(_consentKey) == true && mounted) {
+      await _startLocationTracking(registerConsent: true, silent: true);
+    }
+  }
+
+  Future<bool> _ensureLocationPermission() async {
+    if (!await Geolocator.isLocationServiceEnabled()) {
+      if (mounted) notify('فعّل خدمة الموقع GPS في هاتفك ثم حاول مجدداً.');
+      return false;
+    }
+    var permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
+      if (mounted) {
+        notify(permission == LocationPermission.deniedForever
+            ? 'إذن الموقع مرفوض نهائياً. افتح إعدادات التطبيق واسمح بالموقع.'
+            : 'يلزم السماح بالوصول إلى الموقع لتفعيل التتبع.');
+        if (permission == LocationPermission.deniedForever) {
+          await Geolocator.openAppSettings();
+        }
+      }
+      return false;
+    }
+    return true;
+  }
+
+  Future<void> _requestLocationConsent() async {
+    final accepted = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('موافقتك على مشاركة الموقع'),
+        content: const Text(
+          'يشارك تطبيق JIB موقعك أثناء عملك كمندوب، من تسجيل الدخول إلى تسجيل الخروج، حتى نتمكن من متابعة التوصيلات وحماية سير العمل. '
+          'قد يستمر التتبع عندما تكون واجهة التطبيق في الخلفية أو مغلقة، مع ظهور إشعار دائم على هاتفك. '
+          'تُحفظ نقاط المسار لمدة 90 يوماً ثم تُحذف آلياً. يمكنك إيقاف المشاركة من التطبيق، كما تتوقف عند تسجيل الخروج. '
+          'لن يبدأ التتبع دون موافقتك وإذن Android.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('ليس الآن')),
+          FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('أوافق وأفعّل الموقع')),
+        ],
+      ),
+    );
+    if (accepted == true) await _startLocationTracking(registerConsent: true);
+  }
+
+  Future<void> _startLocationTracking({required bool registerConsent, bool silent = false}) async {
+    if (trackingBusy || _locationSubscription != null) return;
+    setState(() { trackingBusy = true; trackingMessage = null; });
+    try {
+      if (!await _ensureLocationPermission()) return;
+      if (registerConsent) {
+        await db.rpc('set_courier_location_consent', params: {'p_enabled': true});
+        final preferences = await SharedPreferences.getInstance();
+        await preferences.setBool(_consentKey, true);
+      }
+      final LocationSettings settings = Platform.isAndroid
+          ? AndroidSettings(
+              accuracy: LocationAccuracy.high,
+              distanceFilter: 25,
+              intervalDuration: const Duration(seconds: 30),
+              foregroundNotificationConfig: const ForegroundNotificationConfig(
+                notificationTitle: 'JIB — مشاركة الموقع نشطة',
+                notificationText: 'موقعك يُشارك أثناء عملك كمندوب. يمكنك إيقاف المشاركة من تطبيق JIB.',
+                notificationChannelName: 'JIB courier location',
+                enableWakeLock: true,
+                setOngoing: true,
+              ),
+            )
+          : const LocationSettings(
+              accuracy: LocationAccuracy.high,
+              distanceFilter: 25,
+            );
+      _locationSubscription = Geolocator.getPositionStream(locationSettings: settings).listen(
+        (position) async {
+          try {
+            await db.rpc('record_courier_location', params: {
+              'p_latitude': position.latitude,
+              'p_longitude': position.longitude,
+              'p_accuracy_m': position.accuracy,
+            });
+            if (mounted && trackingMessage != null) {
+              setState(() => trackingMessage = null);
+            }
+          } catch (e) {
+            if (mounted) setState(() => trackingMessage = 'تعذر إرسال تحديث الموقع. تحقق من الاتصال.');
+          }
+        },
+        onError: (Object e) {
+          _locationSubscription?.cancel();
+          _locationSubscription = null;
+          if (mounted) setState(() {
+            trackingEnabled = false;
+            trackingMessage = 'توقف تحديث الموقع: تحقق من أذونات Android وخدمة GPS.';
+          });
+        },
+      );
+      if (mounted) setState(() {
+        trackingEnabled = true;
+        trackingMessage = 'مشاركة الموقع مفعّلة مع إشعار Android دائم.';
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(() => trackingMessage = silent
+            ? 'تعذر استئناف مشاركة الموقع. افتح التطبيق وتحقق من الإذن والإنترنت.'
+            : 'تعذر تفعيل الموقع: ${e.toString()}');
+      }
+    } finally {
+      if (mounted) setState(() => trackingBusy = false);
+    }
+  }
+
+  Future<void> _stopLocationTracking({bool persistChoice = true}) async {
+    await _locationSubscription?.cancel();
+    _locationSubscription = null;
+    try {
+      await db.rpc('set_courier_location_consent', params: {'p_enabled': false});
+    } catch (_) {}
+    final preferences = await SharedPreferences.getInstance();
+    if (persistChoice) await preferences.setBool(_consentKey, false);
+    if (mounted) setState(() {
+      trackingEnabled = false;
+      trackingMessage = 'تم إيقاف مشاركة الموقع.';
+    });
+  }
+
+  Future<void> _logout() async {
+    await _stopLocationTracking();
+    await db.auth.signOut();
+  }
 
   void notify(String message) {
     if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
@@ -300,8 +449,22 @@ class _CourierHomeState extends State<CourierHome> {
       if (profile == null) throw const AuthException('تعذر إنشاء ملف المندوب.');
       active = profile['is_active'] == true;
       if (active) {
+        await _resumeTrackingIfConsented();
         final rows = await db.rpc('courier_dashboard');
         orders = (rows as List<dynamic>).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+        try {
+          final rawTimelines = await db.rpc('jib_order_timeline');
+          final timelines = <String, Map<String, dynamic>>{};
+          for (final raw in rawTimelines as List<dynamic>) {
+            final item = Map<String, dynamic>.from(raw as Map);
+            timelines[item['order_id'].toString()] = item;
+          }
+          for (final order in orders) {
+            order['timeline'] = timelines[order['order_id'].toString()];
+          }
+        } catch (_) {
+          // Courier actions remain available if the optional timeline query is unavailable.
+        }
       } else {
         orders = [];
       }
@@ -344,10 +507,74 @@ class _CourierHomeState extends State<CourierHome> {
     }
   }
 
+  String _courierTime(dynamic raw) {
+    if (raw == null) return '—';
+    final value = DateTime.parse(raw.toString()).toLocal();
+    return '${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}';
+  }
+
+  String _courierDuration(dynamic raw) {
+    if (raw == null) return '—';
+    final seconds = (raw as num).toInt();
+    if (seconds <= 0) return 'اكتمل';
+    final minutes = (seconds / 60).ceil();
+    if (minutes < 60) return '$minutes دقيقة';
+    final hours = minutes ~/ 60;
+    final remainder = minutes % 60;
+    return remainder == 0 ? '$hours ساعة' : '$hours س و$remainder د';
+  }
+
+  Widget _courierTimeline(Map<String, dynamic> timeline) {
+    const stages = <(String, String)>[
+      ('courier_assigned_at', 'قبول التوصيلة'),
+      ('picked_up_at', 'استلام الطلب من المتجر'),
+      ('delivering_at', 'بدء الطريق'),
+      ('delivered_at', 'تأكيد التسليم'),
+    ];
+    final completed = stages.where((stage) => timeline[stage.$1] != null).toList();
+    if (completed.isEmpty) return const SizedBox.shrink();
+    return Container(
+      margin: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: const Color(0xFFF1F8F4), borderRadius: BorderRadius.circular(12)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('توقيت التوصيلة', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12)),
+          const SizedBox(height: 7),
+          ...completed.map((stage) => Padding(
+            padding: const EdgeInsets.only(bottom: 5),
+            child: Row(
+              children: [
+                Expanded(child: Text(stage.$2, style: const TextStyle(fontSize: 11, color: Color(0xFF6F7D74)))),
+                Text(_courierTime(timeline[stage.$1]), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
+              ],
+            ),
+          )),
+          const Divider(height: 12),
+          Row(
+            children: [
+              const Expanded(child: Text('الوقت المنقضي', style: TextStyle(fontSize: 11, color: Color(0xFF6F7D74)))),
+              Text(_courierDuration(timeline['elapsed_seconds']), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
+            ],
+          ),
+          const SizedBox(height: 5),
+          Row(
+            children: [
+              const Expanded(child: Text('المتبقي المتوقع', style: TextStyle(fontSize: 11, color: Color(0xFF6F7D74)))),
+              Text(_courierDuration(timeline['expected_remaining_seconds']), style: const TextStyle(fontSize: 11, color: green, fontWeight: FontWeight.w900)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget orderCard(Map<String, dynamic> order) {
     final id = order['order_id'].toString();
     final status = order['status'].toString();
     final mine = order['delivery_address'] != null;
+    final timeline = order['timeline'] as Map<String, dynamic>?;
     Widget? action;
     if (status == 'ready_for_pickup' && !mine) {
       action = FilledButton(onPressed: () => claim(id), child: const Text('استلام الطلب'));
@@ -377,6 +604,7 @@ class _CourierHomeState extends State<CourierHome> {
             Padding(padding: const EdgeInsets.only(top: 7), child: Text('عنوان الزبون: ' + order['delivery_address'].toString())),
           if (mine && (order['customer_note'] ?? '').toString().trim().isNotEmpty)
             Padding(padding: const EdgeInsets.only(top: 7), child: Text('ملاحظة الزبون: ' + order['customer_note'].toString())),
+          if (mine && timeline != null) _courierTimeline(timeline),
           if (action != null) ...[
             const SizedBox(height: 12),
             SizedBox(width: double.infinity, child: action),
@@ -400,7 +628,7 @@ class _CourierHomeState extends State<CourierHome> {
       ]),
       actions: [
         IconButton(onPressed: load, icon: const Icon(Icons.refresh), tooltip: 'تحديث'),
-        IconButton(onPressed: () => db.auth.signOut(), icon: const Icon(Icons.logout), tooltip: 'تسجيل الخروج'),
+        IconButton(onPressed: _logout, icon: const Icon(Icons.logout), tooltip: 'تسجيل الخروج'),
       ],
     ),
     body: loading
@@ -446,6 +674,40 @@ class _CourierHomeState extends State<CourierHome> {
                   ]),
                 ),
                 const SizedBox(height: 18),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                      Row(children: [
+                        Icon(trackingEnabled ? Icons.location_on : Icons.location_off,
+                            color: trackingEnabled ? green : Colors.orange),
+                        const SizedBox(width: 8),
+                        Expanded(child: Text(
+                          trackingEnabled ? 'مشاركة الموقع مفعّلة' : 'مشاركة الموقع غير مفعّلة',
+                          style: const TextStyle(fontWeight: FontWeight.w900),
+                        )),
+                      ]),
+                      if (trackingMessage != null) Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Text(trackingMessage!, style: const TextStyle(fontSize: 12)),
+                      ),
+                      const SizedBox(height: 8),
+                      if (trackingEnabled)
+                        OutlinedButton.icon(
+                          onPressed: trackingBusy ? null : () => _stopLocationTracking(),
+                          icon: const Icon(Icons.location_disabled),
+                          label: const Text('إيقاف مشاركة الموقع'),
+                        )
+                      else
+                        FilledButton.icon(
+                          onPressed: trackingBusy ? null : _requestLocationConsent,
+                          icon: const Icon(Icons.my_location),
+                          label: Text(trackingBusy ? 'جارٍ التفعيل...' : 'الموافقة وتفعيل مشاركة الموقع'),
+                        ),
+                    ]),
+                  ),
+                ),
+                const SizedBox(height: 14),
                 Text('الطلبات (' + orders.length.toString() + ')', style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900)),
                 const SizedBox(height: 10),
                 if (orders.isEmpty)

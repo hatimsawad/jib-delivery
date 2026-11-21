@@ -89,6 +89,236 @@ export type Database = {
           },
         ]
       }
+      jib_ai_manager_settings: {
+        Row: {
+          created_at: string
+          id: number
+          notification_call_mode: string
+          notification_channels: string[]
+          notification_email: string
+          notification_phone: string
+          notification_phone_e164: string
+          notification_voice_languages: string[]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          notification_call_mode?: string
+          notification_channels?: string[]
+          notification_email: string
+          notification_phone: string
+          notification_phone_e164: string
+          notification_voice_languages?: string[]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          notification_call_mode?: string
+          notification_channels?: string[]
+          notification_email?: string
+          notification_phone?: string
+          notification_phone_e164?: string
+          notification_voice_languages?: string[]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      jib_ai_manager_health_checks: {
+        Row: {
+          checked_at: string
+          duration_ms: number
+          id: string
+          issues: Json
+          metrics: Json
+          status: string
+          website_status: number | null
+        }
+        Insert: {
+          checked_at?: string
+          duration_ms?: number
+          id?: string
+          issues?: Json
+          metrics?: Json
+          status: string
+          website_status?: number | null
+        }
+        Update: {
+          checked_at?: string
+          duration_ms?: number
+          id?: string
+          issues?: Json
+          metrics?: Json
+          status?: string
+          website_status?: number | null
+        }
+        Relationships: []
+      }
+      jib_ai_manager_events: {
+        Row: {
+          details: Json
+          event_type: string
+          fingerprint: string
+          first_seen_at: string
+          id: string
+          last_seen_at: string
+          message: string
+          occurrence_count: number
+          resolved_at: string | null
+          severity: string
+          status: string
+          title: string
+        }
+        Insert: {
+          details?: Json
+          event_type: string
+          fingerprint: string
+          first_seen_at?: string
+          id?: string
+          last_seen_at?: string
+          message: string
+          occurrence_count?: number
+          resolved_at?: string | null
+          severity: string
+          status?: string
+          title: string
+        }
+        Update: {
+          details?: Json
+          event_type?: string
+          fingerprint?: string
+          first_seen_at?: string
+          id?: string
+          last_seen_at?: string
+          message?: string
+          occurrence_count?: number
+          resolved_at?: string | null
+          severity?: string
+          status?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      jib_ai_manager_image_jobs: {
+        Row: {
+          created_at: string
+          description: string
+          error_message: string | null
+          estimated_cost_usd: number | null
+          generated_image_url: string | null
+          id: string
+          is_ai_generated: boolean
+          model: string | null
+          product_id: string | null
+          request_type: string
+          requested_by: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          storage_bucket: string | null
+          storage_path: string | null
+          store_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          error_message?: string | null
+          estimated_cost_usd?: number | null
+          generated_image_url?: string | null
+          id?: string
+          is_ai_generated?: boolean
+          model?: string | null
+          product_id?: string | null
+          request_type: string
+          requested_by: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          storage_bucket?: string | null
+          storage_path?: string | null
+          store_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          error_message?: string | null
+          estimated_cost_usd?: number | null
+          generated_image_url?: string | null
+          id?: string
+          is_ai_generated?: boolean
+          model?: string | null
+          product_id?: string | null
+          request_type?: string
+          requested_by?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          storage_bucket?: string | null
+          storage_path?: string | null
+          store_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      jib_ai_manager_notification_outbox: {
+        Row: {
+          attempts: number
+          blocked_reason: string | null
+          channel: string
+          created_at: string
+          event_id: string
+          id: string
+          next_attempt_at: string | null
+          payload: Json
+          provider_message_id: string | null
+          recipient: string | null
+          sent_at: string | null
+          status: string
+        }
+        Insert: {
+          attempts?: number
+          blocked_reason?: string | null
+          channel: string
+          created_at?: string
+          event_id: string
+          id?: string
+          next_attempt_at?: string | null
+          payload?: Json
+          provider_message_id?: string | null
+          recipient?: string | null
+          sent_at?: string | null
+          status?: string
+        }
+        Update: {
+          attempts?: number
+          blocked_reason?: string | null
+          channel?: string
+          created_at?: string
+          event_id?: string
+          id?: string
+          next_attempt_at?: string | null
+          payload?: Json
+          provider_message_id?: string | null
+          recipient?: string | null
+          sent_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jib_ai_manager_notification_outbox_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "jib_ai_manager_events"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       order_events: {
         Row: {
           actor_id: string | null
@@ -185,6 +415,10 @@ export type Database = {
           subtotal_mad: number
           total_mad: number
           updated_at: string
+          fulfillment_mode_snapshot: string
+          loyalty_mode_snapshot: string
+          loyalty_program_name_snapshot: string | null
+          branch_policy_id_snapshot: string | null
         }
         Insert: {
           address_id?: string | null
@@ -201,6 +435,10 @@ export type Database = {
           subtotal_mad: number
           total_mad: number
           updated_at?: string
+          fulfillment_mode_snapshot?: string
+          loyalty_mode_snapshot?: string
+          loyalty_program_name_snapshot?: string | null
+          branch_policy_id_snapshot?: string | null
         }
         Update: {
           address_id?: string | null
@@ -217,6 +455,10 @@ export type Database = {
           subtotal_mad?: number
           total_mad?: number
           updated_at?: string
+          fulfillment_mode_snapshot?: string
+          loyalty_mode_snapshot?: string
+          loyalty_program_name_snapshot?: string | null
+          branch_policy_id_snapshot?: string | null
         }
         Relationships: [
           {
@@ -241,6 +483,7 @@ export type Database = {
           description: string | null
           id: string
           image_url: string | null
+          image_is_ai_generated: boolean
           is_available: boolean
           name: string
           price_mad: number
@@ -252,6 +495,7 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          image_is_ai_generated?: boolean
           is_available?: boolean
           name: string
           price_mad: number
@@ -308,6 +552,77 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      store_branch_policies: {
+        Row: {
+          id: string
+          store_id: string
+          fulfillment_mode: string
+          order_permission_status: string
+          order_channel_url: string | null
+          order_permission_approved_at: string | null
+          order_permission_approved_by: string | null
+          order_permission_reference: string | null
+          loyalty_mode: string
+          loyalty_program_name: string | null
+          loyalty_permission_status: string
+          loyalty_permission_approved_at: string | null
+          loyalty_permission_approved_by: string | null
+          loyalty_permission_reference: string | null
+          operator_notes: string | null
+          updated_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          store_id: string
+          fulfillment_mode?: string
+          order_permission_status?: string
+          order_channel_url?: string | null
+          order_permission_approved_at?: string | null
+          order_permission_approved_by?: string | null
+          order_permission_reference?: string | null
+          loyalty_mode?: string
+          loyalty_program_name?: string | null
+          loyalty_permission_status?: string
+          loyalty_permission_approved_at?: string | null
+          loyalty_permission_approved_by?: string | null
+          loyalty_permission_reference?: string | null
+          operator_notes?: string | null
+          updated_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          store_id?: string
+          fulfillment_mode?: string
+          order_permission_status?: string
+          order_channel_url?: string | null
+          order_permission_approved_at?: string | null
+          order_permission_approved_by?: string | null
+          order_permission_reference?: string | null
+          loyalty_mode?: string
+          loyalty_program_name?: string | null
+          loyalty_permission_status?: string
+          loyalty_permission_approved_at?: string | null
+          loyalty_permission_approved_by?: string | null
+          loyalty_permission_reference?: string | null
+          operator_notes?: string | null
+          updated_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_branch_policies_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: true
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       stores: {
         Row: {
@@ -397,6 +712,61 @@ export type Database = {
       courier_update_order_status: {
         Args: { p_new_status: string; p_order_id: string }
         Returns: undefined
+      }
+      jib_ai_manager_monitor_secret: { Args: never; Returns: string }
+      jib_ai_manager_reserve_image_job: {
+        Args: {
+          p_request_type: string
+          p_product_id?: string | null
+          p_title?: string | null
+          p_description?: string | null
+        }
+        Returns: {
+          job_id: string
+          store_id: string | null
+          product_id: string | null
+          request_type: string
+          title: string
+          description: string
+        }[]
+      }
+      jib_ai_manager_finish_image_job: {
+        Args: {
+          p_job_id: string
+          p_image_url: string
+          p_storage_bucket: string
+          p_storage_path: string
+          p_model: string
+          p_estimated_cost_usd?: number
+        }
+        Returns: boolean
+      }
+      jib_ai_manager_fail_image_job: {
+        Args: { p_job_id: string; p_error_message: string }
+        Returns: boolean
+      }
+      jib_ai_manager_review_image_job: {
+        Args: { p_job_id: string; p_approve: boolean }
+        Returns: boolean
+      }
+      jib_order_timeline: {
+        Args: { p_order_id?: string | null }
+        Returns: {
+          order_id: string
+          current_stage: string
+          order_placed_at: string
+          merchant_accepted_at: string | null
+          preparation_started_at: string | null
+          ready_for_pickup_at: string | null
+          courier_assigned_at: string | null
+          picked_up_at: string | null
+          delivering_at: string | null
+          delivered_at: string | null
+          elapsed_seconds: number
+          expected_remaining_seconds: number | null
+          eta_confidence: string
+          estimated_delivery_at: string | null
+        }[]
       }
       is_jib_admin: { Args: never; Returns: boolean }
       merchant_update_order_status: {

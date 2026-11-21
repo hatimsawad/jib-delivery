@@ -1,0 +1,106 @@
+-- Fix Supabase Storage owner_id comparison: owner_id is text, auth.uid() is uuid.
+-- Keep the existing ownership, job path, model, cost and approval checks intact.
+CREATE OR REPLACE FUNCTION public.jib_ai_manager_finish_image_job(
+  p_job_id uuid,
+  p_image_url text,
+  p_storage_bucket text,
+  p_storage_path text,
+  p_model text,
+  p_estimated_cost_usd numeric DEFAULT 0.0005
+)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'pg_catalog', 'public', 'auth', 'pg_temp'
+AS $function$
+declare
+  v_uid uuid := (select auth.uid());
+  v_job public.jib_ai_manager_image_jobs%rowtype;
+  v_expected_url text;
+begin
+  if v_uid is null then raise exception 'Authentication required'; end if;
+
+  select * into v_job
+  from public.jib_ai_manager_image_jobs
+  where id = p_job_id
+  for update;
+
+  if not found then raise exception 'Image job not found'; end if;
+  if v_job.status <> 'generating' then raise exception 'Image job is not generating'; end if;
+
+  if v_job.requested_by <> v_uid
+     and not (select public.is_jib_admin())
+     and not exists (
+       select 1 from public.stores s
+       where s.id = v_job.store_id and s.owner_id = v_uid
+     ) then
+    raise exception 'Not authorized to finish this image job';
+  end if;
+
+  if p_model is distinct from 'cloudflare/@cf/black-forest-labs/flux-1-schnell'
+     or p_estimated_cost_usd is null
+     or p_estimated_cost_usd < 0
+     or p_estimated_cost_usd > 0.001 then
+    raise exception 'Invalid image model or estimated cost';
+  end if;
+
+  if v_job.request_type = 'product' then
+    if p_storage_bucket is distinct from 'product-images'
+       or p_storage_path is distinct from (v_job.store_id::text || '/ai-drafts/' || p_job_id::text || '.jpg') then
+      raise exception 'Product image path does not match this job';
+    end if;
+  elsif v_job.request_type = 'article' then
+    if not (select public.is_jib_admin()) then
+      raise exception 'Only admins can finalize article images';
+    end if;
+    if p_storage_bucket is distinct from 'article-images'
+       or p_storage_path is distinct from ('articles/' || p_job_id::text || '.jpg') then
+      raise exception 'Article image path does not match this job';
+    end if;
+  else
+    raise exception 'Unsupported image request type';
+  end if;
+
+  if not exists (
+    select 1
+    from storage.objects o
+    where o.bucket_id = p_storage_bucket
+      and o.name = p_storage_path
+      and o.owner_id = v_uid::text
+  ) then
+    raise exception 'Uploaded image is missing or is not owned by this account';
+  end if;
+
+  v_expected_url := 'https://emvleaghjsmzjmzgguvu.supabase.co/storage/v1/object/public/'
+    || p_storage_bucket || '/' || p_storage_path;
+
+  if p_image_url is distinct from v_expected_url then
+    raise exception 'Image URL does not match the uploaded storage object';
+  end if;
+
+  update public.jib_ai_manager_image_jobs
+  set status = 'ready_for_review',
+      generated_image_url = p_image_url,
+      storage_bucket = p_storage_bucket,
+      storage_path = p_storage_path,
+      model = p_model,
+      estimated_cost_usd = p_estimated_cost_usd,
+      error_message = null,
+      updated_at = now()
+  where id = p_job_id;
+
+  insert into public.jib_ai_manager_events (
+    fingerprint, event_type, severity, title, message, details, status
+  ) values (
+    'image-ready:' || p_job_id::text,
+    'image_generation_ready',
+    'info',
+    'الصورة جاهزة للمراجعة',
+    'تم إنشاء الصورة وهي بانتظار موافقة التاجر أو الإدارة قبل النشر.',
+    jsonb_build_object('job_id', p_job_id, 'request_type', v_job.request_type, 'model', p_model),
+    'acknowledged'
+  );
+
+  return true;
+end;
+$function$;

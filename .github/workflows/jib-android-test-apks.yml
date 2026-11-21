@@ -1,0 +1,110 @@
+name: JIB Android test APKs
+# Build all three preview APKs for the priced customer brand catalog.
+on:
+  push:
+    branches:
+      - feature/jib-manager-standalone
+    paths:
+      - 'apps/customer/**'
+      - 'apps/merchant/**'
+      - 'apps/courier/**'
+      - '.github/workflows/jib-android-test-apks.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: jib-android-test-apks-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  build:
+    name: Build ${{ matrix.app }} APK
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [customer, merchant, courier]
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Generate Android project
+        working-directory: apps/${{ matrix.app }}
+        run: flutter create --platforms=android --project-name jib_${{ matrix.app }} .
+      - name: Ensure Android network and courier permissions
+        if: matrix.app == 'courier'
+        working-directory: apps/${{ matrix.app }}
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('android/app/src/main/AndroidManifest.xml')
+          s = p.read_text()
+          permissions = [
+            'android.permission.INTERNET',
+            'android.permission.ACCESS_FINE_LOCATION',
+            'android.permission.ACCESS_COARSE_LOCATION',
+            'android.permission.ACCESS_BACKGROUND_LOCATION',
+            'android.permission.FOREGROUND_SERVICE',
+            'android.permission.FOREGROUND_SERVICE_LOCATION',
+            'android.permission.POST_NOTIFICATIONS',
+          ]
+          marker = '<application'
+          additions = ''.join(f'    <uses-permission android:name="{name}"/>\\n' for name in permissions)
+          if marker not in s:
+            raise SystemExit('Android manifest has no application element')
+          for name in permissions:
+            if f'android:name="{name}"' not in s:
+              s = s.replace(marker, additions + marker, 1)
+              break
+          for name in permissions:
+            tag = f'<uses-permission android:name="{name}"/>'
+            if tag not in s:
+              s = s.replace(marker, f'    {tag}\\n' + marker, 1)
+          p.write_text(s)
+          PY
+      - name: Ensure Android internet permission
+        if: matrix.app != 'courier'
+        working-directory: apps/${{ matrix.app }}
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('android/app/src/main/AndroidManifest.xml')
+          s = p.read_text()
+          if 'android.permission.INTERNET' not in s:
+            s = s.replace('<application', '    <uses-permission android:name="android.permission.INTERNET"/>\\n    <application', 1)
+          p.write_text(s)
+          PY
+      - name: Install Flutter dependencies
+        working-directory: apps/${{ matrix.app }}
+        run: flutter pub get
+      - name: Analyze Flutter app
+        working-directory: apps/${{ matrix.app }}
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+      - name: Run Flutter tests
+        working-directory: apps/${{ matrix.app }}
+        run: flutter test
+      - name: Build installable release APK
+        working-directory: apps/${{ matrix.app }}
+        run: flutter build apk --release
+      - name: Verify APK exists
+        working-directory: apps/${{ matrix.app }}
+        run: test -s build/app/outputs/flutter-apk/app-release.apk
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: jib-${{ matrix.app }}-android-apk
+          path: apps/${{ matrix.app }}/build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
+          retention-days: 14
+
+# Rebuild after customer catalog visibility and brand logo URL fixes.

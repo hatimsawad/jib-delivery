@@ -1,0 +1,1 @@
+-- Historical migration already applied to the live project. The final client table grants and profile write restrictions are represented by 20261115114433_tighten_client_table_grants.sql and the later role/RLS hardening migrations. This marker preserves the applied remote migration version; no additional SQL is required.

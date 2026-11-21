@@ -16,7 +16,7 @@ Widget _merchantProductImage(Object? rawUrl) {
   final fallback = Container(
     width: 58,
     height: 58,
-    decoration: BoxDecoration(color: const Color(0xFFF4EFEB), borderRadius: BorderRadius.circular(15)),
+    decoration: BoxDecoration(color: const Color(0xFFF4F7F4), borderRadius: BorderRadius.circular(15)),
     child: const Icon(Icons.inventory_2_outlined, color: Color(0xFF9A8F87)),
   );
   if (!valid) return fallback;
@@ -51,24 +51,30 @@ String networkErrorMessage(Object error) {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Supabase.initialize(url: supabaseUrl, publishableKey: supabasePublishableKey);
-  runApp(const JibMerchantApp());
+  String? startupError;
+  try {
+    await Supabase.initialize(url: supabaseUrl, publishableKey: supabasePublishableKey);
+  } catch (error) {
+    startupError = networkErrorMessage(error);
+  }
+  runApp(JibMerchantApp(startupError: startupError));
 }
 
 final db = Supabase.instance.client;
 
 class JibMerchantApp extends StatelessWidget {
-  const JibMerchantApp({super.key});
+  final String? startupError;
+  const JibMerchantApp({super.key, this.startupError});
   @override
   Widget build(BuildContext context) => MaterialApp(
     title: 'JIB التاجر', debugShowCheckedModeBanner: false,
     theme: ThemeData(
       useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(seedColor: jibRed, primary: jibRed, surface: Colors.white)
+      colorScheme: ColorScheme.fromSeed(seedColor: jibRed, primary: jibRed, surface: Colors.white, tertiary: const Color(0xFF00843D))
           .copyWith(onSurface: const Color(0xFF19191C)),
-      scaffoldBackgroundColor: const Color(0xFFF7F5F2),
+      scaffoldBackgroundColor: const Color(0xFFFFFFFF),
       appBarTheme: const AppBarTheme(
-        backgroundColor: Color(0xFFF7F5F2),
+        backgroundColor: Color(0xFFFFFFFF),
         foregroundColor: Color(0xFF19191C),
         elevation: 0,
         titleTextStyle: TextStyle(color: Color(0xFF19191C), fontSize: 19, fontWeight: FontWeight.w900),
@@ -79,7 +85,7 @@ class JibMerchantApp extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 12),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(22),
-          side: const BorderSide(color: Color(0xFFECE8E3)),
+          side: const BorderSide(color: Color(0xFFE7ECE8)),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
@@ -100,7 +106,34 @@ class JibMerchantApp extends StatelessWidget {
         ),
       ),
     ),
-    home: const Directionality(textDirection: TextDirection.rtl, child: MerchantGate()),
+    home: Directionality(
+      textDirection: TextDirection.rtl,
+      child: startupError == null
+          ? const MerchantGate()
+          : MerchantStartupConnectionError(message: startupError!, onRetry: main),
+    ),
+  );
+}
+
+class MerchantStartupConnectionError extends StatelessWidget {
+  final String message;
+  final Future<void> Function() onRetry;
+  const MerchantStartupConnectionError({super.key, required this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    body: Center(child: Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        const Icon(Icons.cloud_off, color: jibRed, size: 52),
+        const SizedBox(height: 12),
+        const Text('تعذر الاتصال بخدمة JIB', style: TextStyle(fontSize: 21, fontWeight: FontWeight.w900)),
+        const SizedBox(height: 10),
+        Text(message, textAlign: TextAlign.center),
+        const SizedBox(height: 18),
+        FilledButton.icon(onPressed: onRetry, icon: const Icon(Icons.refresh), label: const Text('إعادة المحاولة')),
+      ]),
+    )),
   );
 }
 
@@ -121,71 +154,41 @@ class MerchantLogin extends StatefulWidget {
 
 class _MerchantLoginState extends State<MerchantLogin> {
   final email = TextEditingController(), password = TextEditingController();
-  final storeName = TextEditingController(), fullName = TextEditingController();
-  final phone = TextEditingController(), address = TextEditingController(), description = TextEditingController();
-  String category = 'restaurant';
-  bool busy = false, creating = false;
-  String? error, notice;
+  bool busy = false, showPassword = false;
+  String? error;
+
   @override
-  void dispose() {
-    email.dispose(); password.dispose(); storeName.dispose(); fullName.dispose();
-    phone.dispose(); address.dispose(); description.dispose(); super.dispose();
-  }
+  void dispose() { email.dispose(); password.dispose(); super.dispose(); }
 
   Future<void> submit() async {
-    setState(() { busy = true; error = null; notice = null; });
+    if (email.text.trim().isEmpty || password.text.isEmpty) {
+      setState(() => error = 'أدخل البريد الإلكتروني وكلمة المرور.');
+      return;
+    }
+    setState(() { busy = true; error = null; });
     try {
-      if (creating) {
-        if (storeName.text.trim().isEmpty || fullName.text.trim().isEmpty) {
-          throw const AuthException('يرجى إدخال اسم التاجر واسم المتجر.');
-        }
-        final result = await db.auth.signUp(
-          email: email.text.trim(),
-          password: password.text,
-          data: {
-            'full_name': fullName.text.trim(),
-            'merchant_store_name': storeName.text.trim(),
-            'merchant_category': category,
-            'merchant_phone': phone.text.trim(),
-            'merchant_address': address.text.trim(),
-            'merchant_description': description.text.trim(),
-          },
-        );
-        if (result.session == null) {
-          setState(() => notice = 'تم إرسال طلب إنشاء الحساب. افتح بريدك الإلكتروني وأكّد الحساب، ثم ارجع إلى هنا وسجّل الدخول بنفس البريد وكلمة المرور لإكمال إعداد المتجر.');
-        } else {
-          setState(() => notice = 'تم إنشاء الحساب. جارٍ إعداد متجرك...');
-        }
-      } else {
-        await db.auth.signInWithPassword(email: email.text.trim(), password: password.text);
-      }
-    } on AuthException catch (e) { if (mounted) setState(() => error = e.message); }
-      on SocketException catch (e) { if (mounted) setState(() => error = networkErrorMessage(e)); }
-      on TimeoutException catch (e) { if (mounted) setState(() => error = networkErrorMessage(e)); }
-      catch (e) { if (mounted) setState(() => error = networkErrorMessage(e)); }
-    finally { if (mounted) setState(() => busy = false); }
+      await db.auth.signInWithPassword(email: email.text.trim(), password: password.text);
+    } on AuthException catch (e) {
+      if (mounted) setState(() => error = e.message);
+    } catch (e) {
+      if (mounted) setState(() => error = networkErrorMessage(e));
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
   }
 
-  Widget field(TextEditingController c, String label, {bool secret = false, TextInputType? type}) =>
-    Padding(padding: const EdgeInsets.only(top: 12), child: TextField(
-      controller: c, obscureText: secret, keyboardType: type,
-      decoration: InputDecoration(labelText: label, border: const OutlineInputBorder()),
-    ));
-
   @override
-  Widget build(BuildContext context) => Scaffold(body: Center(child: SingleChildScrollView(
-    padding: const EdgeInsets.all(24), child: ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 440), child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+  Widget build(BuildContext context) => Scaffold(
+    body: SafeArea(child: Center(child: SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 440),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Container(
-            width: 82,
-            height: 82,
+            width: 82, height: 82,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topRight,
-                end: Alignment.bottomLeft,
-                colors: [Color(0xFFEF3A40), Color(0xFF9F1118)],
-              ),
+              gradient: const LinearGradient(begin: Alignment.topRight, end: Alignment.bottomLeft,
+                colors: [Color(0xFFE31E24), Color(0xFFB9161D)]),
               borderRadius: BorderRadius.circular(26),
               boxShadow: const [BoxShadow(color: Color(0x26E31E24), blurRadius: 24, offset: Offset(0, 10))],
             ),
@@ -193,38 +196,33 @@ class _MerchantLoginState extends State<MerchantLogin> {
             child: const Icon(Icons.storefront_rounded, color: Colors.white, size: 42),
           ),
           const SizedBox(height: 18),
-          const Text('JIB · فضاء التاجر', textAlign: TextAlign.center, style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900)),
-          const Text('JIB SIGNATURE  /  BUSINESS', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF82766F), fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.1)),
-          Text(creating ? 'أنشئ حساب التاجر ومتجرك على JIB' : 'سجّل الدخول لإدارة متجرك وطلباتك', textAlign: TextAlign.center, style: const TextStyle(color: Colors.black54)),
+          const Text('JIB · فضاء التاجر', textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900)),
+          const Text('Jib وتكايس على jib', textAlign: TextAlign.center,
+            style: TextStyle(color: Color(0xFF82766F), fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.1)),
+          const SizedBox(height: 8),
+          const Text('دخول مخصص للحسابات التي اعتمدتها إدارة JIB',
+            textAlign: TextAlign.center, style: TextStyle(color: Colors.black54)),
           const SizedBox(height: 20),
-          if (creating) ...[
-            field(fullName, 'اسم التاجر'),
-            field(storeName, 'اسم المتجر'),
-            Padding(padding: const EdgeInsets.only(top: 12), child: DropdownButtonFormField<String>(
-              value: category, decoration: const InputDecoration(labelText: 'نوع المتجر', border: OutlineInputBorder()),
-              items: const [
-                DropdownMenuItem(value: 'restaurant', child: Text('مطعم')),
-                DropdownMenuItem(value: 'grocery', child: Text('بقالة')),
-                DropdownMenuItem(value: 'shop', child: Text('متجر')),
-              ], onChanged: busy ? null : (v) { if (v != null) setState(() => category = v); },
-            )),
-            field(phone, 'رقم الهاتف', type: TextInputType.phone),
-            field(address, 'عنوان المتجر'),
-            field(description, 'وصف المتجر'),
-          ],
-          field(email, 'البريد الإلكتروني', type: TextInputType.emailAddress),
-          field(password, 'كلمة المرور', secret: true),
-          if (error != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text(error!, style: const TextStyle(color: jibRed))),
-          if (notice != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text(notice!, style: const TextStyle(color: Colors.green, fontWeight: FontWeight.w600))),
+          TextField(controller: email, keyboardType: TextInputType.emailAddress,
+            decoration: const InputDecoration(labelText: 'البريد الإلكتروني', border: OutlineInputBorder())),
+          const SizedBox(height: 12),
+          TextField(controller: password, obscureText: !showPassword,
+            decoration: InputDecoration(labelText: 'كلمة المرور', border: const OutlineInputBorder(),
+              suffixIcon: IconButton(
+                onPressed: () => setState(() => showPassword = !showPassword),
+                icon: Icon(showPassword ? Icons.visibility_off : Icons.visibility),
+              ))),
+          if (error != null) Padding(padding: const EdgeInsets.only(top: 12),
+            child: Text(error!, style: const TextStyle(color: jibRed))),
           const SizedBox(height: 18),
-          FilledButton(onPressed: busy ? null : submit, style: FilledButton.styleFrom(backgroundColor: jibRed, padding: const EdgeInsets.all(15)),
-            child: Text(busy ? 'يرجى الانتظار...' : creating ? 'إنشاء حساب التاجر' : 'تسجيل الدخول')),
-          TextButton(onPressed: busy ? null : () => setState(() { creating = !creating; error = null; notice = null; }),
-            child: Text(creating ? 'لدي حساب بالفعل — تسجيل الدخول' : 'ليس لديك حساب؟ إنشاء حساب تاجر جديد')),
-        ],
+          FilledButton(onPressed: busy ? null : submit,
+            style: FilledButton.styleFrom(backgroundColor: jibRed, padding: const EdgeInsets.all(15)),
+            child: Text(busy ? 'يرجى الانتظار...' : 'تسجيل الدخول')),
+        ]),
       ),
-    ),
-  )));
+    ))),
+  );
 }
 
 class MerchantHome extends StatefulWidget {
@@ -245,28 +243,28 @@ class _MerchantHomeState extends State<MerchantHome> {
     setState(() { loading = true; error = null; });
     try {
       final uid = db.auth.currentUser!.id;
-      var stores = await db.from('stores').select().eq('owner_id', uid).limit(1);
-      if (stores.isEmpty) {
-        final meta = db.auth.currentUser?.userMetadata ?? {};
-        final pendingName = meta['merchant_store_name']?.toString() ?? '';
-        if (pendingName.trim().isNotEmpty) {
-          await db.rpc('register_merchant_store', params: {
-            'p_name': pendingName,
-            'p_category': meta['merchant_category']?.toString() ?? 'shop',
-            'p_phone': meta['merchant_phone']?.toString() ?? '',
-            'p_address': meta['merchant_address']?.toString() ?? '',
-            'p_description': meta['merchant_description']?.toString() ?? '',
-          });
-          stores = await db.from('stores').select().eq('owner_id', uid).limit(1);
-        }
-      }
+      final stores = await db.from('stores').select().eq('owner_id', uid).limit(1);
       if (stores.isNotEmpty) {
         store = Map<String, dynamic>.from(stores.first);
         final sid = store!['id'];
         final p = await db.from('products').select().eq('store_id', sid).order('created_at', ascending: false);
         products = p.map((e) => Map<String, dynamic>.from(e)).toList();
         final o = await db.from('orders').select('id,status,total_mad,created_at,customer_note').eq('store_id', sid).order('created_at', ascending: false).limit(50);
-        orders = o.map((e) => Map<String, dynamic>.from(e)).toList();
+        final timelines = <String, Map<String, dynamic>>{};
+        try {
+          final rawTimelines = await db.rpc('jib_order_timeline');
+          for (final raw in rawTimelines as List<dynamic>) {
+            final item = Map<String, dynamic>.from(raw as Map);
+            timelines[item['order_id'].toString()] = item;
+          }
+        } catch (_) {
+          // Keep order management usable if the timeline endpoint is temporarily unavailable.
+        }
+        orders = o.map((e) {
+          final row = Map<String, dynamic>.from(e);
+          row['timeline'] = timelines[row['id'].toString()];
+          return row;
+        }).toList();
       } else { store = null; products = []; orders = []; }
     } catch (e) { error = networkErrorMessage(e); }
     if (mounted) setState(() => loading = false);
@@ -277,6 +275,83 @@ class _MerchantHomeState extends State<MerchantHome> {
     'preparing': 'قيد التحضير', 'ready_for_pickup': 'جاهز للاستلام',
     'picked_up': 'استلمه الموصّل', 'delivering': 'في الطريق', 'delivered': 'تم التسليم', 'cancelled': 'ملغى',
   }[status] ?? status;
+
+  String timelineTime(dynamic raw) {
+    if (raw == null) return '—';
+    final value = DateTime.parse(raw.toString()).toLocal();
+    final day = value.day.toString().padLeft(2, '0');
+    final month = value.month.toString().padLeft(2, '0');
+    final hour = value.hour.toString().padLeft(2, '0');
+    final minute = value.minute.toString().padLeft(2, '0');
+    return '$day/$month $hour:$minute';
+  }
+
+  String timelineDuration(dynamic raw) {
+    if (raw == null) return '—';
+    final seconds = (raw as num).toInt();
+    if (seconds <= 0) return 'اكتمل';
+    final minutes = (seconds / 60).ceil();
+    if (minutes < 60) return '$minutes دقيقة';
+    final hours = minutes ~/ 60;
+    final remainder = minutes % 60;
+    return remainder == 0 ? '$hours ساعة' : '$hours س و$remainder د';
+  }
+
+  Widget orderTimeline(Map<String, dynamic>? timeline) {
+    if (timeline == null) return const SizedBox.shrink();
+    const stages = <(String, String)>[
+      ('order_placed_at', 'تأكيد الطلب'),
+      ('merchant_accepted_at', 'قبول المتجر'),
+      ('preparation_started_at', 'بدء التحضير'),
+      ('ready_for_pickup_at', 'جاهز للاستلام'),
+      ('courier_assigned_at', 'قبول المندوب'),
+      ('picked_up_at', 'استلام المندوب'),
+      ('delivering_at', 'بدء التوصيل'),
+      ('delivered_at', 'التسليم'),
+    ];
+    final completed = stages.where((stage) => timeline[stage.$1] != null).toList();
+    if (completed.isEmpty) return const SizedBox.shrink();
+    return Container(
+      margin: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: const Color(0xFFF8F5F2), borderRadius: BorderRadius.circular(12)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('التوقيت التفصيلي للطلب', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12)),
+          const SizedBox(height: 8),
+          ...completed.map((stage) => Padding(
+            padding: const EdgeInsets.only(bottom: 5),
+            child: Row(
+              children: [
+                Expanded(child: Text(stage.$2, style: const TextStyle(fontSize: 11, color: Color(0xFF82766F)))),
+                Text(timelineTime(timeline[stage.$1]), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
+              ],
+            ),
+          )),
+          const Divider(height: 12),
+          Row(
+            children: [
+              const Expanded(child: Text('الوقت المنقضي', style: TextStyle(fontSize: 11, color: Color(0xFF82766F)))),
+              Text(timelineDuration(timeline['elapsed_seconds']), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
+            ],
+          ),
+          const SizedBox(height: 5),
+          Row(
+            children: [
+              const Expanded(child: Text('المتبقي المتوقع', style: TextStyle(fontSize: 11, color: Color(0xFF82766F)))),
+              Text(timelineDuration(timeline['expected_remaining_seconds']), style: const TextStyle(fontSize: 11, color: jibRed, fontWeight: FontWeight.w900)),
+            ],
+          ),
+          if (timeline['eta_confidence'] == 'baseline')
+            const Padding(
+              padding: EdgeInsets.only(top: 5),
+              child: Text('تقدير أولي؛ سيصبح أدق مع تراكم الطلبات المكتملة.', style: TextStyle(fontSize: 10, color: Color(0xFF82766F))),
+            ),
+        ],
+      ),
+    );
+  }
 
   Future<void> updateOrder(Map<String, dynamic> order, String status) async {
     try {
@@ -312,6 +387,7 @@ class _MerchantHomeState extends State<MerchantHome> {
       ]),
       const SizedBox(height: 8),
       Text(statusLabel(status), style: const TextStyle(color: jibRed, fontWeight: FontWeight.bold)),
+      orderTimeline(order['timeline'] as Map<String, dynamic>?),
       if ((order['customer_note'] ?? '').toString().trim().isNotEmpty)
         Padding(padding: const EdgeInsets.only(top: 6), child: Text('ملاحظة الزبون: ${order['customer_note']}')),
       if (actions.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 10), child: Wrap(spacing: 8, runSpacing: 8, children: actions)),
@@ -359,7 +435,8 @@ class _MerchantHomeState extends State<MerchantHome> {
     final name = TextEditingController(text: product?['name']?.toString() ?? '');
     final description = TextEditingController(text: product?['description']?.toString() ?? '');
     final price = TextEditingController(text: product?['price_mad']?.toString() ?? '');
-    final existingImageUrl = product?['image_url']?.toString();
+    String? currentImageUrl = product?['image_url']?.toString();
+    bool currentImageIsAiGenerated = product?['image_is_ai_generated'] == true;
     XFile? selectedImage;
 
     final ok = await showDialog<bool>(
@@ -384,10 +461,10 @@ class _MerchantHomeState extends State<MerchantHome> {
                   ),
                   clipBehavior: Clip.antiAlias,
                   child: selectedImage != null
-                      ? Image.file(File(selectedImage!.path), fit: BoxFit.cover)
-                      : (existingImageUrl != null && existingImageUrl.trim().isNotEmpty
+                      ? Image.file(File(selectedImage?.path ?? ''), fit: BoxFit.cover)
+                      : (currentImageUrl != null && currentImageUrl.trim().isNotEmpty
                           ? Image.network(
-                              existingImageUrl,
+                              currentImageUrl,
                               fit: BoxFit.cover,
                               errorBuilder: (_, __, ___) => const Center(
                                 child: Icon(Icons.add_photo_alternate_outlined, size: 42, color: Color(0xFF9A8F87)),
@@ -415,7 +492,10 @@ class _MerchantHomeState extends State<MerchantHome> {
                         maxHeight: 1600,
                       );
                       if (picked != null && dialogContext.mounted) {
-                        setDialogState(() => selectedImage = picked);
+                        setDialogState(() {
+                          selectedImage = picked;
+                          currentImageIsAiGenerated = false;
+                        });
                       }
                     } catch (_) {
                       if (dialogContext.mounted) {
@@ -428,6 +508,17 @@ class _MerchantHomeState extends State<MerchantHome> {
                   icon: const Icon(Icons.photo_library_outlined),
                   label: Text(selectedImage == null ? 'اختيار صورة من الهاتف' : 'تغيير الصورة'),
                 ),
+                if (product != null) ...[
+                  const SizedBox(height: 8),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Text(
+                      'لضمان مطابقة صورة المنتج لما سيشتريه الزبون، نقبل حالياً الصور الأصلية من التاجر أو المورد فقط. أوقفنا التوليد الآلي لصور المنتجات لأن النموذج قد ينتج شكلاً غير مطابق.',
+                      style: TextStyle(fontSize: 11, color: Color(0xFF82766F)),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 8),
                 TextField(
                   controller: price,
@@ -465,13 +556,14 @@ class _MerchantHomeState extends State<MerchantHome> {
 
         final imageUrl = selectedImage != null
             ? await _uploadProductImage(selectedImage!)
-            : existingImageUrl;
+            : currentImageUrl;
         final values = <String, dynamic>{
           'name': name.text.trim(),
           'description': description.text.trim(),
           'price_mad': parsedPrice,
           'is_available': product?['is_available'] ?? true,
           'image_url': imageUrl,
+          'image_is_ai_generated': selectedImage != null ? false : currentImageIsAiGenerated,
         };
 
         if (product == null) {
@@ -544,7 +636,14 @@ class _MerchantHomeState extends State<MerchantHome> {
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         leading: _merchantProductImage(p['image_url']),
         title: Text(p['name'].toString(), style: const TextStyle(fontWeight: FontWeight.w800)),
-        subtitle: Text('${p['price_mad']} د.م', style: const TextStyle(color: jibRed, fontWeight: FontWeight.w800)),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('${p['price_mad']} د.م', style: const TextStyle(color: jibRed, fontWeight: FontWeight.w800)),
+            if (p['image_is_ai_generated'] == true)
+              const Text('صورة مولدة بالذكاء الاصطناعي', style: TextStyle(fontSize: 10, color: Color(0xFF82766F))),
+          ],
+        ),
         trailing: PopupMenuButton<String>(onSelected: (v) { if (v == 'edit') editProduct(p); if (v == 'available') setAvailable(p, !(p['is_available'] == true)); }, itemBuilder: (_) => [
           const PopupMenuItem(value: 'edit', child: Text('تعديل')), PopupMenuItem(value: 'available', child: Text(p['is_available'] == true ? 'إيقاف التوفر' : 'تفعيل التوفر')),
         ]),
