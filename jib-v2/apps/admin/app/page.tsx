@@ -175,7 +175,7 @@ export default function AdminHome() {
       return;
     }
 
-    let newSession = supabase.auth.currentSession;
+    let newSession = (await supabase.auth.getSession()).data.session;
     if (!newSession) {
       const newLogin = await supabase.auth.signInWithPassword({
         email: OWNER_EMAIL,
