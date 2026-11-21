@@ -740,7 +740,7 @@ class _CustomerHomeState extends State<CustomerHome> {
               decoration: BoxDecoration(color: const Color(0xFFFFF8EA), borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFFE7D3A7))),
               child: const Row(children: [
                 Icon(Icons.info_outline, color: Color(0xFF9B7937), size: 20), SizedBox(width: 8),
-                Expanded(child: Text('هذه منتجات من كتالوج العلامة. الأسعار المرجعية والتوفر يحتاجان تأكيد الفرع قبل قبول الطلب.', style: TextStyle(fontSize: 11, height: 1.5, fontWeight: FontWeight.w700))),
+                Expanded(child: Text('هذه منتجات مرصودة للعلامة من مصادر مسجلة لدى JIB. الأسعار والتوفر مرجعيان ويحتاجان تأكيد الفرع قبل قبول الطلب.', style: TextStyle(fontSize: 11, height: 1.5, fontWeight: FontWeight.w700))),
               ]),
             ),
             Expanded(child: FutureBuilder<List<Map<String, dynamic>>>(
