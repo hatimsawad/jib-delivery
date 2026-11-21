@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 void main() => runApp(const JibCustomerApp());
 
@@ -33,15 +33,15 @@ class CustomerHome extends StatelessWidget {
           ),
           body: ListView(
             padding: const EdgeInsets.all(20),
-            children: [
-              const Text('كل ما تحتاجه، يصلك لبابك', style: TextStyle(fontSize: 23, fontWeight: FontWeight.bold)),
+            children: const [
+              Text('كل ما تحتاجه، يصلك لبابك', style: TextStyle(fontSize: 23, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               const Text('اكتشف المتاجر والمنتجات القريبة منك في الرباط وتمارة.'),
               const SizedBox(height: 24),
-              Card(
+              const Card(
                 child: Padding(
                   padding: const EdgeInsets.all(18),
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: const [
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Icon(Icons.storefront_outlined, size: 34),
                     SizedBox(height: 12),
                     Text('المتاجر والعلامات التجارية', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
