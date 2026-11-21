@@ -582,7 +582,15 @@ class _CustomerHomeState extends State<CustomerHome> {
           const SizedBox(height: 18),
           Row(children: [
             const Expanded(child: Text('جميع المتاجر والمطاعم والعلامات', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900))),
-            const _ServicePill(label: 'الكل'),
+            TextButton.icon(
+              onPressed: () => setState(() {
+                _category = 0;
+                _search = '';
+                _searchController.clear();
+              }),
+              icon: const Icon(Icons.grid_view_rounded, size: 15, color: jibGreen),
+              label: const Text('كل العلامات', style: TextStyle(color: jibGreen, fontWeight: FontWeight.w900, fontSize: 11)),
+            ),
           ]),
           const SizedBox(height: 5),
           const Text('كل العلامات المعتمدة تظهر هنا للزبون، بما فيها المطاعم والمخابز والبقالة والمتاجر العالمية والمحلية. ويمكن تصفحها حتى عندما لا يكون الطلب المباشر مفعلاً.',
@@ -611,7 +619,13 @@ class _CustomerHomeState extends State<CustomerHome> {
                 return rank != 0 ? rank : (a['name']?.toString() ?? '').compareTo(b['name']?.toString() ?? '');
               });
               if (brands.isEmpty) return const Card(child: Padding(padding: EdgeInsets.all(16), child: Text('لا توجد علامة مطابقة لبحثك.')));
-              return GridView.builder(
+              return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10, right: 3),
+                  child: Text('${brands.length} علامة تجارية ومتجر ضمن دليل JIB',
+                    style: const TextStyle(color: Color(0xFF77716C), fontSize: 10, fontWeight: FontWeight.w700)),
+                ),
+                GridView.builder(
                 shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), itemCount: brands.length,
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2, mainAxisSpacing: 10, crossAxisSpacing: 10, childAspectRatio: 1.48),
@@ -650,7 +664,8 @@ class _CustomerHomeState extends State<CustomerHome> {
                     ),
                   );
                 },
-              );
+                ),
+              ]);
             },
           ),
           const SizedBox(height: 18),
