@@ -60,7 +60,7 @@ class _CustomerHomeState extends State<CustomerHome> {
       final brands = await _db.from('brands').select('id,name,slug,logo_url,category')
         .eq('is_approved',true).eq('is_active',true).order('name');
       final products = await _db.from('products')
-        .select('id,brand_id,name,category,reference_price_mad,official_source_url')
+        .select('id,brand_id,name,category,reference_price_mad,official_source_url,image_url')
         .eq('is_active',true).order('name');
       final branches = await _db.from('branches')
         .select('id,name,address,city,merchant_id,merchants!inner(name,is_active)')
@@ -119,7 +119,7 @@ class _CustomerHomeState extends State<CustomerHome> {
     });
     try {
       final rows = await _db.from('branch_products')
-        .select('id,price_mad,availability,products!inner(id,name,category,brand_id)')
+        .select('id,price_mad,availability,products!inner(id,name,category,brand_id,image_url)')
         .eq('branch_id',_selectedBranch!).eq('is_active',true)
         .eq('availability','available').eq('products.is_active',true).order('id');
       if (mounted) setState(() => _branchProducts = List<Map<String,dynamic>>.from(rows));
@@ -211,7 +211,7 @@ class _CustomerHomeState extends State<CustomerHome> {
       body:ListView(padding:const EdgeInsets.fromLTRB(16,16,16,30),children:[
         Container(
           padding:const EdgeInsets.all(20),
-          decoration:BoxDecoration(color:const Color(0xFF172554),borderRadius:BorderRadius.circular(22)),
+          decoration:BoxDecoration(gradient:const LinearGradient(colors:[Color(0xFF0D2B1D),Color(0xFF17613F)]),border:Border.all(color:const Color(0xFFC5A45A)),borderRadius:BorderRadius.circular(22)),
           child:const Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
             Text('كل ما تحتاجه، يصلك لبابك',style:TextStyle(color:Colors.white,fontSize:22,fontWeight:FontWeight.w900)),
             SizedBox(height:8),
@@ -224,7 +224,7 @@ class _CustomerHomeState extends State<CustomerHome> {
         const Text('العلامات التجارية',style:TextStyle(fontSize:19,fontWeight:FontWeight.w900)),
         const SizedBox(height:8),
         TextField(
-          decoration:InputDecoration(hintText:'ابحث عن علامة',prefixIcon:const Icon(Icons.search),filled:true,fillColor:Colors.white,
+          decoration:InputDecoration(hintText:'ابحث عن علامة أو منتج',prefixIcon:const Icon(Icons.search),filled:true,fillColor:Colors.white,
             border:OutlineInputBorder(borderRadius:BorderRadius.circular(14),borderSide:BorderSide.none)),
           onChanged:(v)=>setState(()=>_search=v.trim().toLowerCase()),
         ),
@@ -232,34 +232,56 @@ class _CustomerHomeState extends State<CustomerHome> {
         if (_brands.isEmpty) const _InfoPanel('يتم تحميل العلامات التجارية أو لا توجد بيانات متاحة حالياً.'),
         ..._brands.where((b)=>(b['name'] as String).toLowerCase().contains(_search)).map((b){
           final selected=_selectedBrand==b['id'];
-          return Card(elevation:0,color:selected?const Color(0xFFE8EDFF):Colors.white,child:ListTile(
+          final logo=(b['logo_url'] as String?)?.trim();
+          return Card(elevation:0,color:selected?const Color(0xFFE7F0E8):Colors.white,child:ListTile(
             onTap:()=>setState(()=>_selectedBrand=selected?null:b['id'] as String),
-            leading:CircleAvatar(backgroundColor:Colors.white,child:(b['logo_url'] as String?)==null
-              ?const Icon(Icons.storefront_outlined)
-              :Image.network(b['logo_url'] as String,width:34,height:34,errorBuilder:(_,_,_)=>const Icon(Icons.storefront_outlined))),
+            leading:CircleAvatar(backgroundColor:const Color(0xFF145A3A),child:logo==null||logo.isEmpty
+              ?Text((b['name'] as String).characters.first.toUpperCase(),style:const TextStyle(color:Colors.white,fontWeight:FontWeight.w900))
+              :Image.network(logo,width:34,height:34,errorBuilder:(_,_,_)=>Text((b['name'] as String).characters.first.toUpperCase(),style:const TextStyle(color:Colors.white)))),
             title:Text(b['name'] as String,style:const TextStyle(fontWeight:FontWeight.bold)),
             subtitle:Text((b['category']??'') as String),
-            trailing:Icon(selected?Icons.check_circle:Icons.chevron_left),
+            trailing:Icon(selected?Icons.check_circle:Icons.chevron_left,color:const Color(0xFF145A3A)),
           ));
         }),
-        if (_selectedBrand!=null) ...[
-          const SizedBox(height:8),
-          const Text('منتجات العلامة — أسعار مرجعية',style:TextStyle(fontSize:17,fontWeight:FontWeight.bold)),
-          ..._catalogProducts.where((p)=>p['brand_id']==_selectedBrand).map((p){
-            final price=p['reference_price_mad'];
-            return Card(elevation:0,child:ListTile(
-              leading:const Icon(Icons.inventory_2_outlined),
-              title:Text(p['name'] as String),
-              subtitle:Text(price==null?'السعر المرجعي غير متوفر':'${(price as num).toStringAsFixed(2)} درهم — سعر مرجعي'),
-            ));
-          }),
-        ],
+        const SizedBox(height:16),
+        Row(mainAxisAlignment:MainAxisAlignment.spaceBetween,children:[
+          const Text('اكتشف المنتجات',style:TextStyle(fontSize:19,fontWeight:FontWeight.w900)),
+          Text('${_catalogProducts.where((p)=>_selectedBrand==null||p['brand_id']==_selectedBrand).where((p)=>_search.isEmpty||(p['name'] as String).toLowerCase().contains(_search)).length} منتج',style:const TextStyle(color:Color(0xFF65736A))),
+        ]),
+        const SizedBox(height:8),
+        Wrap(spacing:10,runSpacing:10,children:_catalogProducts.where((p)=>
+          (_selectedBrand==null||p['brand_id']==_selectedBrand)&&
+          (_search.isEmpty||(p['name'] as String).toLowerCase().contains(_search))
+        ).map((p){
+          final price=p['reference_price_mad'];
+          final image=(p['image_url'] as String?)?.trim();
+          final brand=_brands.where((b)=>b['id']==p['brand_id']).toList();
+          return SizedBox(width:(MediaQuery.of(context).size.width-54)/2,child:Card(
+            elevation:0,color:Colors.white,clipBehavior:Clip.antiAlias,
+            shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(15),side:const BorderSide(color:Color(0xFFE5DDC9))),
+            child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+              Container(height:112,width:double.infinity,color:const Color(0xFFF4F1E8),
+                child:image==null||image.isEmpty
+                  ?const Icon(Icons.inventory_2_outlined,size:38,color:Color(0xFFC5A45A))
+                  :Image.network(image,fit:BoxFit.contain,errorBuilder:(_,_,_)=>const Icon(Icons.inventory_2_outlined,size:38,color:Color(0xFFC5A45A)))),
+              Padding(padding:const EdgeInsets.all(10),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+                Text(p['name'] as String,maxLines:2,overflow:TextOverflow.ellipsis,style:const TextStyle(fontWeight:FontWeight.w800)),
+                const SizedBox(height:5),
+                Text(brand.isEmpty?'JIB':brand.first['name'] as String,maxLines:1,overflow:TextOverflow.ellipsis,style:const TextStyle(fontSize:11,color:Color(0xFF65736A))),
+                const SizedBox(height:6),
+                Text(price==null?'السعر المرجعي غير متوفر':'${(price as num).toStringAsFixed(2)} درهم',style:const TextStyle(color:Color(0xFF145A3A),fontWeight:FontWeight.w900)),
+                const Text('السعر النهائي حسب الفرع',style:TextStyle(fontSize:10,color:Color(0xFF7B817B))),
+              ])),
+            ]),
+          ));
+        }).toList()),
+
         const SizedBox(height:22),
         const Text('فروع تستقبل الطلبات',style:TextStyle(fontSize:19,fontWeight:FontWeight.w900)),
         const SizedBox(height:8),
         if (_branches.isEmpty) const _InfoPanel('لا توجد فروع نشطة ومفعّلة لاستقبال الطلبات حالياً.'),
         ..._branches.map((b)=>Card(
-          elevation:0,color:_selectedBranch==b['id']?const Color(0xFFE8EDFF):Colors.white,
+          elevation:0,color:_selectedBranch==b['id']?const Color(0xFFE7F0E8):Colors.white,
           child:ListTile(
             onTap:_busy?null:()=>_chooseBranch(b),
             leading:const Icon(Icons.storefront_outlined),
@@ -275,10 +297,13 @@ class _CustomerHomeState extends State<CustomerHome> {
           if (!_busy && _branchProducts.isEmpty) const _InfoPanel('هذا الفرع لم يؤكد توفر منتجات للبيع بعد.'),
           ..._branchProducts.map((row){
             final product=Map<String,dynamic>.from(row['products'] as Map);
+            final image=(product['image_url'] as String?)?.trim();
             return Card(elevation:0,child:ListTile(
+              leading:Container(width:54,height:54,decoration:BoxDecoration(color:const Color(0xFFF4F1E8),borderRadius:BorderRadius.circular(10)),
+                child:image==null||image.isEmpty?const Icon(Icons.inventory_2_outlined,color:Color(0xFFC5A45A)):Image.network(image,fit:BoxFit.contain,errorBuilder:(_,_,_)=>const Icon(Icons.inventory_2_outlined,color:Color(0xFFC5A45A)))),
               title:Text(product['name'] as String),
               subtitle:Text('${row['price_mad']} درهم'),
-              trailing:IconButton(onPressed:()=>_addToCart(row),icon:const Icon(Icons.add_circle,color:Color(0xFF172554))),
+              trailing:IconButton(onPressed:()=>_addToCart(row),icon:const Icon(Icons.add_circle,color:Color(0xFF145A3A))),
             ));
           }),
           if (_cart.isNotEmpty) ...[
