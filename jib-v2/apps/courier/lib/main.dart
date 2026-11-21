@@ -17,13 +17,13 @@ class _JibMark extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     width: size, height: size,
     decoration: BoxDecoration(
-      color: const Color(0xFFD71920),
+      color: const Color(0xFFE31E24),
       borderRadius: BorderRadius.circular(size * .23),
-      border: Border.all(color: const Color(0xFF006B3F), width: 2),
+      border: Border.all(color: const Color(0xFF00843D), width: 2),
     ),
     child: Stack(alignment: Alignment.center, children: [
       Positioned(top: size * .01, right: size * .02,
-        child: Icon(Icons.star, color: const Color(0xFF00A651), size: size * .24)),
+        child: Icon(Icons.star, color: const Color(0xFFD7B45A), size: size * .24)),
       Positioned(top: size * .09,
         child: Icon(Icons.delivery_dining, color: Colors.white, size: size * .62)),
       Positioned(bottom: size * .015,
@@ -37,7 +37,7 @@ class JibCourierApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) => MaterialApp(
     title: 'JIB Livreur', debugShowCheckedModeBanner: false,
-    theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFD71920), primary: const Color(0xFFD71920), secondary: const Color(0xFF006B3F), tertiary: const Color(0xFF006B3F)), scaffoldBackgroundColor: const Color(0xFFF7F8F7), useMaterial3: true),
+    theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFE31E24), primary: const Color(0xFFE31E24), secondary: const Color(0xFF00843D), tertiary: const Color(0xFF00843D)), scaffoldBackgroundColor: const Color(0xFFF7F8F7), useMaterial3: true),
     home: const CourierHome(),
   );
 }
@@ -186,7 +186,7 @@ class _CourierHomeState extends State<CourierHome> {
       child: Text(_busy ? 'جارٍ التنفيذ...' : (_register ? 'إنشاء طلب حساب مندوب' : 'تسجيل الدخول'))),
     TextButton(onPressed: _busy ? null : () => setState(() { _register = !_register; _error = null; _notice = null; }),
       child: Text(_register ? 'لدي حساب بالفعل — تسجيل الدخول' : 'إنشاء حساب مندوب جديد')),
-    if (_notice != null) Card(color: const Color(0xFFE7F0E8), child: Padding(padding: const EdgeInsets.all(12), child: Text(_notice!, style: const TextStyle(color: Color(0xFF145A3A))))),
+    if (_notice != null) Card(color: const Color(0xFFE8F2EA), child: Padding(padding: const EdgeInsets.all(12), child: Text(_notice!, style: const TextStyle(color: Color(0xFF006B36))))),
     if (_error != null) Text(_error!, style: const TextStyle(color: Colors.red)),
   ]);
 
