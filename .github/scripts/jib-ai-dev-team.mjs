@@ -80,7 +80,7 @@ let patchCheck = "No patch extracted.";
 if (patch) {
   await writeFile("proposed.patch",patch+"\n","utf8");
   try {
-    await exec("git",["apply","--check","--unsafe-paths=false","proposed.patch"],{cwd:root});
+    await exec("git",["apply","--check",resolve(process.cwd(),"proposed.patch")],{cwd:root});
     patchStatus = "syntactically applicable";
     patchCheck = "git apply --check passed against the selected source checkout; patch was not applied.";
   } catch (e) {
