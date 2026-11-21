@@ -1,0 +1,70 @@
+name: JIB V2 build and static checks
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    name: Build ${{ matrix.app }} Android APK
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [customer, merchant, courier]
+    steps:
+      - name: Checkout approved branch
+        uses: actions/checkout@v4
+        with:
+          ref: jib-v2-bootstrap
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Generate Android platform scaffold in runner only
+        working-directory: jib-v2/apps/${{ matrix.app }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          temp_dir="$(mktemp -d)"
+          app_name="jib_${{ matrix.app }}"
+          flutter create --platforms=android --project-name "$app_name" --org ma.jib "$temp_dir/platform"
+          cp -R "$temp_dir/platform/android" ./android
+      - name: Resolve dependencies
+        working-directory: jib-v2/apps/${{ matrix.app }}
+        run: flutter pub get
+      - name: Analyze Dart source
+        working-directory: jib-v2/apps/${{ matrix.app }}
+        run: flutter analyze --no-pub
+      - name: Build debug APK
+        working-directory: jib-v2/apps/${{ matrix.app }}
+        run: flutter build apk --debug --no-pub
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: jib-v2-${{ matrix.app }}-debug-apk
+          path: jib-v2/apps/${{ matrix.app }}/build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7
+
+  admin:
+    name: Build admin web application
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout approved branch
+        uses: actions/checkout@v4
+        with:
+          ref: jib-v2-bootstrap
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        working-directory: jib-v2/apps/admin
+        run: npm install
+      - name: Build admin
+        working-directory: jib-v2/apps/admin
+        run: npm run build
