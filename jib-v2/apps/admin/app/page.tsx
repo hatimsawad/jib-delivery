@@ -150,7 +150,7 @@ export default function AdminHome() {
     }
     setBusy(true);
     setError("");
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(target);
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(target, { redirectTo: window.location.origin });
     setError(resetError
       ? "تعذر إرسال رابط الاستعادة. تحقق من إعدادات البريد الإلكتروني في Supabase."
       : "إذا كان الحساب مسجلاً، فسيصلك رابط استعادة كلمة المرور. افحص مجلد الرسائل غير المرغوب فيها أيضاً.");
@@ -187,7 +187,10 @@ export default function AdminHome() {
         const newSignup = await supabase.auth.signUp({
           email: OWNER_EMAIL,
           password: legacyPassword,
-          options: { data: { full_name: fullName.trim() || "JIB Owner" } },
+          options: {
+            data: { full_name: fullName.trim() || "JIB Owner" },
+            emailRedirectTo: window.location.origin,
+          },
         });
         if (newSignup.error) {
           setError("تعذر إنشاء حساب JIB V2. إذا كان الحساب موجوداً بكلمة مرور مختلفة، استعمل «نسيت كلمة المرور» أولاً. " + newSignup.error.message);
