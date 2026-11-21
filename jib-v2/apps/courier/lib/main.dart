@@ -1,34 +1,176 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-void main() => runApp(const JibCourierApp());
+const _url = 'https://ldgbyshgcifheditplnn.supabase.co';
+const _key = 'sb_publishable_wvNMRZTBFX4viI2ypcdWjQ_YBqgi_TV';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Supabase.initialize(url: _url, publishableKey: _key);
+  runApp(const JibCourierApp());
+}
 
 class JibCourierApp extends StatelessWidget {
   const JibCourierApp({super.key});
   @override
   Widget build(BuildContext context) => MaterialApp(
-        title: 'JIB Livreur',
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF166534)), useMaterial3: true),
-        home: const CourierHome(),
-      );
+    title: 'JIB Livreur', debugShowCheckedModeBanner: false,
+    theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF166534)), useMaterial3: true),
+    home: const CourierHome(),
+  );
 }
 
-class CourierHome extends StatelessWidget {
+class CourierHome extends StatefulWidget {
   const CourierHome({super.key});
   @override
+  State<CourierHome> createState() => _CourierHomeState();
+}
+
+class _CourierHomeState extends State<CourierHome> {
+  final _email = TextEditingController();
+  final _password = TextEditingController();
+  bool _busy = false;
+  bool _onDuty = false;
+  String? _error;
+  List<Map<String,dynamic>> _assignments = [];
+  SupabaseClient get _db => Supabase.instance.client;
+  User? get _user => _db.auth.currentUser;
+
+  @override
+  void initState() { super.initState(); if (_user != null) _loadTasks(); }
+
+  Future<void> _signIn() async {
+    setState(() { _busy = true; _error = null; });
+    try {
+      await _db.auth.signInWithPassword(email: _email.text.trim(), password: _password.text);
+      await _loadTasks();
+    } on AuthException catch (e) { setState(() => _error = e.message); }
+    catch (e) { setState(() => _error = 'تعذر تسجيل الدخول.'); }
+    finally { if (mounted) setState(() => _busy = false); }
+  }
+
+  Future<void> _loadTasks() async {
+    if (_user == null) return;
+    setState(() { _busy = true; _error = null; });
+    try {
+      final profile = await _db.from('courier_profiles').select('is_on_duty')
+        .eq('user_id', _user!.id).maybeSingle();
+      _onDuty = profile?['is_on_duty'] == true;
+      final rows = await _db.from('courier_assignments')
+        .select('id,order_id,status,offered_at,orders!inner(id,status,delivery_address,customer_phone,subtotal_mad)')
+        .eq('courier_id', _user!.id)
+        .inFilter('status', ['offered','accepted'])
+        .order('offered_at', ascending: false);
+      setState(() => _assignments = List<Map<String,dynamic>>.from(rows));
+    } catch (e) { setState(() => _error = 'تعذر تحميل عروض التوصيل. تأكد من تفعيل حساب المندوب.'); }
+    finally { if (mounted) setState(() => _busy = false); }
+  }
+
+  Future<void> _toggleDuty(bool value) async {
+    setState(() { _busy = true; _error = null; });
+    try {
+      await _db.from('courier_profiles').update({'is_on_duty': value}).eq('user_id', _user!.id);
+      setState(() => _onDuty = value);
+    } catch (e) { setState(() => _error = 'لم نتمكن من تغيير حالة التوفر.'); }
+    finally { if (mounted) setState(() => _busy = false); }
+  }
+
+  Future<void> _respond(String id, bool accept) async {
+    setState(() { _busy = true; _error = null; });
+    try {
+      await _db.rpc('courier_respond_to_offer', params: {'p_assignment_id': id, 'p_accept': accept});
+      await _loadTasks();
+    } catch (e) { setState(() => _error = 'تعذر تسجيل الرد على العرض.'); }
+    finally { if (mounted) setState(() => _busy = false); }
+  }
+
+  Future<void> _advance(String orderId, String action) async {
+    setState(() { _busy = true; _error = null; });
+    try {
+      await _db.rpc('courier_update_order', params: {'p_order_id': orderId, 'p_action': action});
+      await _loadTasks();
+    } catch (e) { setState(() => _error = 'تعذر تحديث مرحلة التوصيل.'); }
+    finally { if (mounted) setState(() => _busy = false); }
+  }
+
+  Future<void> _signOut() async {
+    await _db.auth.signOut();
+    setState(() { _assignments = []; _onDuty = false; _error = null; });
+  }
+
+  @override
+  void dispose() { _email.dispose(); _password.dispose(); super.dispose(); }
+
+  @override
   Widget build(BuildContext context) => Directionality(
-        textDirection: TextDirection.rtl,
-        child: Scaffold(
-          appBar: AppBar(title: const Text('JIB Livreur')),
-          body: ListView(padding: const EdgeInsets.all(20), children: const [
-            Text('مساحة عمل المندوب', style: TextStyle(fontSize: 23, fontWeight: FontWeight.bold)),
-            SizedBox(height: 16),
-            Card(child: ListTile(leading: Icon(Icons.toggle_on_outlined), title: Text('حالة التوفر'), subtitle: Text('تفعيل التوفر بعد تسجيل الدخول والتحقق.'))),
-            Card(child: ListTile(leading: Icon(Icons.delivery_dining), title: Text('عروض التوصيل'), subtitle: Text('ستظهر عروض الطلبات المسندة إليك.'))),
-            Card(child: ListTile(leading: Icon(Icons.map_outlined), title: Text('المهام النشطة'), subtitle: Text('مراحل الاستلام والتوصيل ومشاركة الموقع بموافقتك.'))),
-            SizedBox(height: 12),
-            Text('نسخة تأسيسية — لا يوجد تتبع أو استقبال مهام حقيقية حالياً.', style: TextStyle(color: Colors.deepOrange, fontWeight: FontWeight.w600)),
-          ]),
-        ),
-      );
+    textDirection: TextDirection.rtl,
+    child: Scaffold(
+      appBar: AppBar(title: const Text('JIB Livreur'), actions: [
+        if (_user != null) IconButton(onPressed: _loadTasks, icon: const Icon(Icons.refresh)),
+        if (_user != null) IconButton(onPressed: _signOut, icon: const Icon(Icons.logout)),
+      ]),
+      body: _user == null ? _login() : _workspace(),
+    ),
+  );
+
+  Widget _login() => ListView(padding: const EdgeInsets.all(22), children: [
+    const Text('مساحة المندوب', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+    const SizedBox(height: 8),
+    const Text('سجّل الدخول بحساب مندوب اعتمده مدير JIB.'),
+    const SizedBox(height: 20),
+    TextField(controller: _email, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'البريد الإلكتروني')),
+    const SizedBox(height: 12),
+    TextField(controller: _password, obscureText: true, decoration: const InputDecoration(labelText: 'كلمة المرور')),
+    const SizedBox(height: 16),
+    FilledButton(onPressed: _busy ? null : _signIn, child: Text(_busy ? 'جارٍ الدخول...' : 'تسجيل الدخول')),
+    if (_error != null) Text(_error!, style: const TextStyle(color: Colors.red)),
+  ]);
+
+  Widget _workspace() => RefreshIndicator(
+    onRefresh: _loadTasks,
+    child: ListView(padding: const EdgeInsets.all(16), children: [
+      const Text('حالة العمل', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+      SwitchListTile(
+        contentPadding: EdgeInsets.zero,
+        title: const Text('متاح لاستقبال عروض التوصيل'),
+        subtitle: const Text('لن يتم إسناد عروض جديدة عند إيقاف التوفر.'),
+        value: _onDuty,
+        onChanged: _busy ? null : _toggleDuty,
+      ),
+      if (_error != null) Text(_error!, style: const TextStyle(color: Colors.red)),
+      const SizedBox(height: 12),
+      const Text('العروض والمهام', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+      if (_assignments.isEmpty) const Card(child: Padding(padding: EdgeInsets.all(18), child: Text('لا توجد عروض أو مهام حالياً.'))),
+      ..._assignments.map((a) {
+        final order = Map<String,dynamic>.from(a['orders'] as Map);
+        final status = order['status'] as String;
+        final assignmentStatus = a['status'] as String;
+        final orderId = a['order_id'] as String;
+        final actions = <Widget>[];
+        if (assignmentStatus == 'offered') {
+          actions.add(FilledButton(onPressed: _busy ? null : () => _respond(a['id'] as String,true), child: const Text('قبول العرض')));
+          actions.add(OutlinedButton(onPressed: _busy ? null : () => _respond(a['id'] as String,false), child: const Text('رفض')));
+        } else if (status == 'courier_accepted') {
+          actions.add(FilledButton(onPressed: _busy ? null : () => _advance(orderId,'pickup'), child: const Text('تأكيد الاستلام')));
+        } else if (status == 'picked_up') {
+          actions.add(FilledButton(onPressed: _busy ? null : () => _advance(orderId,'en_route'), child: const Text('بدء التوصيل')));
+        } else if (status == 'en_route') {
+          actions.add(FilledButton(onPressed: _busy ? null : () => _advance(orderId,'delivered'), child: const Text('تأكيد التسليم')));
+        }
+        return Card(child: Padding(padding: const EdgeInsets.all(14), child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('طلب #${orderId.substring(0,8)}', style: const TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 6),
+            Text('العنوان: ${order['delivery_address']}'),
+            Text('هاتف الزبون: ${order['customer_phone']}'),
+            Text('الحالة: $status'),
+            Wrap(spacing: 8, children: actions),
+          ],
+        )));
+      }),
+      const SizedBox(height: 12),
+      const Text('مشاركة الموقع غير مفعلة في هذه النسخة. لن يتم تتبع موقعك دون موافقتك الصريحة وإظهار إشعار دائم أثناء التتبع.',
+        style: TextStyle(color: Colors.blueGrey)),
+    ]),
+  );
 }
