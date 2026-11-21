@@ -475,8 +475,8 @@ class _CustomerHomeState extends State<CustomerHome> {
   Widget _discovery() => FutureBuilder<List<Map<String, dynamic>>>(
     future: _stores(),
     builder: (context, snapshot) {
-      if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
-      if (snapshot.hasError) return const Center(child: Text('تعذر تحميل المتاجر. تحقق من الاتصال.'));
+      // Keep the brand directory visible even if the live stores request is still loading or fails.
+      // Store availability and the commercial brand catalog are independent data sources.
       final category = _categoryKeys[_category];
       final stores = (snapshot.data ?? []).where((store) {
         final matchesCategory = category == null || store['category'] == category;
