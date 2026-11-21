@@ -19,6 +19,17 @@ export default function AdminHome() {
   const [stats, setStats] = useState<Stats>({ orders: 0, merchants: 0, couriers: 0, brands: 0, products: 0 });
   const [orders, setOrders] = useState<Row[]>([]);
   const [couriers, setCouriers] = useState<Row[]>([]);
+  const [profiles, setProfiles] = useState<Row[]>([]);
+  const [merchants, setMerchants] = useState<Row[]>([]);
+  const [branches, setBranches] = useState<Row[]>([]);
+  const [selectedProfileId, setSelectedProfileId] = useState("");
+  const [onboardRole, setOnboardRole] = useState<"merchant" | "courier">("merchant");
+  const [businessName, setBusinessName] = useState("");
+  const [businessPhone, setBusinessPhone] = useState("");
+  const [selectedMerchantId, setSelectedMerchantId] = useState("");
+  const [branchName, setBranchName] = useState("");
+  const [branchAddress, setBranchAddress] = useState("");
+  const [branchCity, setBranchCity] = useState("Rabat");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -35,7 +46,7 @@ export default function AdminHome() {
         return;
       }
       setAuthorized(true);
-      const [orderCount, merchantCount, courierCount, brandCount, productCount, orderRows, courierRows] = await Promise.all([
+      const [orderCount, merchantCount, courierCount, brandCount, productCount, orderRows, courierRows, profileRows, merchantRows, branchRows] = await Promise.all([
         supabase.from("orders").select("id", { count: "exact", head: true }),
         supabase.from("merchants").select("id", { count: "exact", head: true }),
         supabase.from("courier_profiles").select("user_id", { count: "exact", head: true }),
@@ -43,8 +54,11 @@ export default function AdminHome() {
         supabase.from("products").select("id", { count: "exact", head: true }),
         supabase.from("orders").select("id,status,submitted_at,subtotal_mad,customer_phone,delivery_address,branches!inner(name)").order("submitted_at", { ascending: false }).limit(50),
         supabase.from("courier_profiles").select("user_id,is_on_duty,profiles!inner(full_name,phone)").eq("is_on_duty", true),
+        supabase.from("profiles").select("id,email,full_name,phone,role").order("created_at", { ascending: false }).limit(100),
+        supabase.from("merchants").select("id,name,owner_user_id,is_active").order("name"),
+        supabase.from("branches").select("id,name,address,city,is_active,merchant_id,merchants(name)").order("name"),
       ]);
-      const failed = [orderRows, courierRows].find((result) => result.error);
+      const failed = [orderRows, courierRows, profileRows, merchantRows, branchRows].find((result) => result.error);
       if (failed?.error) throw failed.error;
       setStats({
         orders: orderCount.count ?? 0,
@@ -55,6 +69,10 @@ export default function AdminHome() {
       });
       setOrders((orderRows.data ?? []) as Row[]);
       setCouriers((courierRows.data ?? []) as Row[]);
+      setProfiles((profileRows.data ?? []) as Row[]);
+      setMerchants((merchantRows.data ?? []) as Row[]);
+      setBranches((branchRows.data ?? []) as Row[]);
+      if (!selectedMerchantId && merchantRows.data?.length) setSelectedMerchantId(merchantRows.data[0].id);
     } catch {
       setError("تعذر تحميل لوحة التشغيل. تحقق من إعدادات Data API وصلاحيات المدير.");
     } finally {
@@ -101,6 +119,47 @@ export default function AdminHome() {
     });
     if (rpcError) setError("لم يتم إرسال عرض التوصيل. تحقق من حالة الطلب والمندوب.");
     if (user) await loadDashboard(user);
+    setBusy(false);
+  }
+
+  async function onboardUser() {
+    if (!user || !selectedProfileId) { setError("اختر حساباً أولاً."); return; }
+    setBusy(true); setError("");
+    const { error: rpcError } = await supabase.rpc("admin_onboard_user", {
+      p_user_id: selectedProfileId,
+      p_role: onboardRole,
+      p_business_name: onboardRole === "merchant" ? businessName.trim() : null,
+      p_phone: businessPhone.trim() || null,
+    });
+    if (rpcError) setError("تعذر اعتماد الحساب. تحقق من الاسم والصلاحيات.");
+    else { setBusinessName(""); setBusinessPhone(""); }
+    await loadDashboard(user);
+    setBusy(false);
+  }
+
+  async function createBranch() {
+    if (!user || !selectedMerchantId) { setError("اختر تاجراً أولاً."); return; }
+    setBusy(true); setError("");
+    const { error: rpcError } = await supabase.rpc("admin_create_branch", {
+      p_merchant_id: selectedMerchantId,
+      p_name: branchName.trim(),
+      p_address: branchAddress.trim(),
+      p_city: branchCity.trim() || "Rabat",
+    });
+    if (rpcError) setError("تعذر إنشاء الفرع. تحقق من البيانات.");
+    else { setBranchName(""); setBranchAddress(""); }
+    await loadDashboard(user);
+    setBusy(false);
+  }
+
+  async function setBranchActive(branchId: string, active: boolean) {
+    if (!user) return;
+    setBusy(true); setError("");
+    const { error: rpcError } = await supabase.rpc("admin_set_branch_active", {
+      p_branch_id: branchId, p_active: active,
+    });
+    if (rpcError) setError("تعذر تغيير حالة الفرع.");
+    await loadDashboard(user);
     setBusy(false);
   }
 
@@ -165,6 +224,50 @@ export default function AdminHome() {
         </article>)}
       </section>
       <section style={panelStyle}>
+        <h2 style={{ marginTop: 0 }}>اعتماد حساب تاجر أو مندوب</h2>
+        <p style={{ color: "#64748b" }}>يسجل الشخص حسابه أولاً من تطبيق JIB، ثم تختار حسابه هنا لاعتماده.</p>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 10 }}>
+          <select value={selectedProfileId} onChange={(e) => setSelectedProfileId(e.target.value)} style={fieldStyle}>
+            <option value="">اختر حساباً مسجلاً</option>
+            {profiles.filter((p) => p.role === "customer").map((p) => (
+              <option key={String(p.id)} value={String(p.id)}>{String(p.full_name || p.email || p.phone || p.id)}</option>
+            ))}
+          </select>
+          <select value={onboardRole} onChange={(e) => setOnboardRole(e.target.value as "merchant" | "courier")} style={fieldStyle}>
+            <option value="merchant">تاجر</option>
+            <option value="courier">مندوب توصيل</option>
+          </select>
+          {onboardRole === "merchant" && <input value={businessName} onChange={(e) => setBusinessName(e.target.value)} placeholder="اسم المتجر" style={fieldStyle} />}
+          <input value={businessPhone} onChange={(e) => setBusinessPhone(e.target.value)} placeholder="رقم الهاتف" style={fieldStyle} />
+        </div>
+        <button disabled={busy || !selectedProfileId} onClick={onboardUser} style={{ ...buttonStyle, marginTop: 12 }}>اعتماد الحساب</button>
+        <p style={{ color: "#64748b", fontSize: 13 }}>اعتماد المندوب ينشئ ملف المندوب مع إيقاف التوفر افتراضياً. اعتماد التاجر ينشئ سجله غير النشط حتى إضافة فرع ومراجعته.</p>
+      </section>
+      <section style={panelStyle}>
+        <h2 style={{ marginTop: 0 }}>إنشاء فرع للمتجر</h2>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 10 }}>
+          <select value={selectedMerchantId} onChange={(e) => setSelectedMerchantId(e.target.value)} style={fieldStyle}>
+            <option value="">اختر المتجر</option>
+            {merchants.map((m) => <option key={String(m.id)} value={String(m.id)}>{String(m.name)}{m.is_active ? "" : " — غير نشط"}</option>)}
+          </select>
+          <input value={branchName} onChange={(e) => setBranchName(e.target.value)} placeholder="اسم الفرع" style={fieldStyle} />
+          <input value={branchAddress} onChange={(e) => setBranchAddress(e.target.value)} placeholder="عنوان الفرع" style={fieldStyle} />
+          <input value={branchCity} onChange={(e) => setBranchCity(e.target.value)} placeholder="المدينة" style={fieldStyle} />
+        </div>
+        <button disabled={busy || !selectedMerchantId} onClick={createBranch} style={{ ...buttonStyle, marginTop: 12 }}>إنشاء الفرع</button>
+        <div style={{ marginTop: 14 }}>
+          {branches.map((b) => {
+            const merchant = b.merchants as { name?: string } | undefined;
+            return <div key={String(b.id)} style={{ borderTop: "1px solid #e5e7eb", padding: "10px 0", display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+              <span>{String(b.name)} — {merchant?.name || "متجر"} — {String(b.address)} — {b.is_active ? "نشط" : "غير منشور"}</span>
+              <button disabled={busy} onClick={() => setBranchActive(String(b.id), !Boolean(b.is_active))} style={secondaryButton}>
+                {b.is_active ? "إيقاف النشر" : "تفعيل الفرع"}
+              </button>
+            </div>;
+          })}
+        </div>
+      </section>
+      <section style={panelStyle}>
         <h2 style={{ marginTop: 0 }}>الطلبات ومراحل التنفيذ</h2>
         {orders.length === 0 && <p style={{ color: "#64748b" }}>لا توجد طلبات حتى الآن.</p>}
         {orders.map((order) => {
@@ -201,7 +304,7 @@ export default function AdminHome() {
 }
 
 const fieldStyle: CSSProperties = { width: "100%", boxSizing: "border-box", padding: 13, border: "1px solid #cbd5e1", borderRadius: 10, fontSize: 16 };
-const buttonStyle: React.CSSProperties = { padding: "13px 16px", border: 0, borderRadius: 10, background: "#172554", color: "white", fontWeight: 700, cursor: "pointer" };
-const secondaryButton: React.CSSProperties = { padding: "9px 12px", border: "1px solid #cbd5e1", borderRadius: 9, background: "white", color: "#172554", cursor: "pointer" };
-const tileStyle: React.CSSProperties = { background: "white", border: "1px solid #e5e7eb", borderRadius: 14, padding: 16 };
-const panelStyle: React.CSSProperties = { background: "white", border: "1px solid #e5e7eb", borderRadius: 16, padding: 20, marginTop: 18 };
+const buttonStyle: CSSProperties = { padding: "13px 16px", border: 0, borderRadius: 10, background: "#172554", color: "white", fontWeight: 700, cursor: "pointer" };
+const secondaryButton: CSSProperties = { padding: "9px 12px", border: "1px solid #cbd5e1", borderRadius: 9, background: "white", color: "#172554", cursor: "pointer" };
+const tileStyle: CSSProperties = { background: "white", border: "1px solid #e5e7eb", borderRadius: 14, padding: 16 };
+const panelStyle: CSSProperties = { background: "white", border: "1px solid #e5e7eb", borderRadius: 16, padding: 20, marginTop: 18 };
