@@ -135,6 +135,21 @@ export default function AdminHome() {
     setBusy(false);
   }
 
+  async function resetOwnerPassword() {
+    const target = email.trim().toLowerCase();
+    if (target !== OWNER_EMAIL) {
+      setError("استعادة كلمة المرور متاحة لبريد مالك JIB المعتمد فقط.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(target);
+    setError(resetError
+      ? "تعذر إرسال رابط الاستعادة. تحقق من إعدادات البريد الإلكتروني في Supabase."
+      : "إذا كان الحساب مسجلاً، فسيصلك رابط استعادة كلمة المرور. افحص مجلد الرسائل غير المرغوب فيها أيضاً.");
+    setBusy(false);
+  }
+
   async function signIn(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
@@ -225,8 +240,8 @@ export default function AdminHome() {
     return (
       <main style={loginShellStyle}>
         <section style={loginCardStyle}>
-          <div style={brandMarkStyle}><span style={{ color: "#00A651" }}>★</span><span style={{ color: "#FFFFFF" }}>JIB</span><span style={{ fontSize: 22 }}>🛵</span></div>
-          <p style={{ color: "#B9C7BE", margin: "0 0 8px", letterSpacing: 2, fontSize: 12 }}>JIB · RABAT · MOROCCO</p>
+          <div style={brandMarkStyle}><span style={{ color: "#D7B45A" }}>★</span><span style={{ color: "#FFFFFF" }}>JIB</span><span style={{ fontSize: 22 }}>🛵</span></div>
+          <p style={{ color: "#B9C7BE", margin: "0 0 8px", letterSpacing: 2, fontSize: 12 }}>JIB SIGNATURE · RABAT · MOROCCO</p>
           <h1 style={{ fontSize: 28, color: "#FFFFFF", margin: "0 0 8px" }}>{registerMode ? "تفعيل حساب المالك" : "مركز قيادة JIB"}</h1>
           <p style={{ color: "#D2DAD4", lineHeight: 1.8, marginTop: 0 }}>{registerMode ? "أنشئ حساب الإدارة الأول بالبريد المعتمد. لا يمكن لأي بريد آخر الحصول على صلاحية المالك." : "إدارة الطلبات والتجار والفروع والمنتجات والتوصيل من مكان واحد."}</p>
           {registerMode ? (
@@ -242,7 +257,8 @@ export default function AdminHome() {
               <input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="البريد الإلكتروني" style={fieldStyle} />
               <input required type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="كلمة المرور" style={fieldStyle} />
               <button disabled={busy} style={buttonStyle}>{busy ? "جارٍ الدخول..." : "تسجيل الدخول"}</button>
-              <button type="button" onClick={() => { setRegisterMode(true); setEmail(OWNER_EMAIL); setError(""); }} style={secondaryButton}>إنشاء / تفعيل حساب المالك لأول مرة</button>
+              <button type="button" disabled={busy} onClick={resetOwnerPassword} style={secondaryButton}>نسيت كلمة المرور؟ أرسل رابط الاستعادة</button>
+              <button type="button" onClick={() => { setRegisterMode(true); setEmail(OWNER_EMAIL); setError(""); }} style={secondaryButton}>إنشاء حساب المالك لأول مرة</button>
             </form>
           )}
           {error && <p style={authMessageStyle}>{error}</p>}
@@ -261,7 +277,7 @@ export default function AdminHome() {
     <main style={{ maxWidth: 1180, margin: "0 auto", padding: 24 }}>
       <header style={dashboardHeaderStyle}>
         <div>
-          <div style={brandMarkSmallStyle}><span style={{ color: "#00A651" }}>★</span><span style={{ color: "#FFFFFF" }}>JIB</span><span style={{ fontSize: 16 }}>🛵</span></div>
+          <div style={brandMarkSmallStyle}><span style={{ color: "#D7B45A" }}>★</span><span style={{ color: "#FFFFFF" }}>JIB</span><span style={{ fontSize: 16 }}>🛵</span></div>
           <p style={{ color: "#D2DAD4", margin: "8px 0 6px" }}>JIB V2 · مساحة تشغيل داخلية</p>
           <h1 style={{ margin: 0, fontSize: 30, color: "#FFFFFF" }}>لوحة قيادة جيب</h1>
         </div>
@@ -358,13 +374,13 @@ export default function AdminHome() {
 }
 
 const fieldStyle: CSSProperties = { width: "100%", boxSizing: "border-box", padding: 13, border: "1px solid #D8E2DC", borderRadius: 10, fontSize: 16, background: "#FFFFFF", color: "#111111" };
-const buttonStyle: CSSProperties = { padding: "13px 16px", border: "1px solid #D71920", borderRadius: 10, background: "#D71920", color: "#FFFFFF", fontWeight: 800, cursor: "pointer" };
-const secondaryButton: CSSProperties = { padding: "9px 12px", border: "1px solid #006B3F", borderRadius: 9, background: "#FFFFFF", color: "#006B3F", cursor: "pointer", fontWeight: 700 };
-const tileStyle: CSSProperties = { background: "#FFFFFF", border: "1px solid #D8E2DC", borderTop: "3px solid #D71920", borderRadius: 14, padding: 16, boxShadow: "0 6px 20px rgba(12,40,24,.05)" };
+const buttonStyle: CSSProperties = { padding: "13px 16px", border: "1px solid #E31E24", borderRadius: 10, background: "#E31E24", color: "#FFFFFF", fontWeight: 800, cursor: "pointer" };
+const secondaryButton: CSSProperties = { padding: "9px 12px", border: "1px solid #00843D", borderRadius: 9, background: "#FFFFFF", color: "#00843D", cursor: "pointer", fontWeight: 700 };
+const tileStyle: CSSProperties = { background: "#FFFFFF", border: "1px solid #D8E2DC", borderTop: "3px solid #E31E24", borderRadius: 14, padding: 16, boxShadow: "0 6px 20px rgba(12,40,24,.05)" };
 const panelStyle: CSSProperties = { background: "#FFFFFF", border: "1px solid #D8E2DC", borderRadius: 16, padding: 20, marginTop: 18, boxShadow: "0 8px 24px rgba(12,40,24,.04)" };
-const loginShellStyle: CSSProperties = { minHeight: "100vh", display: "grid", placeItems: "center", padding: 24, boxSizing: "border-box", background: "radial-gradient(circle at 15% 15%, #006B3F 0, #101612 38%, #080A09 100%)" };
-const loginCardStyle: CSSProperties = { width: "100%", maxWidth: 440, boxSizing: "border-box", padding: 30, borderRadius: 22, border: "1px solid rgba(0,166,81,.7)", background: "linear-gradient(160deg, rgba(15,27,20,.99), rgba(8,12,10,.99))", boxShadow: "0 24px 80px rgba(0,0,0,.35)" };
-const brandMarkStyle: CSSProperties = { display: "inline-flex", alignItems: "center", gap: 5, fontSize: 42, fontWeight: 950, letterSpacing: -3, marginBottom: 16, borderBottom: "3px solid #D71920", paddingBottom: 4 };
-const brandMarkSmallStyle: CSSProperties = { display: "inline-flex", alignItems: "center", gap: 4, fontSize: 28, fontWeight: 950, letterSpacing: -2, borderBottom: "2px solid #D71920", paddingBottom: 2 };
-const dashboardHeaderStyle: CSSProperties = { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, flexWrap: "wrap", padding: 24, borderRadius: 20, background: "linear-gradient(110deg, #101612, #006B3F 72%, #101612)", border: "1px solid #D71920", boxShadow: "0 12px 30px rgba(12,38,26,.14)" };
-const authMessageStyle: CSSProperties = { color: "#FFE7E7", background: "rgba(215,25,32,.22)", border: "1px solid rgba(215,25,32,.55)", padding: 12, borderRadius: 10, lineHeight: 1.7 };
+const loginShellStyle: CSSProperties = { minHeight: "100vh", display: "grid", placeItems: "center", padding: 24, boxSizing: "border-box", background: "radial-gradient(circle at 15% 15%, #00843D 0, #101612 38%, #080A09 100%)" };
+const loginCardStyle: CSSProperties = { width: "100%", maxWidth: 440, boxSizing: "border-box", padding: 30, borderRadius: 22, border: "1px solid rgba(215,180,90,.7)", background: "linear-gradient(160deg, rgba(15,27,20,.99), rgba(8,12,10,.99))", boxShadow: "0 24px 80px rgba(0,0,0,.35)" };
+const brandMarkStyle: CSSProperties = { display: "inline-flex", alignItems: "center", gap: 5, fontSize: 42, fontWeight: 950, letterSpacing: -3, marginBottom: 16, borderBottom: "3px solid #E31E24", paddingBottom: 4 };
+const brandMarkSmallStyle: CSSProperties = { display: "inline-flex", alignItems: "center", gap: 4, fontSize: 28, fontWeight: 950, letterSpacing: -2, borderBottom: "2px solid #E31E24", paddingBottom: 2 };
+const dashboardHeaderStyle: CSSProperties = { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, flexWrap: "wrap", padding: 24, borderRadius: 20, background: "linear-gradient(110deg, #101612, #00843D 72%, #101612)", border: "1px solid #E31E24", boxShadow: "0 12px 30px rgba(12,38,26,.14)" };
+const authMessageStyle: CSSProperties = { color: "#FFE7E7", background: "rgba(227,30,36,.22)", border: "1px solid rgba(227,30,36,.55)", padding: 12, borderRadius: 10, lineHeight: 1.7 };
