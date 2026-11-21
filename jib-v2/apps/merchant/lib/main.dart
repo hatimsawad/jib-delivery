@@ -198,14 +198,16 @@ class _MerchantHomeState extends State<MerchantHome> {
 
   Widget _workspace() {
     if (_busy && _merchant == null) return const Center(child: CircularProgressIndicator());
-    if (_merchant == null) return ListView(padding: const EdgeInsets.all(22), children: [
+    if (_merchant == null) {
+      return ListView(padding: const EdgeInsets.all(22), children: [
       const Icon(Icons.store_mall_directory_outlined, size: 52),
       const SizedBox(height: 12),
-      const Text('هذا الحساب غير مرتبط بمتجر نشط في JIB بعد.', textAlign: TextAlign.center),
+      const Text('هذا الحساب غير مرتبط بسجل تاجر في JIB بعد.', textAlign: TextAlign.center),
       const SizedBox(height: 8),
       const Text('يجب على الإدارة اعتماد هذا الحساب كتاجر وإنشاء سجله أولاً.', textAlign: TextAlign.center),
       if (_error != null) _errorPanel(),
-    ]);
+      ]);
+    }
     return RefreshIndicator(onRefresh: _loadWorkspace, child: ListView(padding: const EdgeInsets.all(16), children: [
       Text('مرحباً، ${_merchant!['name']}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
       const SizedBox(height: 8),
@@ -216,7 +218,7 @@ class _MerchantHomeState extends State<MerchantHome> {
         const Card(child: Padding(padding: EdgeInsets.all(14), child: Text('لم تنشئ الإدارة فرعاً لهذا المتجر بعد.')))
       else ...[
         DropdownButtonFormField<String>(
-          value: _selectedBranchId,
+          initialValue: _selectedBranchId,
           decoration: const InputDecoration(labelText: 'اختر الفرع', border: OutlineInputBorder()),
           items: _branches.map((b) => DropdownMenuItem<String>(
             value: b['id'] as String,
@@ -226,7 +228,7 @@ class _MerchantHomeState extends State<MerchantHome> {
         ),
         const SizedBox(height: 10),
         DropdownButtonFormField<String>(
-          value: _selectedProductId,
+          initialValue: _selectedProductId,
           decoration: const InputDecoration(labelText: 'اختر منتجاً من كتالوج JIB', border: OutlineInputBorder()),
           items: _catalogProducts.map((p) => DropdownMenuItem<String>(
             value: p['id'] as String, child: Text(p['name'] as String),
