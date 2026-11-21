@@ -8,6 +8,11 @@ const supabase = createClient(
   "https://ldgbyshgcifheditplnn.supabase.co",
   "sb_publishable_wvNMRZTBFX4viI2ypcdWjQ_YBqgi_TV",
 );
+const legacySupabase = createClient(
+  "https://emvleaghjsmzjmzgguvu.supabase.co",
+  "sb_publishable_6rD4poWuBH0TzK2HBFQFTg_4wOFnsX6",
+  { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } },
+);
 
 type Row = Record<string, unknown>;
 type Stats = { orders: number; merchants: number; couriers: number; brands: number; products: number };
@@ -18,6 +23,8 @@ export default function AdminHome() {
   const [email, setEmail] = useState(OWNER_EMAIL);
   const [fullName, setFullName] = useState("");
   const [registerMode, setRegisterMode] = useState(false);
+  const [migrationMode, setMigrationMode] = useState(false);
+  const [legacyPassword, setLegacyPassword] = useState("");
   const [password, setPassword] = useState("");
   const [stats, setStats] = useState<Stats>({ orders: 0, merchants: 0, couriers: 0, brands: 0, products: 0 });
   const [orders, setOrders] = useState<Row[]>([]);
@@ -150,6 +157,68 @@ export default function AdminHome() {
     setBusy(false);
   }
 
+  async function migratePreviousOwner(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (email.trim().toLowerCase() !== OWNER_EMAIL || legacyPassword.length < 8) {
+      setError("استخدم بريد المالك وكلمة مرور حساب JIB السابق.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    const oldLogin = await legacySupabase.auth.signInWithPassword({
+      email: OWNER_EMAIL,
+      password: legacyPassword,
+    });
+    if (oldLogin.error || !oldLogin.data.session) {
+      setError("تعذر التحقق من الحساب السابق. تأكد من كلمة مروره في نظام JIB القديم.");
+      setBusy(false);
+      return;
+    }
+
+    let newSession = supabase.auth.currentSession;
+    if (!newSession) {
+      const newLogin = await supabase.auth.signInWithPassword({
+        email: OWNER_EMAIL,
+        password: legacyPassword,
+      });
+      if (!newLogin.error && newLogin.data.session) {
+        newSession = newLogin.data.session;
+      } else {
+        const newSignup = await supabase.auth.signUp({
+          email: OWNER_EMAIL,
+          password: legacyPassword,
+          options: { data: { full_name: fullName.trim() || "JIB Owner" } },
+        });
+        if (newSignup.error) {
+          setError("تعذر إنشاء حساب JIB V2. إذا كان الحساب موجوداً بكلمة مرور مختلفة، استعمل «نسيت كلمة المرور» أولاً. " + newSignup.error.message);
+          setBusy(false);
+          return;
+        }
+        if (!newSignup.data.session) {
+          setError("تم إنشاء حساب JIB V2 بنفس البريد. افتح رسالة تأكيد البريد الإلكتروني، ثم ارجع إلى هذه اللوحة وسجّل الدخول، وبعدها أعد خطوة اعتماد الحساب السابق.");
+          setBusy(false);
+          return;
+        }
+        newSession = newSignup.data.session;
+      }
+    }
+
+    const { data: migrationData, error: migrationError } = await supabase.functions.invoke("migrate-owner-admin", {
+      body: { legacyAccessToken: oldLogin.data.session.access_token },
+    });
+    if (migrationError || !migrationData?.ok) {
+      setError("تم تسجيل الدخول، لكن تعذر اعتماد صلاحية المالك. " + (migrationError?.message ?? ""));
+      setBusy(false);
+      return;
+    }
+    setLegacyPassword("");
+    if (newSession.user) {
+      setUser(newSession.user);
+      await loadDashboard(newSession.user);
+    }
+    setBusy(false);
+  }
+
   async function signIn(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
@@ -242,9 +311,17 @@ export default function AdminHome() {
         <section style={loginCardStyle}>
           <div style={brandMarkStyle}><span style={{ color: "#D7B45A" }}>★</span><span style={{ color: "#FFFFFF" }}>JIB</span><span style={{ fontSize: 22 }}>🛵</span></div>
           <p style={{ color: "#B9C7BE", margin: "0 0 8px", letterSpacing: 2, fontSize: 12 }}>JIB SIGNATURE · RABAT · MOROCCO</p>
-          <h1 style={{ fontSize: 28, color: "#FFFFFF", margin: "0 0 8px" }}>{registerMode ? "تفعيل حساب المالك" : "مركز قيادة JIB"}</h1>
-          <p style={{ color: "#D2DAD4", lineHeight: 1.8, marginTop: 0 }}>{registerMode ? "أنشئ حساب الإدارة الأول بالبريد المعتمد. لا يمكن لأي بريد آخر الحصول على صلاحية المالك." : "إدارة الطلبات والتجار والفروع والمنتجات والتوصيل من مكان واحد."}</p>
-          {registerMode ? (
+          <h1 style={{ fontSize: 28, color: "#FFFFFF", margin: "0 0 8px" }}>{migrationMode ? "اعتماد حساب المالك السابق" : registerMode ? "تفعيل حساب المالك" : "مركز قيادة JIB"}</h1>
+          <p style={{ color: "#D2DAD4", lineHeight: 1.8, marginTop: 0 }}>{migrationMode ? "تحقق من حسابك القديم أولاً، ثم نمنح حساب JIB V2 الجديد صلاحية المالك دون نقل بيانات الطلبات أو التجار." : registerMode ? "أنشئ حساب الإدارة الأول بالبريد المعتمد. لا يمكن لأي بريد آخر الحصول على صلاحية المالك." : "إدارة الطلبات والتجار والفروع والمنتجات والتوصيل من مكان واحد."}</p>
+          {migrationMode ? (
+            <form onSubmit={migratePreviousOwner} style={{ display: "grid", gap: 12 }}>
+              <input type="email" value={OWNER_EMAIL} readOnly style={{ ...fieldStyle, background: "#F0F0EA", color: "#34463B" }} />
+              <input required type="password" minLength={8} value={legacyPassword} onChange={(e) => setLegacyPassword(e.target.value)} placeholder="كلمة مرور حساب JIB السابق" style={fieldStyle} autoComplete="current-password" />
+              <button disabled={busy} style={buttonStyle}>{busy ? "جارٍ التحقق والاعتماد..." : "التحقق من الحساب السابق واعتماد المالك"}</button>
+              <button type="button" disabled={busy} onClick={() => { setMigrationMode(false); setError(""); }} style={secondaryButton}>العودة إلى تسجيل الدخول</button>
+              <p style={{ color: "#D2DAD4", fontSize: 12, lineHeight: 1.7 }}>لا تُرسل كلمة المرور إلى فريق الدعم. تُستخدم لتسجيل الدخول مباشرة إلى النظامين، بينما يتحقق الخادم من صلاحية المدير في الحساب القديم.</p>
+            </form>
+          ) : registerMode ? (
             <form onSubmit={registerOwner} style={{ display: "grid", gap: 12 }}>
               <input required value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="الاسم الكامل" style={fieldStyle} />
               <input required type="email" value={OWNER_EMAIL} readOnly style={{ ...fieldStyle, background: "#F0F0EA", color: "#34463B" }} />
@@ -259,6 +336,7 @@ export default function AdminHome() {
               <button disabled={busy} style={buttonStyle}>{busy ? "جارٍ الدخول..." : "تسجيل الدخول"}</button>
               <button type="button" disabled={busy} onClick={resetOwnerPassword} style={secondaryButton}>نسيت كلمة المرور؟ أرسل رابط الاستعادة</button>
               <button type="button" onClick={() => { setRegisterMode(true); setEmail(OWNER_EMAIL); setError(""); }} style={secondaryButton}>إنشاء حساب المالك لأول مرة</button>
+              <button type="button" onClick={() => { setMigrationMode(true); setRegisterMode(false); setEmail(OWNER_EMAIL); setError(""); }} style={secondaryButton}>اعتماد حسابي السابق في JIB</button>
             </form>
           )}
           {error && <p style={authMessageStyle}>{error}</p>}
