@@ -713,50 +713,84 @@ class _CustomerHomeState extends State<CustomerHome> {
   );
 
   Future<void> _openBrand(Map<String, dynamic> brand) async {
+    final brandId = brand['id']?.toString() ?? '';
     final brandName = brand['name']?.toString() ?? 'العلامة التجارية';
     final category = brand['category']?.toString() ?? '';
     await showModalBottomSheet<void>(
-      context: context,
-      useSafeArea: true,
-      isScrollControlled: false,
+      context: context, isScrollControlled: true, useSafeArea: true,
       builder: (sheetContext) => Directionality(
         textDirection: TextDirection.rtl,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(22, 22, 22, 28),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(children: [
-                const Icon(Icons.storefront_rounded, color: jibGreen, size: 26),
+        child: SizedBox(
+          height: MediaQuery.of(sheetContext).size.height * .86,
+          child: Column(children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 18, 18, 12),
+              child: Row(children: [
+                const Icon(Icons.storefront_rounded, color: jibGreen, size: 27),
                 const SizedBox(width: 10),
-                Expanded(child: Text(brandName,
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900))),
-                IconButton(onPressed: () => Navigator.pop(sheetContext),
-                  icon: const Icon(Icons.close)),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(brandName, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+                  if (category.isNotEmpty) Text(category, style: const TextStyle(color: Color(0xFF77716C), fontSize: 11)),
+                ])),
+                IconButton(onPressed: () => Navigator.pop(sheetContext), icon: const Icon(Icons.close)),
               ]),
-              if (category.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Text(category, style: const TextStyle(color: Color(0xFF77716C), fontSize: 12)),
-              ],
-              const SizedBox(height: 16),
-              const Text(
-                'هذه العلامة موجودة في دليل JIB. تُدار المنتجات والأسعار والتوفر من طرف JIB، وستظهر للطلب عندما يتم اعتمادها.',
-                style: TextStyle(fontSize: 13, height: 1.6, color: Color(0xFF55514C)),
-              ),
-              const SizedBox(height: 18),
-              FilledButton(
-                onPressed: () => Navigator.pop(sheetContext),
-                style: FilledButton.styleFrom(backgroundColor: jibGreen),
-                child: const Text('حسناً'),
-              ),
-            ],
-          ),
+            ),
+            Container(
+              margin: const EdgeInsets.fromLTRB(16, 0, 16, 12), padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: const Color(0xFFFFF8EA), borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFFE7D3A7))),
+              child: const Row(children: [
+                Icon(Icons.info_outline, color: Color(0xFF9B7937), size: 20), SizedBox(width: 8),
+                Expanded(child: Text('هذه منتجات من كتالوج العلامة. الأسعار المرجعية والتوفر يحتاجان تأكيد الفرع قبل قبول الطلب.', style: TextStyle(fontSize: 11, height: 1.5, fontWeight: FontWeight.w700))),
+              ]),
+            ),
+            Expanded(child: FutureBuilder<List<Map<String, dynamic>>>(
+              future: supabase.from('commercial_brand_product_templates')
+                .select('id,name,category,official_source_url,price_mad,status,notes')
+                .eq('brand_id', brandId).not('official_source_url', 'is', null).order('name')
+                .then((rows) => List<Map<String, dynamic>>.from(rows)),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+                if (snapshot.hasError) return const Center(child: Padding(padding: EdgeInsets.all(22), child: Text('تعذر تحميل كتالوج هذه العلامة حالياً. حاول مجدداً لاحقاً.')));
+                final products = snapshot.data ?? [];
+                if (products.isEmpty) return Center(child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    const Icon(Icons.inventory_2_outlined, size: 42, color: Color(0xFF9A8F87)),
+                    const SizedBox(height: 10),
+                    Text('كتالوج ' + brandName + ' قيد الإعداد', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+                    const SizedBox(height: 6),
+                    const Text('ستظهر المنتجات بعد توثيقها من مصادرها وإضافة بياناتها الصحيحة.', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF77716C), height: 1.5)),
+                  ]),
+                ));
+                return ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 24), itemCount: products.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                  itemBuilder: (context, index) {
+                    final product = products[index]; final price = product['price_mad'];
+                    final priceLabel = price == null ? 'السعر غير محدد بعد' : 'سعر مرجعي: ' + price.toString() + ' د.م';
+                    return Card(child: Padding(
+                      padding: const EdgeInsets.all(13),
+                      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Container(width: 54, height: 54, decoration: BoxDecoration(color: const Color(0xFFF5F4F1), borderRadius: BorderRadius.circular(13)), child: const Icon(Icons.shopping_bag_outlined, color: jibGreen, size: 27)),
+                        const SizedBox(width: 12),
+                        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Text(product['name']?.toString() ?? '', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
+                          if ((product['category']?.toString() ?? '').isNotEmpty) Padding(padding: const EdgeInsets.only(top: 3), child: Text(product['category'].toString(), style: const TextStyle(color: Color(0xFF77716C), fontSize: 10))),
+                          const SizedBox(height: 5),
+                          Text(priceLabel, style: TextStyle(color: price == null ? const Color(0xFF77716C) : jibGreen, fontSize: 11, fontWeight: FontWeight.w900)),
+                          if ((product['official_source_url']?.toString() ?? '').isNotEmpty) const Padding(padding: EdgeInsets.only(top: 3), child: Text('مصدر المنتج مسجل لدى JIB', style: TextStyle(color: Color(0xFF8A8179), fontSize: 9))),
+                        ])),
+                      ]),
+                    ));
+                  },
+                );
+              },
+            )),
+          ]),
         ),
       ),
     );
   }
-
   String _statusLabel(String status) => const {
     'pending': 'في انتظار تأكيد المتجر', 'accepted': 'تم قبول الطلب', 'rejected': 'تم رفض الطلب',
     'preparing': 'قيد التحضير', 'ready_for_pickup': 'جاهز للتوصيل', 'picked_up': 'استلمه الموصّل',
