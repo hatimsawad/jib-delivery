@@ -98,7 +98,9 @@ class _MerchantHomeState extends State<MerchantHome> {
       setState(() {
         _merchant = merchant; _orders = orders; _branches = branchList;
         _catalogProducts = productList; _selectedBranchId = selected; _branchProducts = inventory;
-        if (_selectedProductId == null && productList.isNotEmpty) _selectedProductId = productList.first['id'] as String;
+        if (_selectedProductId == null && productList.isNotEmpty) {
+          _selectedProductId = productList.first['id'] as String;
+        }
       });
     } catch (e) {
       setState(() => _error = 'تعذر تحميل طلبات المتجر. تحقق من صلاحيات الحساب.');
