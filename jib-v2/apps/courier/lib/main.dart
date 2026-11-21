@@ -29,6 +29,10 @@ class CourierHome extends StatefulWidget {
 class _CourierHomeState extends State<CourierHome> {
   final _email = TextEditingController();
   final _password = TextEditingController();
+  final _fullName = TextEditingController();
+  final _phone = TextEditingController();
+  bool _register = false;
+  String? _notice;
   bool _busy = false;
   bool _onDuty = false;
   String? _error;
@@ -47,6 +51,34 @@ class _CourierHomeState extends State<CourierHome> {
     } on AuthException catch (e) { setState(() => _error = e.message); }
     catch (e) { setState(() => _error = 'تعذر تسجيل الدخول.'); }
     finally { if (mounted) setState(() => _busy = false); }
+  }
+
+  Future<void> _signUp() async {
+    if (_fullName.text.trim().length < 2 || _phone.text.trim().length < 8 || _password.text.length < 8) {
+      setState(() => _error = 'أكمل الاسم ورقم الهاتف، واجعل كلمة المرور 8 أحرف على الأقل.');
+      return;
+    }
+    setState(() { _busy = true; _error = null; _notice = null; });
+    try {
+      final result = await _db.auth.signUp(
+        email: _email.text.trim(),
+        password: _password.text,
+        data: {
+          'full_name': _fullName.text.trim(),
+          'phone': _phone.text.trim(),
+          'requested_role': 'courier',
+        },
+      );
+      if (result.session != null) await _db.auth.signOut();
+      setState(() {
+        _notice = 'تم إنشاء طلب حساب المندوب. أكّد بريدك الإلكتروني، ثم انتظر اعتماد الإدارة قبل تسجيل الدخول.';
+        _register = false;
+      });
+    } on AuthException catch (e) {
+      setState(() => _error = e.message);
+    } catch (_) {
+      setState(() => _error = 'تعذر إنشاء الحساب. تحقق من البريد الإلكتروني والاتصال.');
+    } finally { if (mounted) setState(() => _busy = false); }
   }
 
   Future<void> _loadTasks() async {
@@ -99,7 +131,7 @@ class _CourierHomeState extends State<CourierHome> {
   }
 
   @override
-  void dispose() { _email.dispose(); _password.dispose(); super.dispose(); }
+  void dispose() { _email.dispose(); _password.dispose(); _fullName.dispose(); _phone.dispose(); super.dispose(); }
 
   @override
   Widget build(BuildContext context) => Directionality(
@@ -116,13 +148,23 @@ class _CourierHomeState extends State<CourierHome> {
   Widget _login() => ListView(padding: const EdgeInsets.all(22), children: [
     const Text('مساحة المندوب', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
     const SizedBox(height: 8),
-    const Text('سجّل الدخول بحساب مندوب اعتمده مدير JIB.'),
+    Text(_register ? 'أنشئ حساب مندوب. لن تستقبل طلبات حتى تعتمد الإدارة حسابك.' : 'سجّل الدخول بحساب مندوب اعتمده مدير JIB.'),
     const SizedBox(height: 20),
+    if (_register) ...[
+      TextField(controller: _fullName, decoration: const InputDecoration(labelText: 'الاسم الكامل')),
+      const SizedBox(height: 12),
+      TextField(controller: _phone, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'رقم الهاتف')),
+      const SizedBox(height: 12),
+    ],
     TextField(controller: _email, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'البريد الإلكتروني')),
     const SizedBox(height: 12),
-    TextField(controller: _password, obscureText: true, decoration: const InputDecoration(labelText: 'كلمة المرور')),
+    TextField(controller: _password, obscureText: true, decoration: const InputDecoration(labelText: 'كلمة المرور (8 أحرف على الأقل)')),
     const SizedBox(height: 16),
-    FilledButton(onPressed: _busy ? null : _signIn, child: Text(_busy ? 'جارٍ الدخول...' : 'تسجيل الدخول')),
+    FilledButton(onPressed: _busy ? null : (_register ? _signUp : _signIn),
+      child: Text(_busy ? 'جارٍ التنفيذ...' : (_register ? 'إنشاء طلب حساب مندوب' : 'تسجيل الدخول'))),
+    TextButton(onPressed: _busy ? null : () => setState(() { _register = !_register; _error = null; _notice = null; }),
+      child: Text(_register ? 'لدي حساب بالفعل — تسجيل الدخول' : 'إنشاء حساب مندوب جديد')),
+    if (_notice != null) Card(color: const Color(0xFFE7F0E8), child: Padding(padding: const EdgeInsets.all(12), child: Text(_notice!, style: const TextStyle(color: Color(0xFF145A3A))))),
     if (_error != null) Text(_error!, style: const TextStyle(color: Colors.red)),
   ]);
 
