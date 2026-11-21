@@ -1,5 +1,5 @@
 name: JIB Android test APKs
-# Rebuild all three preview APKs after the customer brand-catalog UI change.
+# Build all three preview APKs for the priced customer brand catalog.
 on:
   push:
     branches:
