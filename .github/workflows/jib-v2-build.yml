@@ -28,7 +28,7 @@ jobs:
       - name: Checkout full history
         uses: actions/checkout@v4
         with:
-          ref: jib-v2-bootstrap
+          persist-credentials: false
           fetch-depth: 0
       - name: Reject changes outside approved V2 paths
         shell: bash
@@ -59,7 +59,7 @@ jobs:
       - name: Checkout approved branch
         uses: actions/checkout@v4
         with:
-          ref: jib-v2-bootstrap
+          persist-credentials: false
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -101,7 +101,7 @@ jobs:
       - name: Checkout approved branch
         uses: actions/checkout@v4
         with:
-          ref: jib-v2-bootstrap
+          persist-credentials: false
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
