@@ -10,14 +10,37 @@ Future<void> main() async {
   runApp(const JibCustomerApp());
 }
 
+class _JibMark extends StatelessWidget {
+  const _JibMark({this.size = 48});
+  final double size;
+  @override
+  Widget build(BuildContext context) => Container(
+    width: size, height: size,
+    decoration: BoxDecoration(
+      color: const Color(0xFFD71920),
+      borderRadius: BorderRadius.circular(size * .23),
+      border: Border.all(color: const Color(0xFF006B3F), width: 2),
+      boxShadow: const [BoxShadow(color: Color(0x22000000), blurRadius: 7, offset: Offset(0, 3))],
+    ),
+    child: Stack(alignment: Alignment.center, children: [
+      Positioned(top: size * .01, right: size * .02,
+        child: Icon(Icons.star, color: const Color(0xFF00A651), size: size * .24)),
+      Positioned(top: size * .09,
+        child: Icon(Icons.delivery_dining, color: Colors.white, size: size * .62)),
+      Positioned(bottom: size * .015,
+        child: Text('JIB', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: size * .19, height: 1))),
+    ]),
+  );
+}
+
 class JibCustomerApp extends StatelessWidget {
   const JibCustomerApp({super.key});
   @override
   Widget build(BuildContext context) => MaterialApp(
     title: 'JIB', debugShowCheckedModeBanner: false,
     theme: ThemeData(
-      colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF145A3A), primary: const Color(0xFF145A3A), secondary: const Color(0xFFC5A45A), tertiary: const Color(0xFFB52B32)),
-      scaffoldBackgroundColor: const Color(0xFFF4F1E8), useMaterial3: true, fontFamily: 'Roboto',
+      colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFD71920), primary: const Color(0xFFD71920), secondary: const Color(0xFF006B3F), tertiary: const Color(0xFF006B3F)),
+      scaffoldBackgroundColor: const Color(0xFFF7F8F7), useMaterial3: true, fontFamily: 'Roboto',
     ),
     home: const CustomerHome(),
   );
@@ -239,7 +262,7 @@ class _CustomerHomeState extends State<CustomerHome> {
     textDirection:TextDirection.rtl,
     child:Scaffold(
       appBar:AppBar(
-        title:const Text('جيب JIB',style:TextStyle(fontWeight:FontWeight.w900)),
+        title:const Row(mainAxisSize:MainAxisSize.min,children:[_JibMark(size:38),SizedBox(width:9),Text('جيب JIB',style:TextStyle(fontWeight:FontWeight.w900))]),
         backgroundColor:Colors.white,surfaceTintColor:Colors.white,
         actions:[
           IconButton(onPressed:_loadPublicCatalog,icon:const Icon(Icons.refresh)),
@@ -249,8 +272,10 @@ class _CustomerHomeState extends State<CustomerHome> {
       body:ListView(padding:const EdgeInsets.fromLTRB(16,16,16,30),children:[
         Container(
           padding:const EdgeInsets.all(20),
-          decoration:BoxDecoration(gradient:const LinearGradient(colors:[Color(0xFF0D2B1D),Color(0xFF17613F)]),border:Border.all(color:const Color(0xFFC5A45A)),borderRadius:BorderRadius.circular(22)),
+          decoration:BoxDecoration(gradient:const LinearGradient(colors:[Color(0xFFD71920),Color(0xFF006B3F)]),border:Border.all(color:const Color(0xFF006B3F)),borderRadius:BorderRadius.circular(22)),
           child:const Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+            Row(children:[_JibMark(size:58),SizedBox(width:12),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('JIB',style:TextStyle(color:Colors.white,fontSize:24,fontWeight:FontWeight.w900)),Text('جيب · كلشي قريب ليك',style:TextStyle(color:Colors.white70,fontSize:13,fontWeight:FontWeight.w700))]))]),
+            SizedBox(height:16),
             Text('كل ما تحتاجه، يصلك لبابك',style:TextStyle(color:Colors.white,fontSize:22,fontWeight:FontWeight.w900)),
             SizedBox(height:8),
             Text('اكتشف العلامات والمتاجر والمنتجات في الرباط وتمارة',style:TextStyle(color:Color(0xFFDCE5FF))),
@@ -269,11 +294,11 @@ class _CustomerHomeState extends State<CustomerHome> {
         const SizedBox(height:8),
         Wrap(spacing:8,runSpacing:8,children:[
           ChoiceChip(label:const Text('الكل'),selected:_selectedCategory==null,onSelected:(_)=>setState(()=>_selectedCategory=null),
-            selectedColor:const Color(0xFFE8D9B2),labelStyle:const TextStyle(fontWeight:FontWeight.bold)),
+            selectedColor:const Color(0xFFE2F1E7),labelStyle:const TextStyle(fontWeight:FontWeight.bold)),
           ..._catalogCategories.map((category)=>ChoiceChip(
             label:Text(_categoryLabel(category)),selected:_selectedCategory==category,
             onSelected:(selected)=>setState(()=>_selectedCategory=selected?category:null),
-            selectedColor:const Color(0xFFE8D9B2),labelStyle:const TextStyle(fontWeight:FontWeight.bold),
+            selectedColor:const Color(0xFFE2F1E7),labelStyle:const TextStyle(fontWeight:FontWeight.bold),
           )),
         ]),
         const SizedBox(height:16),
@@ -289,18 +314,18 @@ class _CustomerHomeState extends State<CustomerHome> {
           final brand=_brands.where((b)=>b['id']==p['brand_id']).toList();
           return SizedBox(width:(MediaQuery.of(context).size.width-54)/2,child:Card(
             elevation:0,color:Colors.white,clipBehavior:Clip.antiAlias,
-            shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(15),side:const BorderSide(color:Color(0xFFE5DDC9))),
+            shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(15),side:const BorderSide(color:Color(0xFFD7E2DA))),
             child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-              Container(height:112,width:double.infinity,color:const Color(0xFFF4F1E8),
+              Container(height:112,width:double.infinity,color:const Color(0xFFF7F8F7),
                 child:image==null||image.isEmpty
-                  ?const Icon(Icons.inventory_2_outlined,size:38,color:Color(0xFFC5A45A))
-                  :Image.network(image,fit:BoxFit.contain,errorBuilder:(_,_,_)=>const Icon(Icons.inventory_2_outlined,size:38,color:Color(0xFFC5A45A)))),
+                  ?const Icon(Icons.inventory_2_outlined,size:38,color:Color(0xFF006B3F))
+                  :Image.network(image,fit:BoxFit.contain,errorBuilder:(_,_,_)=>const Icon(Icons.inventory_2_outlined,size:38,color:Color(0xFF006B3F)))),
               Padding(padding:const EdgeInsets.all(10),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
                 Text(p['name'] as String,maxLines:2,overflow:TextOverflow.ellipsis,style:const TextStyle(fontWeight:FontWeight.w800)),
                 const SizedBox(height:5),
                 Text(brand.isEmpty?'JIB':brand.first['name'] as String,maxLines:1,overflow:TextOverflow.ellipsis,style:const TextStyle(fontSize:11,color:Color(0xFF65736A))),
                 const SizedBox(height:6),
-                Text(price==null?'السعر المرجعي غير متوفر':'${(price as num).toStringAsFixed(2)} درهم',style:const TextStyle(color:Color(0xFF145A3A),fontWeight:FontWeight.w900)),
+                Text(price==null?'السعر المرجعي غير متوفر':'${(price as num).toStringAsFixed(2)} درهم',style:const TextStyle(color:Color(0xFF006B3F),fontWeight:FontWeight.w900)),
                 const Text('السعر النهائي حسب الفرع',style:TextStyle(fontSize:10,color:Color(0xFF7B817B))),
               ])),
             ]),
@@ -317,12 +342,12 @@ class _CustomerHomeState extends State<CustomerHome> {
               final logo=(b['logo_url'] as String?)?.trim();
               return Card(elevation:0,color:selected?const Color(0xFFE7F0E8):Colors.white,child:ListTile(
                 onTap:()=>setState(()=>_selectedBrand=selected?null:b['id'] as String),
-                leading:CircleAvatar(backgroundColor:const Color(0xFF145A3A),child:logo==null||logo.isEmpty
+                leading:CircleAvatar(backgroundColor:const Color(0xFF006B3F),child:logo==null||logo.isEmpty
                   ?Text((b['name'] as String).substring(0,1).toUpperCase(),style:const TextStyle(color:Colors.white,fontWeight:FontWeight.w900))
                   :Image.network(logo,width:34,height:34,errorBuilder:(_,_,_)=>Text((b['name'] as String).substring(0,1).toUpperCase(),style:const TextStyle(color:Colors.white)))),
                 title:Text(b['name'] as String,style:const TextStyle(fontWeight:FontWeight.bold)),
                 subtitle:Text((b['category']??'') as String),
-                trailing:Icon(selected?Icons.check_circle:Icons.chevron_left,color:const Color(0xFF145A3A)),
+                trailing:Icon(selected?Icons.check_circle:Icons.chevron_left,color:const Color(0xFF006B3F)),
               ));
             }),
           ],
@@ -351,11 +376,11 @@ class _CustomerHomeState extends State<CustomerHome> {
             final product=Map<String,dynamic>.from(row['products'] as Map);
             final image=(product['image_url'] as String?)?.trim();
             return Card(elevation:0,child:ListTile(
-              leading:Container(width:54,height:54,decoration:BoxDecoration(color:const Color(0xFFF4F1E8),borderRadius:BorderRadius.circular(10)),
-                child:image==null||image.isEmpty?const Icon(Icons.inventory_2_outlined,color:Color(0xFFC5A45A)):Image.network(image,fit:BoxFit.contain,errorBuilder:(_,_,_)=>const Icon(Icons.inventory_2_outlined,color:Color(0xFFC5A45A)))),
+              leading:Container(width:54,height:54,decoration:BoxDecoration(color:const Color(0xFFF7F8F7),borderRadius:BorderRadius.circular(10)),
+                child:image==null||image.isEmpty?const Icon(Icons.inventory_2_outlined,color:Color(0xFF006B3F)):Image.network(image,fit:BoxFit.contain,errorBuilder:(_,_,_)=>const Icon(Icons.inventory_2_outlined,color:Color(0xFF006B3F)))),
               title:Text(product['name'] as String),
               subtitle:Text('${row['price_mad']} درهم'),
-              trailing:IconButton(onPressed:()=>_addToCart(row),icon:const Icon(Icons.add_circle,color:Color(0xFF145A3A))),
+              trailing:IconButton(onPressed:()=>_addToCart(row),icon:const Icon(Icons.add_circle,color:Color(0xFF006B3F))),
             ));
           }),
           if (_cart.isNotEmpty) ...[
