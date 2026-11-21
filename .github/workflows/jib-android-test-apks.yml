@@ -106,3 +106,5 @@ jobs:
           path: apps/${{ matrix.app }}/build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
           retention-days: 14
+
+# Rebuild after customer catalog visibility and brand logo URL fixes.
