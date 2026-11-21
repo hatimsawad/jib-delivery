@@ -23,5 +23,9 @@ These are debug builds for installation and acceptance testing, not signed produ
 ## Build checks
 The GitHub Actions workflow `.github/workflows/jib-v2-build.yml` scaffolds Android platform files in the CI runner, builds all three APKs, runs Flutter analysis and widget tests, builds the admin web app, and publishes APK download assets after success. No production deployment is performed.
 
+## Catalog snapshot
+
+The JIB V2 catalogue currently contains 80 brands and 313 product records. 75 products currently have product images; 52 brands have website favicon marks. Reference prices and catalogue stock are not live branch offers. Merchants must confirm their own branch prices and stock before an item can be ordered.
+
 ## Operational readiness
 The V2 apps connect only to the independent JIB V2 Supabase project. Catalog reference data is available, but actual merchant branches, branch-specific prices and stock must be confirmed by the respective merchants. Delivery fee and payment rules remain unconfigured until approved. A real order cannot be accepted until an active merchant branch and confirmed products are onboarded and the full order lifecycle is tested.
