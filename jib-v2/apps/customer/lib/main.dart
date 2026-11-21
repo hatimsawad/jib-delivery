@@ -80,7 +80,7 @@ class _CustomerHomeState extends State<CustomerHome> {
     if (_user == null) return;
     try {
       final rows = await _db.from('orders')
-        .select('id,status,submitted_at,subtotal_mad,delivery_address')
+        .select('id,status,submitted_at,subtotal_mad,delivery_address,eta_minutes,merchant_accepted_at,preparation_started_at,preparation_completed_at,courier_offered_at,courier_accepted_at,picked_up_at,en_route_at,delivered_at')
         .eq('customer_id',_user!.id).order('submitted_at',ascending:false).limit(20);
       if (mounted) setState(() => _myOrders = List<Map<String,dynamic>>.from(rows));
     } catch (_) {}
@@ -309,9 +309,24 @@ class _CustomerHomeState extends State<CustomerHome> {
         if (_user!=null) ...[
           const SizedBox(height:24),
           const Text('طلباتي',style:TextStyle(fontSize:19,fontWeight:FontWeight.w900)),
-          ..._myOrders.map((o)=>Card(elevation:0,child:ListTile(
-            title:Text('طلب #${(o['id'] as String).substring(0,8)}'),
-            subtitle:Text('${_status(o['status'] as String)} • ${o['subtotal_mad']} درهم'),
+          ..._myOrders.map((o)=>Card(elevation:0,child:Padding(
+            padding:const EdgeInsets.all(12),
+            child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+              Text('طلب #${(o['id'] as String).substring(0,8)}',style:const TextStyle(fontWeight:FontWeight.bold)),
+              Text('${_status(o['status'] as String)} • ${o['subtotal_mad']} درهم'),
+              Text('مضى على الطلب: ${DateTime.now().difference(DateTime.parse(o['submitted_at'] as String)).inMinutes} دقيقة'),
+              if(o['eta_minutes']!=null) Text('تقدير المتجر للتحضير: ${o['eta_minutes']} دقيقة'),
+              ...[
+                ['merchant_accepted_at','قبول المتجر'],
+                ['preparation_started_at','بدء التحضير'],
+                ['preparation_completed_at','اكتمال التحضير'],
+                ['courier_offered_at','إرسال عرض للمندوب'],
+                ['courier_accepted_at','قبول المندوب'],
+                ['picked_up_at','استلام الطلب'],
+                ['en_route_at','بدء التوصيل'],
+                ['delivered_at','التسليم'],
+              ].where((stage)=>o[stage[0]]!=null).map((stage)=>Text('${stage[1]}: ${DateTime.parse(o[stage[0]] as String).toLocal()}')),
+            ]),
           ))),
         ],
       ]),
