@@ -1,10 +1,24 @@
 name: JIB V2 build and static checks
 
 on:
+  push:
+    branches: [jib-v2-bootstrap]
+    paths:
+      - 'jib-v2/**'
+      - '.github/workflows/jib-v2-build.yml'
+  pull_request:
+    branches: [jib-v2-bootstrap]
+    paths:
+      - 'jib-v2/**'
+      - '.github/workflows/jib-v2-build.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
+
+concurrency:
+  group: jib-v2-ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   android:
