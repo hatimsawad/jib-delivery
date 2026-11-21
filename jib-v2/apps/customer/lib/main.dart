@@ -41,7 +41,7 @@ class JibCustomerApp extends StatelessWidget {
   Widget build(BuildContext context) => MaterialApp(
     title: 'JIB', debugShowCheckedModeBanner: false,
     theme: ThemeData(
-      colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFD71920), primary: const Color(0xFFD71920), secondary: const Color(0xFF00843D), tertiary: const Color(0xFF00843D)),
+      colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFE31E24), primary: const Color(0xFFE31E24), secondary: const Color(0xFF00843D), tertiary: const Color(0xFF00843D)),
       scaffoldBackgroundColor: const Color(0xFFF7F8F7), useMaterial3: true, fontFamily: 'Roboto',
     ),
     home: const CustomerHome(),
@@ -310,7 +310,7 @@ class _CustomerHomeState extends State<CustomerHome> {
       body:ListView(padding:const EdgeInsets.fromLTRB(16,16,16,30),children:[
         Container(
           padding:const EdgeInsets.all(20),
-          decoration:BoxDecoration(gradient:const LinearGradient(colors:[Color(0xFFD71920),Color(0xFF00843D)]),border:Border.all(color:const Color(0xFF00843D)),borderRadius:BorderRadius.circular(22)),
+          decoration:BoxDecoration(gradient:const LinearGradient(colors:[Color(0xFFE31E24),Color(0xFF00843D)]),border:Border.all(color:const Color(0xFF00843D)),borderRadius:BorderRadius.circular(22)),
           child:const Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
             Row(children:[_JibMark(size:58),SizedBox(width:12),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('JIB',style:TextStyle(color:Colors.white,fontSize:24,fontWeight:FontWeight.w900)),Text('Jib وتكايس على jib',style:TextStyle(color:Colors.white70,fontSize:13,fontWeight:FontWeight.w700))]))]),
             SizedBox(height:16),
@@ -486,7 +486,7 @@ class _CustomerHomeState extends State<CustomerHome> {
         const SizedBox(height:12),
         FilledButton(onPressed:_busy?null:()async{await _authenticate();if(ctx.mounted && _user!=null)Navigator.pop(ctx);setSheet(()=>{});},
           child:Text(_busy?'جارٍ التنفيذ...':_register?'إنشاء الحساب':'دخول')),
-        TextButton(onPressed:()=>setSheet(()=>setState(()=>_register=!_register)),
+        TextButton(onPressed:()=>setSheet(()=>_register=!_register),
           child:Text(_register?'لدي حساب بالفعل':'إنشاء حساب جديد')),
         if (_error!=null) Text(_error!,style:const TextStyle(color:Colors.red)),
         if (_notice!=null) Text(_notice!,style:const TextStyle(color:Colors.green)),
