@@ -30,6 +30,13 @@ class _MerchantHomeState extends State<MerchantHome> {
   final _email = TextEditingController();
   final _password = TextEditingController();
   final _eta = TextEditingController();
+  final _productPrice = TextEditingController();
+  List<Map<String,dynamic>> _branches = [];
+  List<Map<String,dynamic>> _catalogProducts = [];
+  List<Map<String,dynamic>> _branchProducts = [];
+  String? _selectedBranchId;
+  String? _selectedProductId;
+  bool _productAvailable = true;
   bool _busy = false;
   String? _error;
   Map<String, dynamic>? _merchant;
@@ -61,13 +68,15 @@ class _MerchantHomeState extends State<MerchantHome> {
     setState(() { _busy = true; _error = null; });
     try {
       final merchant = await _db.from('merchants').select('id,name')
-        .eq('owner_user_id', _user!.id).eq('is_active', true).maybeSingle();
+        .eq('owner_user_id', _user!.id).maybeSingle();
       if (merchant == null) {
         setState(() { _merchant = null; _orders = []; });
         return;
       }
-      final branches = await _db.from('branches').select('id,name')
-        .eq('merchant_id', merchant['id']).eq('is_active', true);
+      final branches = await _db.from('branches').select('id,name,address,is_active')
+        .eq('merchant_id', merchant['id']).order('name');
+      final catalog = await _db.from('products').select('id,name,reference_price_mad')
+        .eq('is_active', true).order('name');
       final ids = (branches as List).map((b) => b['id'] as String).toList();
       List<Map<String, dynamic>> orders = [];
       if (ids.isNotEmpty) {
@@ -76,10 +85,53 @@ class _MerchantHomeState extends State<MerchantHome> {
           .inFilter('branch_id', ids).order('submitted_at', ascending: false);
         orders = List<Map<String, dynamic>>.from(rows);
       }
-      setState(() { _merchant = merchant; _orders = orders; });
+      final branchList = List<Map<String,dynamic>>.from(branches);
+      final productList = List<Map<String,dynamic>>.from(catalog);
+      final selected = _selectedBranchId ?? (branchList.isEmpty ? null : branchList.first['id'] as String);
+      List<Map<String,dynamic>> inventory = [];
+      if (selected != null) {
+        final rows = await _db.from('branch_products')
+          .select('id,product_id,price_mad,availability,products!inner(name)')
+          .eq('branch_id', selected).order('updated_at', ascending: false);
+        inventory = List<Map<String,dynamic>>.from(rows);
+      }
+      setState(() {
+        _merchant = merchant; _orders = orders; _branches = branchList;
+        _catalogProducts = productList; _selectedBranchId = selected; _branchProducts = inventory;
+        if (_selectedProductId == null && productList.isNotEmpty) _selectedProductId = productList.first['id'] as String;
+      });
     } catch (e) {
       setState(() => _error = 'تعذر تحميل طلبات المتجر. تحقق من صلاحيات الحساب.');
     } finally { if (mounted) setState(() => _busy = false); }
+  }
+
+  Future<void> _selectBranch(String? branchId) async {
+    if (branchId == null) return;
+    setState(() { _selectedBranchId = branchId; _busy = true; _error = null; });
+    try {
+      final rows = await _db.from('branch_products')
+        .select('id,product_id,price_mad,availability,products!inner(name)')
+        .eq('branch_id', branchId).order('updated_at', ascending: false);
+      setState(() => _branchProducts = List<Map<String,dynamic>>.from(rows));
+    } catch (_) { setState(() => _error = 'تعذر تحميل قائمة منتجات الفرع.'); }
+    finally { if (mounted) setState(() => _busy = false); }
+  }
+
+  Future<void> _saveProduct() async {
+    if (_selectedBranchId == null || _selectedProductId == null) return;
+    final price = num.tryParse(_productPrice.text.trim());
+    if (price == null || price < 0) { setState(() => _error = 'أدخل سعراً صحيحاً بالدرهم.'); return; }
+    setState(() { _busy = true; _error = null; });
+    try {
+      await _db.rpc('merchant_set_branch_product', params: {
+        'p_branch_id': _selectedBranchId,
+        'p_product_id': _selectedProductId,
+        'p_price_mad': price,
+        'p_available': _productAvailable,
+      });
+      await _selectBranch(_selectedBranchId);
+    } catch (e) { setState(() => _error = 'تعذر حفظ سعر وتوفر المنتج.'); }
+    finally { if (mounted) setState(() => _busy = false); }
   }
 
   Future<void> _advance(String orderId, String action, [int? etaMinutes]) async {
@@ -100,7 +152,7 @@ class _MerchantHomeState extends State<MerchantHome> {
   }
 
   @override
-  void dispose() { _email.dispose(); _password.dispose(); _eta.dispose(); super.dispose(); }
+  void dispose() { _email.dispose(); _password.dispose(); _eta.dispose(); _productPrice.dispose(); super.dispose(); }
 
   String _status(String value) => switch (value) {
     'customer_submitted' => 'طلب جديد',
@@ -149,13 +201,62 @@ class _MerchantHomeState extends State<MerchantHome> {
       const SizedBox(height: 12),
       const Text('هذا الحساب غير مرتبط بمتجر نشط في JIB بعد.', textAlign: TextAlign.center),
       const SizedBox(height: 8),
-      const Text('يجب على الإدارة اعتماد التاجر وإضافة فرعه قبل استقبال الطلبات.', textAlign: TextAlign.center),
+      const Text('يجب على الإدارة اعتماد هذا الحساب كتاجر وإنشاء سجله أولاً.', textAlign: TextAlign.center),
       if (_error != null) _errorPanel(),
     ]);
     return RefreshIndicator(onRefresh: _loadWorkspace, child: ListView(padding: const EdgeInsets.all(16), children: [
       Text('مرحباً، ${_merchant!['name']}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
       const SizedBox(height: 8),
       Text('الطلبات: ${_orders.length}'),
+      const SizedBox(height: 18),
+      const Text('الفروع والمنتجات', style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold)),
+      if (_branches.isEmpty)
+        const Card(child: Padding(padding: EdgeInsets.all(14), child: Text('لم تنشئ الإدارة فرعاً لهذا المتجر بعد.')))
+      else ...[
+        DropdownButtonFormField<String>(
+          value: _selectedBranchId,
+          decoration: const InputDecoration(labelText: 'اختر الفرع', border: OutlineInputBorder()),
+          items: _branches.map((b) => DropdownMenuItem<String>(
+            value: b['id'] as String,
+            child: Text('${b['name']} ${b['is_active'] == true ? '— نشط' : '— غير منشور'}'),
+          )).toList(),
+          onChanged: _busy ? null : _selectBranch,
+        ),
+        const SizedBox(height: 10),
+        DropdownButtonFormField<String>(
+          value: _selectedProductId,
+          decoration: const InputDecoration(labelText: 'اختر منتجاً من كتالوج JIB', border: OutlineInputBorder()),
+          items: _catalogProducts.map((p) => DropdownMenuItem<String>(
+            value: p['id'] as String, child: Text(p['name'] as String),
+          )).toList(),
+          onChanged: (value) {
+            setState(() {
+              _selectedProductId = value;
+              final product = _catalogProducts.where((p) => p['id'] == value).firstOrNull;
+              final reference = product?['reference_price_mad'];
+              _productPrice.text = reference == null ? '' : reference.toString();
+            });
+          },
+        ),
+        const SizedBox(height: 10),
+        TextField(controller: _productPrice, keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: const InputDecoration(labelText: 'سعر الفرع بالدرهم (إلزامي)', border: OutlineInputBorder())),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero, title: const Text('المنتج متوفر للبيع'),
+          value: _productAvailable, onChanged: (value) => setState(() => _productAvailable = value),
+        ),
+        FilledButton(onPressed: _busy ? null : _saveProduct, child: const Text('حفظ السعر والتوفر')),
+        const SizedBox(height: 8),
+        ..._branchProducts.map((row) {
+          final product = Map<String,dynamic>.from(row['products'] as Map);
+          return ListTile(
+            dense: true, title: Text(product['name'] as String),
+            subtitle: Text('${row['price_mad'] ?? 'بدون سعر'} درهم • ${row['availability'] == 'available' ? 'متوفر' : 'غير متوفر'}'),
+            trailing: Icon(row['availability'] == 'available' ? Icons.check_circle : Icons.pause_circle_outline),
+          );
+        }),
+      ],
+      const Divider(height: 28),
       if (_error != null) _errorPanel(),
       if (_orders.isEmpty) const Card(child: Padding(padding: EdgeInsets.all(18), child: Text('لا توجد طلبات حالياً.'))),
       ..._orders.map((o) {
