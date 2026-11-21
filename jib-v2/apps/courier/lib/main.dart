@@ -10,12 +10,34 @@ Future<void> main() async {
   runApp(const JibCourierApp());
 }
 
+class _JibMark extends StatelessWidget {
+  const _JibMark({this.size = 48});
+  final double size;
+  @override
+  Widget build(BuildContext context) => Container(
+    width: size, height: size,
+    decoration: BoxDecoration(
+      color: const Color(0xFFD71920),
+      borderRadius: BorderRadius.circular(size * .23),
+      border: Border.all(color: const Color(0xFF006B3F), width: 2),
+    ),
+    child: Stack(alignment: Alignment.center, children: [
+      Positioned(top: size * .01, right: size * .02,
+        child: Icon(Icons.star, color: const Color(0xFF00A651), size: size * .24)),
+      Positioned(top: size * .09,
+        child: Icon(Icons.delivery_dining, color: Colors.white, size: size * .62)),
+      Positioned(bottom: size * .015,
+        child: Text('JIB', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: size * .19, height: 1))),
+    ]),
+  );
+}
+
 class JibCourierApp extends StatelessWidget {
   const JibCourierApp({super.key});
   @override
   Widget build(BuildContext context) => MaterialApp(
     title: 'JIB Livreur', debugShowCheckedModeBanner: false,
-    theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF145A3A), primary: const Color(0xFF145A3A), secondary: const Color(0xFFC5A45A), tertiary: const Color(0xFFB52B32)), scaffoldBackgroundColor: const Color(0xFFF4F1E8), useMaterial3: true),
+    theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFD71920), primary: const Color(0xFFD71920), secondary: const Color(0xFF006B3F), tertiary: const Color(0xFF006B3F)), scaffoldBackgroundColor: const Color(0xFFF7F8F7), useMaterial3: true),
     home: const CourierHome(),
   );
 }
@@ -137,7 +159,7 @@ class _CourierHomeState extends State<CourierHome> {
   Widget build(BuildContext context) => Directionality(
     textDirection: TextDirection.rtl,
     child: Scaffold(
-      appBar: AppBar(title: const Text('JIB Livreur'), actions: [
+      appBar: AppBar(title: const Row(mainAxisSize: MainAxisSize.min, children: [_JibMark(size: 34), SizedBox(width: 8), Text('JIB Livreur')]), actions: [
         if (_user != null) IconButton(onPressed: _loadTasks, icon: const Icon(Icons.refresh)),
         if (_user != null) IconButton(onPressed: _signOut, icon: const Icon(Icons.logout)),
       ]),
