@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type CSSProperties, type FormEvent } from "react";
 import { createClient, type User } from "@supabase/supabase-js";
 
 const supabase = createClient(
@@ -79,7 +79,7 @@ export default function AdminHome() {
     return () => { active = false; listener.subscription.unsubscribe(); };
   }, [loadDashboard]);
 
-  async function signIn(event: React.FormEvent<HTMLFormElement>) {
+  async function signIn(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
     setError("");
@@ -200,7 +200,7 @@ export default function AdminHome() {
   );
 }
 
-const fieldStyle: React.CSSProperties = { width: "100%", boxSizing: "border-box", padding: 13, border: "1px solid #cbd5e1", borderRadius: 10, fontSize: 16 };
+const fieldStyle: CSSProperties = { width: "100%", boxSizing: "border-box", padding: 13, border: "1px solid #cbd5e1", borderRadius: 10, fontSize: 16 };
 const buttonStyle: React.CSSProperties = { padding: "13px 16px", border: 0, borderRadius: 10, background: "#172554", color: "white", fontWeight: 700, cursor: "pointer" };
 const secondaryButton: React.CSSProperties = { padding: "9px 12px", border: "1px solid #cbd5e1", borderRadius: 9, background: "white", color: "#172554", cursor: "pointer" };
 const tileStyle: React.CSSProperties = { background: "white", border: "1px solid #e5e7eb", borderRadius: 14, padding: 16 };
