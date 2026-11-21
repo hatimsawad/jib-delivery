@@ -21,6 +21,33 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  verify-isolation:
+    name: Verify legacy paths remain untouched
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          ref: jib-v2-bootstrap
+          fetch-depth: 0
+      - name: Reject changes outside approved V2 paths
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main:refs/remotes/origin/main
+          changed="$(git diff --name-only origin/main...HEAD)"
+          while IFS= read -r path; do
+            [ -z "$path" ] && continue
+            case "$path" in
+              jib-v2/*|jib-v2-team/*|.github/workflows/jib-v2-build.yml) ;;
+              *)
+                echo "::error::Unexpected change outside approved V2 paths: $path"
+                exit 1
+                ;;
+            esac
+          done <<< "$changed"
+          echo "Isolation check passed."
+
   android:
     name: Build ${{ matrix.app }} Android APK
     runs-on: ubuntu-latest
