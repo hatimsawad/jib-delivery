@@ -42,6 +42,7 @@ class _CustomerHomeState extends State<CustomerHome> {
   String? _error;
   String? _notice;
   String _search = '';
+  String? _selectedCategory;
   List<Map<String,dynamic>> _brands = [];
   List<Map<String,dynamic>> _branches = [];
   List<Map<String,dynamic>> _catalogProducts = [];
@@ -54,6 +55,41 @@ class _CustomerHomeState extends State<CustomerHome> {
 
   @override
   void initState() { super.initState(); _loadPublicCatalog(); if (_user != null) _loadCustomerData(); }
+
+  List<Map<String,dynamic>> get _filteredCatalogProducts => _catalogProducts.where((p) {
+    final brandMatches = _selectedBrand == null || p['brand_id'] == _selectedBrand;
+    final categoryMatches = _selectedCategory == null || p['category'] == _selectedCategory;
+    final name = (p['name'] as String).toLowerCase();
+    final searchMatches = _search.isEmpty || name.contains(_search) ||
+      _brands.any((b) => b['id'] == p['brand_id'] && (b['name'] as String).toLowerCase().contains(_search));
+    return brandMatches && categoryMatches && searchMatches;
+  }).toList();
+
+  String _categoryLabel(String category) {
+    switch (category) {
+      case 'burgers': return 'البرغر';
+      case 'breakfast': return 'الفطور';
+      case 'desserts': return 'الحلويات';
+      case 'drinks': return 'المشروبات';
+      case 'dairy': return 'الألبان';
+      case 'meat': return 'اللحوم';
+      case 'produce': return 'الخضر والفواكه';
+      case 'bakery': return 'المخبوزات';
+      case 'frozen-food': return 'المجمدات';
+      case 'personal-care': return 'العناية الشخصية';
+      case 'household': return 'المنزل';
+      case 'grocery': return 'المواد الغذائية';
+      case 'menus': return 'الوجبات';
+      case 'prepared-food': return 'وجبات جاهزة';
+      case 'fries': return 'البطاطس';
+      case 'sauces': return 'الصلصات';
+      case 'sharing': return 'للمشاركة';
+      case 'wraps': return 'الراب';
+      case 'mccafe': return 'مقهى';
+      case 'happy-meal': return 'هابي ميل';
+      default: return category.replaceAll('-', ' ');
+    }
+  }
 
   Future<void> _loadPublicCatalog() async {
     try {
@@ -221,38 +257,31 @@ class _CustomerHomeState extends State<CustomerHome> {
         if (_error!=null) _message(_error!,true),
         if (_notice!=null) _message(_notice!,false),
         const SizedBox(height:18),
-        const Text('العلامات التجارية',style:TextStyle(fontSize:19,fontWeight:FontWeight.w900)),
-        const SizedBox(height:8),
         TextField(
-          decoration:InputDecoration(hintText:'ابحث عن علامة أو منتج',prefixIcon:const Icon(Icons.search),filled:true,fillColor:Colors.white,
+          decoration:InputDecoration(hintText:'ابحث عن منتج أو علامة تجارية',prefixIcon:const Icon(Icons.search),filled:true,fillColor:Colors.white,
             border:OutlineInputBorder(borderRadius:BorderRadius.circular(14),borderSide:BorderSide.none)),
           onChanged:(v)=>setState(()=>_search=v.trim().toLowerCase()),
         ),
+        const SizedBox(height:14),
+        const Text('تسوق حسب القسم',style:TextStyle(fontSize:18,fontWeight:FontWeight.w900)),
         const SizedBox(height:8),
-        if (_brands.isEmpty) const _InfoPanel('يتم تحميل العلامات التجارية أو لا توجد بيانات متاحة حالياً.'),
-        ..._brands.where((b)=>(b['name'] as String).toLowerCase().contains(_search)).map((b){
-          final selected=_selectedBrand==b['id'];
-          final logo=(b['logo_url'] as String?)?.trim();
-          return Card(elevation:0,color:selected?const Color(0xFFE7F0E8):Colors.white,child:ListTile(
-            onTap:()=>setState(()=>_selectedBrand=selected?null:b['id'] as String),
-            leading:CircleAvatar(backgroundColor:const Color(0xFF145A3A),child:logo==null||logo.isEmpty
-              ?Text((b['name'] as String).substring(0,1).toUpperCase(),style:const TextStyle(color:Colors.white,fontWeight:FontWeight.w900))
-              :Image.network(logo,width:34,height:34,errorBuilder:(_,_,_)=>Text((b['name'] as String).substring(0,1).toUpperCase(),style:const TextStyle(color:Colors.white)))),
-            title:Text(b['name'] as String,style:const TextStyle(fontWeight:FontWeight.bold)),
-            subtitle:Text((b['category']??'') as String),
-            trailing:Icon(selected?Icons.check_circle:Icons.chevron_left,color:const Color(0xFF145A3A)),
-          ));
-        }),
+        Wrap(spacing:8,runSpacing:8,children:[
+          ChoiceChip(label:const Text('الكل'),selected:_selectedCategory==null,onSelected:(_)=>setState(()=>_selectedCategory=null),
+            selectedColor:const Color(0xFFE8D9B2),labelStyle:const TextStyle(fontWeight:FontWeight.bold)),
+          ..._catalogProducts.map((p)=>p['category'] as String?).whereType<String>().toSet().toList()..sort().map((category)=>ChoiceChip(
+            label:Text(_categoryLabel(category)),selected:_selectedCategory==category,
+            onSelected:(selected)=>setState(()=>_selectedCategory=selected?category:null),
+            selectedColor:const Color(0xFFE8D9B2),labelStyle:const TextStyle(fontWeight:FontWeight.bold),
+          )),
+        ]),
         const SizedBox(height:16),
         Row(mainAxisAlignment:MainAxisAlignment.spaceBetween,children:[
           const Text('اكتشف المنتجات',style:TextStyle(fontSize:19,fontWeight:FontWeight.w900)),
-          Text('${_catalogProducts.where((p)=>_selectedBrand==null||p['brand_id']==_selectedBrand).where((p)=>_search.isEmpty||(p['name'] as String).toLowerCase().contains(_search)).length} منتج',style:const TextStyle(color:Color(0xFF65736A))),
+          Text('${_filteredCatalogProducts.length} منتج',style:const TextStyle(color:Color(0xFF65736A))),
         ]),
+        if (_catalogProducts.isEmpty) const _InfoPanel('يتم تحميل المنتجات أو لا توجد بيانات متاحة حالياً.'),
         const SizedBox(height:8),
-        Wrap(spacing:10,runSpacing:10,children:_catalogProducts.where((p)=>
-          (_selectedBrand==null||p['brand_id']==_selectedBrand)&&
-          (_search.isEmpty||(p['name'] as String).toLowerCase().contains(_search))
-        ).map((p){
+        Wrap(spacing:10,runSpacing:10,children:_filteredCatalogProducts.map((p){
           final price=p['reference_price_mad'];
           final image=(p['image_url'] as String?)?.trim();
           final brand=_brands.where((b)=>b['id']==p['brand_id']).toList();
@@ -275,6 +304,27 @@ class _CustomerHomeState extends State<CustomerHome> {
             ]),
           ));
         }).toList()),
+        const SizedBox(height:18),
+        ExpansionTile(
+          tilePadding:EdgeInsets.zero,
+          title:Text('تصفح حسب العلامة التجارية (${_brands.length})',style:const TextStyle(fontSize:18,fontWeight:FontWeight.w900)),
+          children:[
+            if (_brands.isEmpty) const _InfoPanel('لا توجد علامات تجارية متاحة حالياً.'),
+            ..._brands.where((b)=>(b['name'] as String).toLowerCase().contains(_search)).map((b){
+              final selected=_selectedBrand==b['id'];
+              final logo=(b['logo_url'] as String?)?.trim();
+              return Card(elevation:0,color:selected?const Color(0xFFE7F0E8):Colors.white,child:ListTile(
+                onTap:()=>setState(()=>_selectedBrand=selected?null:b['id'] as String),
+                leading:CircleAvatar(backgroundColor:const Color(0xFF145A3A),child:logo==null||logo.isEmpty
+                  ?Text((b['name'] as String).substring(0,1).toUpperCase(),style:const TextStyle(color:Colors.white,fontWeight:FontWeight.w900))
+                  :Image.network(logo,width:34,height:34,errorBuilder:(_,_,_)=>Text((b['name'] as String).substring(0,1).toUpperCase(),style:const TextStyle(color:Colors.white)))),
+                title:Text(b['name'] as String,style:const TextStyle(fontWeight:FontWeight.bold)),
+                subtitle:Text((b['category']??'') as String),
+                trailing:Icon(selected?Icons.check_circle:Icons.chevron_left,color:const Color(0xFF145A3A)),
+              ));
+            }),
+          ],
+        ),
 
         const SizedBox(height:22),
         const Text('فروع تستقبل الطلبات',style:TextStyle(fontSize:19,fontWeight:FontWeight.w900)),
