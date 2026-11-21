@@ -18,6 +18,11 @@ void main() {
     expect(find.text('جيب JIB'), findsOneWidget);
     expect(find.text('اكتشف المنتجات'), findsOneWidget);
     expect(find.textContaining('تصفح حسب العلامة التجارية'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('فروع تستقبل الطلبات'),
+      400,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.text('فروع تستقبل الطلبات'), findsOneWidget);
   });
 }
