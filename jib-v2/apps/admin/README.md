@@ -21,6 +21,6 @@ Private operations dashboard for JIB V2.
 - Never put Supabase service-role keys in this application or its browser bundle.
 
 ## Brand system
-- Deep forest green and near-black for navigation and the primary shell.
-- Warm ivory surfaces with restrained gold details and a red alert accent.
-- Arabic RTL is the default presentation.
+- Approved JIB identity: vivid red, Moroccan green, white, and charcoal black.
+- Red is the primary action color; green marks confirmation, delivery, and the Moroccan star.
+- White/light-neutral surfaces keep the catalogue readable; Arabic RTL is the default.
