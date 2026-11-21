@@ -90,13 +90,18 @@ export default function AdminHome() {
       setProfiles((profileRows.data ?? []) as Row[]);
       setMerchants((merchantRows.data ?? []) as Row[]);
       setBranches((branchRows.data ?? []) as Row[]);
-      if (!selectedMerchantId && merchantRows.data?.length) setSelectedMerchantId(merchantRows.data[0].id);
     } catch {
       setError("تعذر تحميل لوحة التشغيل. تحقق من إعدادات Data API وصلاحيات المدير.");
     } finally {
       setBusy(false);
     }
   }, []);
+
+  useEffect(() => {
+    if (!selectedMerchantId && merchants.length > 0) {
+      setSelectedMerchantId(String(merchants[0].id));
+    }
+  }, [merchants, selectedMerchantId]);
 
   useEffect(() => {
     let active = true;
