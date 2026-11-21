@@ -746,7 +746,7 @@ class _CustomerHomeState extends State<CustomerHome> {
             Expanded(child: FutureBuilder<List<Map<String, dynamic>>>(
               future: supabase.from('commercial_brand_product_templates')
                 .select('id,name,category,official_source_url,price_mad,status,notes')
-                .eq('brand_id', brandId).not('official_source_url', 'is', null).order('name')
+                .eq('brand_id', brandId).not('official_source_url', 'is', null).not('price_mad', 'is', null).order('name')
                 .then((rows) => List<Map<String, dynamic>>.from(rows)),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
@@ -759,7 +759,7 @@ class _CustomerHomeState extends State<CustomerHome> {
                     const SizedBox(height: 10),
                     Text('كتالوج ' + brandName + ' قيد الإعداد', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
                     const SizedBox(height: 6),
-                    const Text('ستظهر المنتجات بعد توثيقها من مصادرها وإضافة بياناتها الصحيحة.', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF77716C), height: 1.5)),
+                    const Text('ستظهر المنتجات هنا بعد توثيق مصدرها وتحديد سعرها.', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF77716C), height: 1.5)),
                   ]),
                 ));
                 return ListView.separated(
