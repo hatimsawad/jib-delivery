@@ -56,6 +56,8 @@ class _CustomerHomeState extends State<CustomerHome> {
   @override
   void initState() { super.initState(); _loadPublicCatalog(); if (_user != null) _loadCustomerData(); }
 
+  List<String> get _catalogCategories => _catalogProducts.map((p) => p['category'] as String?).whereType<String>().toSet().toList()..sort();
+
   List<Map<String,dynamic>> get _filteredCatalogProducts => _catalogProducts.where((p) {
     final brandMatches = _selectedBrand == null || p['brand_id'] == _selectedBrand;
     final categoryMatches = _selectedCategory == null || p['category'] == _selectedCategory;
@@ -268,7 +270,7 @@ class _CustomerHomeState extends State<CustomerHome> {
         Wrap(spacing:8,runSpacing:8,children:[
           ChoiceChip(label:const Text('الكل'),selected:_selectedCategory==null,onSelected:(_)=>setState(()=>_selectedCategory=null),
             selectedColor:const Color(0xFFE8D9B2),labelStyle:const TextStyle(fontWeight:FontWeight.bold)),
-          ..._catalogProducts.map((p)=>p['category'] as String?).whereType<String>().toSet().toList()..sort().map((category)=>ChoiceChip(
+          ..._catalogCategories.map((category)=>ChoiceChip(
             label:Text(_categoryLabel(category)),selected:_selectedCategory==category,
             onSelected:(selected)=>setState(()=>_selectedCategory=selected?category:null),
             selectedColor:const Color(0xFFE8D9B2),labelStyle:const TextStyle(fontWeight:FontWeight.bold),
