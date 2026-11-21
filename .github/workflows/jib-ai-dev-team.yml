@@ -1,0 +1,85 @@
+name: JIB External AI Development Team
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "JIB application to work on"
+        required: true
+        type: choice
+        options: [all, customer, merchant, courier, manager]
+      task:
+        description: "Specific development task. Do not include private data or secrets."
+        required: true
+        type: string
+      base_ref:
+        description: "JIB code branch to inspect"
+        required: true
+        default: "feature/jib-manager-standalone"
+        type: string
+  push:
+    branches: [feature/jib-ai-dev-team-v2]
+    paths:
+      - ".github/workflows/jib-ai-dev-team.yml"
+      - ".github/scripts/jib-ai-dev-team.mjs"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: jib-external-ai-team
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: node --check .github/scripts/jib-ai-dev-team.mjs
+
+  team:
+    if: github.event_name == 'workflow_dispatch'
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Fetch selected JIB source branch
+        env:
+          BASE_REF: ${{ inputs.base_ref }}
+        run: |
+          case "$BASE_REF" in
+            main|feature/jib-manager-standalone) ;;
+            *) echo "Unsupported base_ref"; exit 1 ;;
+          esac
+          git fetch --no-tags origin "$BASE_REF"
+          git worktree add --detach /tmp/jib-source FETCH_HEAD
+      - name: Run architect, implementer, security and QA
+        env:
+          JIB_AI_TEAM_BASE_URL: ${{ vars.JIB_AI_TEAM_BASE_URL }}
+          JIB_AI_TEAM_API_KEY: ${{ secrets.JIB_AI_TEAM_API_KEY }}
+          JIB_AI_TEAM_FREE_MODELS_JSON: ${{ vars.JIB_AI_TEAM_FREE_MODELS_JSON }}
+          JIB_AI_TEAM_CONTEXT_DIR: /tmp/jib-source
+          JIB_AI_TEAM_TASK: ${{ inputs.task }}
+          JIB_AI_TEAM_SCOPE: ${{ inputs.target }}
+        run: node .github/scripts/jib-ai-dev-team.mjs
+      - name: Upload patch proposal and team review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jib-ai-development-proposal
+          path: |
+            jib-ai-team-report.md
+            proposed.patch
+          if-no-files-found: warn
+          retention-days: 14
