@@ -34,27 +34,51 @@ class CustomerHome extends StatelessWidget {
           body: ListView(
             padding: const EdgeInsets.all(20),
             children: const [
-              Text('كل ما تحتاجه، يصلك لبابك', style: TextStyle(fontSize: 23, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              const Text('اكتشف المتاجر والمنتجات القريبة منك في الرباط وتمارة.'),
-              const SizedBox(height: 24),
-              const Card(
+              Text(
+                'كل ما تحتاجه، يصلك لبابك',
+                style: TextStyle(fontSize: 23, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 8),
+              Text('اكتشف المتاجر والمنتجات القريبة منك في الرباط وتمارة.'),
+              SizedBox(height: 24),
+              Card(
                 child: Padding(
-                  padding: const EdgeInsets.all(18),
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Icon(Icons.storefront_outlined, size: 34),
-                    SizedBox(height: 12),
-                    Text('المتاجر والعلامات التجارية', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    SizedBox(height: 6),
-                    Text('سيظهر هنا دليل المتاجر والمنتجات بعد ربط بيئة JIB V2 الآمنة.'),
-                  ]),
+                  padding: EdgeInsets.all(18),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.storefront_outlined, size: 34),
+                      SizedBox(height: 12),
+                      Text(
+                        'المتاجر والعلامات التجارية',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      SizedBox(height: 6),
+                      Text('سيظهر هنا دليل المتاجر والمنتجات بعد ربط بيئة JIB V2 الآمنة.'),
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(height: 12),
-              const Card(child: ListTile(leading: Icon(Icons.receipt_long), title: Text('طلباتي'), subtitle: Text('تتبع طلباتك ومراحل التوصيل'))),
-              const Card(child: ListTile(leading: Icon(Icons.location_on_outlined), title: Text('عناويني'), subtitle: Text('إدارة عناوين التوصيل'))),
-              const SizedBox(height: 18),
-              const Text('نسخة تأسيسية — لا تستقبل طلبات حقيقية حالياً.', style: TextStyle(color: Colors.deepOrange, fontWeight: FontWeight.w600)),
+              SizedBox(height: 12),
+              Card(
+                child: ListTile(
+                  leading: Icon(Icons.receipt_long),
+                  title: Text('طلباتي'),
+                  subtitle: Text('تتبع طلباتك ومراحل التوصيل'),
+                ),
+              ),
+              Card(
+                child: ListTile(
+                  leading: Icon(Icons.location_on_outlined),
+                  title: Text('عناويني'),
+                  subtitle: Text('إدارة عناوين التوصيل'),
+                ),
+              ),
+              SizedBox(height: 18),
+              Text(
+                'نسخة تأسيسية — لا تستقبل طلبات حقيقية حالياً.',
+                style: TextStyle(color: Colors.deepOrange, fontWeight: FontWeight.w600),
+              ),
             ],
           ),
         ),
