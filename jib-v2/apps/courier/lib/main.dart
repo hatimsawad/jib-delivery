@@ -57,7 +57,7 @@ class _CourierHomeState extends State<CourierHome> {
         .eq('user_id', _user!.id).maybeSingle();
       _onDuty = profile?['is_on_duty'] == true;
       final rows = await _db.from('courier_assignments')
-        .select('id,order_id,status,offered_at,orders!inner(id,status,delivery_address,customer_phone,subtotal_mad)')
+        .select('id,order_id,status,offered_at,orders!inner(id,status,delivery_address,customer_phone,subtotal_mad,submitted_at,branches(name,address))')
         .eq('courier_id', _user!.id)
         .inFilter('status', ['offered','accepted'])
         .order('offered_at', ascending: false);
@@ -144,6 +144,7 @@ class _CourierHomeState extends State<CourierHome> {
       ..._assignments.map((a) {
         final order = Map<String,dynamic>.from(a['orders'] as Map);
         final status = order['status'] as String;
+        final branch = order['branches'] as Map<String,dynamic>?;
         final assignmentStatus = a['status'] as String;
         final orderId = a['order_id'] as String;
         final actions = <Widget>[];
@@ -161,9 +162,11 @@ class _CourierHomeState extends State<CourierHome> {
           crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('طلب #${orderId.substring(0,8)}', style: const TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 6),
-            Text('العنوان: ${order['delivery_address']}'),
+            Text('المتجر: ${branch?['name'] ?? 'الفرع'} — ${branch?['address'] ?? ''}'),
+            Text('عنوان التسليم: ${order['delivery_address']}'),
             Text('هاتف الزبون: ${order['customer_phone']}'),
             Text('الحالة: $status'),
+            Text('مضى على الطلب: ${DateTime.now().difference(DateTime.parse(order['submitted_at'] as String)).inMinutes} دقيقة'),
             Wrap(spacing: 8, children: actions),
           ],
         )));
