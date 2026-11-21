@@ -112,3 +112,42 @@ jobs:
       - name: Build admin
         working-directory: jib-v2/apps/admin
         run: npm run build
+
+  publish-downloads:
+    name: Publish public APK download links
+    if: github.event_name != 'pull_request'
+    needs: [android]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download all tested debug APKs
+        uses: actions/download-artifact@v4
+        with:
+          pattern: jib-v2-*-debug-apk
+          path: downloads
+      - name: Give each APK a stable download filename
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp downloads/jib-v2-customer-debug-apk/app-debug.apk downloads/JIB-Customer-debug.apk
+          cp downloads/jib-v2-merchant-debug-apk/app-debug.apk downloads/JIB-Merchant-debug.apk
+          cp downloads/jib-v2-courier-debug-apk/app-debug.apk downloads/JIB-Courier-debug.apk
+          ls -lh downloads/*.apk
+      - name: Publish latest test APKs as public release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: jib-v2-downloads
+          name: JIB V2 — Latest test APKs
+          body: |
+            Public test builds of the JIB V2 Android applications.
+            These are debug APKs for installation and acceptance testing, not signed production releases.
+            Customer, merchant and courier apps are provided separately.
+          prerelease: true
+          make_latest: false
+          overwrite_files: true
+          fail_on_unmatched_files: true
+          files: |
+            downloads/JIB-Customer-debug.apk
+            downloads/JIB-Merchant-debug.apk
+            downloads/JIB-Courier-debug.apk
