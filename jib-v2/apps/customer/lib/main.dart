@@ -16,8 +16,8 @@ class JibCustomerApp extends StatelessWidget {
   Widget build(BuildContext context) => MaterialApp(
     title: 'JIB', debugShowCheckedModeBanner: false,
     theme: ThemeData(
-      colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF172554)),
-      scaffoldBackgroundColor: const Color(0xFFF6F7F9), useMaterial3: true, fontFamily: 'Roboto',
+      colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF145A3A), primary: const Color(0xFF145A3A), secondary: const Color(0xFFC5A45A), tertiary: const Color(0xFFB52B32)),
+      scaffoldBackgroundColor: const Color(0xFFF4F1E8), useMaterial3: true, fontFamily: 'Roboto',
     ),
     home: const CustomerHome(),
   );
