@@ -15,7 +15,7 @@ class JibMerchantApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) => MaterialApp(
     title: 'JIB Partenaire', debugShowCheckedModeBanner: false,
-    theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF155E75)), useMaterial3: true),
+    theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF145A3A), primary: const Color(0xFF145A3A), secondary: const Color(0xFFC5A45A), tertiary: const Color(0xFFB52B32)), scaffoldBackgroundColor: const Color(0xFFF4F1E8), useMaterial3: true),
     home: const MerchantHome(),
   );
 }
