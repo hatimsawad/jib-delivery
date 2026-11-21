@@ -236,7 +236,7 @@ class _CustomerHomeState extends State<CustomerHome> {
             onTap:()=>setState(()=>_selectedBrand=selected?null:b['id'] as String),
             leading:CircleAvatar(backgroundColor:Colors.white,child:(b['logo_url'] as String?)==null
               ?const Icon(Icons.storefront_outlined)
-              :Image.network(b['logo_url'] as String,width:34,height:34,errorBuilder:(_,__,___)=>const Icon(Icons.storefront_outlined))),
+              :Image.network(b['logo_url'] as String,width:34,height:34,errorBuilder:(_,_,_)=>const Icon(Icons.storefront_outlined))),
             title:Text(b['name'] as String,style:const TextStyle(fontWeight:FontWeight.bold)),
             subtitle:Text((b['category']??'') as String),
             trailing:Icon(selected?Icons.check_circle:Icons.chevron_left),
