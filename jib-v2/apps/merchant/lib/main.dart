@@ -29,6 +29,7 @@ class MerchantHome extends StatefulWidget {
 class _MerchantHomeState extends State<MerchantHome> {
   final _email = TextEditingController();
   final _password = TextEditingController();
+  final _eta = TextEditingController();
   bool _busy = false;
   String? _error;
   Map<String, dynamic>? _merchant;
@@ -71,7 +72,7 @@ class _MerchantHomeState extends State<MerchantHome> {
       List<Map<String, dynamic>> orders = [];
       if (ids.isNotEmpty) {
         final rows = await _db.from('orders')
-          .select('id,status,submitted_at,customer_phone,delivery_address,subtotal_mad,eta_minutes')
+          .select('id,status,submitted_at,customer_phone,delivery_address,subtotal_mad,eta_minutes,merchant_accepted_at,preparation_started_at,preparation_completed_at,order_items(product_name_snapshot,quantity,unit_price_mad,line_total_mad)')
           .inFilter('branch_id', ids).order('submitted_at', ascending: false);
         orders = List<Map<String, dynamic>>.from(rows);
       }
@@ -81,11 +82,11 @@ class _MerchantHomeState extends State<MerchantHome> {
     } finally { if (mounted) setState(() => _busy = false); }
   }
 
-  Future<void> _advance(String orderId, String action) async {
+  Future<void> _advance(String orderId, String action, [int? etaMinutes]) async {
     setState(() { _busy = true; _error = null; });
     try {
       await _db.rpc('merchant_update_order', params: {
-        'p_order_id': orderId, 'p_action': action, 'p_reason': null, 'p_eta_minutes': null,
+        'p_order_id': orderId, 'p_action': action, 'p_reason': null, 'p_eta_minutes': etaMinutes,
       });
       await _loadWorkspace();
     } catch (e) {
@@ -99,7 +100,7 @@ class _MerchantHomeState extends State<MerchantHome> {
   }
 
   @override
-  void dispose() { _email.dispose(); _password.dispose(); super.dispose(); }
+  void dispose() { _email.dispose(); _password.dispose(); _eta.dispose(); super.dispose(); }
 
   String _status(String value) => switch (value) {
     'customer_submitted' => 'طلب جديد',
@@ -161,7 +162,7 @@ class _MerchantHomeState extends State<MerchantHome> {
         final status = o['status'] as String;
         final actions = <Widget>[];
         if (status == 'customer_submitted') {
-          actions.add(FilledButton(onPressed: _busy ? null : () => _advance(o['id'] as String, 'accept'), child: const Text('قبول الطلب')));
+          actions.add(FilledButton(onPressed: _busy ? null : () => _advance(o['id'] as String, 'accept', int.tryParse(_eta.text.trim())), child: const Text('قبول الطلب')));
           actions.add(OutlinedButton(onPressed: _busy ? null : () => _advance(o['id'] as String, 'reject'), child: const Text('رفض')));
         } else if (status == 'merchant_accepted') {
           actions.add(FilledButton(onPressed: _busy ? null : () => _advance(o['id'] as String, 'start_preparing'), child: const Text('بدء التحضير')));
@@ -174,7 +175,17 @@ class _MerchantHomeState extends State<MerchantHome> {
           Text('الحالة: ${_status(status)}'),
           Text('الهاتف: ${o['customer_phone']}'),
           Text('العنوان: ${o['delivery_address']}'),
-          Text('المجموع المرجعي للمنتجات: ${o['subtotal_mad']} درهم'),
+          Text('المجموع: ${o['subtotal_mad']} درهم'),
+          if (status == 'customer_submitted')
+            TextField(controller: _eta, keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'الوقت المتوقع للتحضير والتجهيز بالدقائق (اختياري)')),
+          ...((o['order_items'] as List<dynamic>? ?? []).map((item) {
+            final line = Map<String,dynamic>.from(item as Map);
+            return Padding(padding: const EdgeInsets.only(top: 5),
+              child: Text('• ${line['product_name_snapshot']} × ${line['quantity']} — ${line['line_total_mad']} درهم'));
+          })),
+          Text('مضى على إرسال الطلب: ${DateTime.now().difference(DateTime.parse(o['submitted_at'] as String)).inMinutes} دقيقة',
+            style: const TextStyle(color: Colors.blueGrey)),
           if (actions.isNotEmpty) Wrap(spacing: 8, children: actions),
         ])));
       }),
