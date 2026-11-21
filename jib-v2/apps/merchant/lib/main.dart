@@ -232,7 +232,8 @@ class _MerchantHomeState extends State<MerchantHome> {
           onChanged: (value) {
             setState(() {
               _selectedProductId = value;
-              final product = _catalogProducts.where((p) => p['id'] == value).firstOrNull;
+              final matches = _catalogProducts.where((p) => p['id'] == value);
+              final product = matches.isEmpty ? null : matches.first;
               final reference = product?['reference_price_mad'];
               _productPrice.text = reference == null ? '' : reference.toString();
             });
