@@ -16,7 +16,8 @@ void main() {
   testWidgets('customer app renders catalog and ordering entry points', (tester) async {
     await tester.pumpWidget(const JibCustomerApp());
     expect(find.text('جيب JIB'), findsOneWidget);
-    expect(find.text('العلامات التجارية'), findsOneWidget);
+    expect(find.text('اكتشف المنتجات'), findsOneWidget);
+    expect(find.textContaining('تصفح حسب العلامة التجارية'), findsOneWidget);
     expect(find.text('فروع تستقبل الطلبات'), findsOneWidget);
   });
 }
