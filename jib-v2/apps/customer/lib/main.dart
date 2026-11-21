@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -17,14 +19,14 @@ class _JibMark extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     width: size, height: size,
     decoration: BoxDecoration(
-      color: const Color(0xFFD71920),
+      color: const Color(0xFFE31E24),
       borderRadius: BorderRadius.circular(size * .23),
-      border: Border.all(color: const Color(0xFF006B3F), width: 2),
+      border: Border.all(color: const Color(0xFF00843D), width: 2),
       boxShadow: const [BoxShadow(color: Color(0x22000000), blurRadius: 7, offset: Offset(0, 3))],
     ),
     child: Stack(alignment: Alignment.center, children: [
       Positioned(top: size * .01, right: size * .02,
-        child: Icon(Icons.star, color: const Color(0xFF00A651), size: size * .24)),
+        child: Icon(Icons.star, color: const Color(0xFFD7B45A), size: size * .24)),
       Positioned(top: size * .09,
         child: Icon(Icons.delivery_dining, color: Colors.white, size: size * .62)),
       Positioned(bottom: size * .015,
@@ -39,7 +41,7 @@ class JibCustomerApp extends StatelessWidget {
   Widget build(BuildContext context) => MaterialApp(
     title: 'JIB', debugShowCheckedModeBanner: false,
     theme: ThemeData(
-      colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFD71920), primary: const Color(0xFFD71920), secondary: const Color(0xFF006B3F), tertiary: const Color(0xFF006B3F)),
+      colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFD71920), primary: const Color(0xFFD71920), secondary: const Color(0xFF00843D), tertiary: const Color(0xFF00843D)),
       scaffoldBackgroundColor: const Color(0xFFF7F8F7), useMaterial3: true, fontFamily: 'Roboto',
     ),
     home: const CustomerHome(),
@@ -75,9 +77,25 @@ class _CustomerHomeState extends State<CustomerHome> {
   String? _selectedBranch;
   String? _selectedBranchName;
   final Map<String,Map<String,dynamic>> _cart = {};
+  StreamSubscription? _authSubscription;
 
   @override
-  void initState() { super.initState(); _loadPublicCatalog(); if (_user != null) _loadCustomerData(); }
+  void initState() {
+    super.initState();
+    _loadPublicCatalog();
+    _authSubscription = _db.auth.onAuthStateChange.listen((data) {
+      if (!mounted) return;
+      setState(() {
+        if (data.event == AuthChangeEvent.signedOut) {
+          _myOrders = [];
+          _cart.clear();
+          _notice = null;
+        }
+      });
+      if (data.session != null) _loadCustomerData();
+    });
+    if (_user != null) _loadCustomerData();
+  }
 
   List<String> get _catalogCategories => _catalogProducts.map((p) => p['category'] as String?).whereType<String>().toSet().toList()..sort();
 
@@ -159,10 +177,12 @@ class _CustomerHomeState extends State<CustomerHome> {
           setState(() => _notice = 'تم إنشاء الحساب. تحقق من بريدك الإلكتروني لتأكيده ثم سجّل الدخول.');
         } else {
           await _loadCustomerData();
+          if (mounted) setState(() {});
         }
       } else {
         await _db.auth.signInWithPassword(email:_email.text.trim(),password:_password.text);
         await _loadCustomerData();
+        if (mounted) setState(() {});
       }
     } on AuthException catch (e) { setState(() => _error = e.message); }
     catch (e) { setState(() => _error = 'تعذر إكمال تسجيل الدخول.'); }
@@ -240,6 +260,23 @@ class _CustomerHomeState extends State<CustomerHome> {
     finally { if (mounted) setState(() => _busy = false); }
   }
 
+  Future<void> _sendPasswordReset() async {
+    final email = _email.text.trim();
+    if (email.isEmpty || !email.contains('@')) {
+      setState(() => _error = 'أدخل بريدك الإلكتروني أولاً لإرسال رابط استعادة كلمة المرور.');
+      return;
+    }
+    setState(() { _busy = true; _error = null; _notice = null; });
+    try {
+      await _db.auth.resetPasswordForEmail(email);
+      if (mounted) setState(() => _notice = 'إذا كان البريد مسجلاً، فستصلك رسالة لاستعادة كلمة المرور. افحص البريد غير المرغوب فيه أيضاً.');
+    } on AuthException catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   Future<void> _signOut() async {
     await _db.auth.signOut();
     setState(() { _myOrders=[]; _cart.clear(); _notice=null; });
@@ -254,6 +291,7 @@ class _CustomerHomeState extends State<CustomerHome> {
 
   @override
   void dispose() {
+    _authSubscription?.cancel();
     _email.dispose();_password.dispose();_name.dispose();_phone.dispose();_address.dispose();super.dispose();
   }
 
@@ -272,13 +310,13 @@ class _CustomerHomeState extends State<CustomerHome> {
       body:ListView(padding:const EdgeInsets.fromLTRB(16,16,16,30),children:[
         Container(
           padding:const EdgeInsets.all(20),
-          decoration:BoxDecoration(gradient:const LinearGradient(colors:[Color(0xFFD71920),Color(0xFF006B3F)]),border:Border.all(color:const Color(0xFF006B3F)),borderRadius:BorderRadius.circular(22)),
+          decoration:BoxDecoration(gradient:const LinearGradient(colors:[Color(0xFFD71920),Color(0xFF00843D)]),border:Border.all(color:const Color(0xFF00843D)),borderRadius:BorderRadius.circular(22)),
           child:const Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-            Row(children:[_JibMark(size:58),SizedBox(width:12),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('JIB',style:TextStyle(color:Colors.white,fontSize:24,fontWeight:FontWeight.w900)),Text('جيب · كلشي قريب ليك',style:TextStyle(color:Colors.white70,fontSize:13,fontWeight:FontWeight.w700))]))]),
+            Row(children:[_JibMark(size:58),SizedBox(width:12),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('JIB',style:TextStyle(color:Colors.white,fontSize:24,fontWeight:FontWeight.w900)),Text('Jib وتكايس على jib',style:TextStyle(color:Colors.white70,fontSize:13,fontWeight:FontWeight.w700))]))]),
             SizedBox(height:16),
-            Text('كل ما تحتاجه، يصلك لبابك',style:TextStyle(color:Colors.white,fontSize:22,fontWeight:FontWeight.w900)),
+            Text('كل شي تحبه في مكان واحد',style:TextStyle(color:Colors.white,fontSize:22,fontWeight:FontWeight.w900)),
             SizedBox(height:8),
-            Text('اكتشف العلامات والمتاجر والمنتجات في الرباط وتمارة',style:TextStyle(color:Color(0xFFDCE5FF))),
+            Text('تسوق من العلامات والمتاجر القريبة منك في الرباط وتمارة',style:TextStyle(color:Color(0xFFFFF4DC))),
           ]),
         ),
         if (_error!=null) _message(_error!,true),
@@ -318,14 +356,14 @@ class _CustomerHomeState extends State<CustomerHome> {
             child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
               Container(height:112,width:double.infinity,color:const Color(0xFFF7F8F7),
                 child:image==null||image.isEmpty
-                  ?const Icon(Icons.inventory_2_outlined,size:38,color:Color(0xFF006B3F))
-                  :Image.network(image,fit:BoxFit.contain,errorBuilder:(_,_,_)=>const Icon(Icons.inventory_2_outlined,size:38,color:Color(0xFF006B3F)))),
+                  ?const Icon(Icons.inventory_2_outlined,size:38,color:Color(0xFF00843D))
+                  :Image.network(image,fit:BoxFit.contain,errorBuilder:(_,_,_)=>const Icon(Icons.inventory_2_outlined,size:38,color:Color(0xFF00843D)))),
               Padding(padding:const EdgeInsets.all(10),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
                 Text(p['name'] as String,maxLines:2,overflow:TextOverflow.ellipsis,style:const TextStyle(fontWeight:FontWeight.w800)),
                 const SizedBox(height:5),
                 Text(brand.isEmpty?'JIB':brand.first['name'] as String,maxLines:1,overflow:TextOverflow.ellipsis,style:const TextStyle(fontSize:11,color:Color(0xFF65736A))),
                 const SizedBox(height:6),
-                Text(price==null?'السعر المرجعي غير متوفر':'${(price as num).toStringAsFixed(2)} درهم',style:const TextStyle(color:Color(0xFF006B3F),fontWeight:FontWeight.w900)),
+                Text(price==null?'السعر المرجعي غير متوفر':'${(price as num).toStringAsFixed(2)} درهم',style:const TextStyle(color:Color(0xFF00843D),fontWeight:FontWeight.w900)),
                 const Text('السعر النهائي حسب الفرع',style:TextStyle(fontSize:10,color:Color(0xFF7B817B))),
               ])),
             ]),
@@ -342,12 +380,12 @@ class _CustomerHomeState extends State<CustomerHome> {
               final logo=(b['logo_url'] as String?)?.trim();
               return Card(elevation:0,color:selected?const Color(0xFFE7F0E8):Colors.white,child:ListTile(
                 onTap:()=>setState(()=>_selectedBrand=selected?null:b['id'] as String),
-                leading:CircleAvatar(backgroundColor:const Color(0xFF006B3F),child:logo==null||logo.isEmpty
+                leading:CircleAvatar(backgroundColor:const Color(0xFF00843D),child:logo==null||logo.isEmpty
                   ?Text((b['name'] as String).substring(0,1).toUpperCase(),style:const TextStyle(color:Colors.white,fontWeight:FontWeight.w900))
                   :Image.network(logo,width:34,height:34,errorBuilder:(_,_,_)=>Text((b['name'] as String).substring(0,1).toUpperCase(),style:const TextStyle(color:Colors.white)))),
                 title:Text(b['name'] as String,style:const TextStyle(fontWeight:FontWeight.bold)),
                 subtitle:Text((b['category']??'') as String),
-                trailing:Icon(selected?Icons.check_circle:Icons.chevron_left,color:const Color(0xFF006B3F)),
+                trailing:Icon(selected?Icons.check_circle:Icons.chevron_left,color:const Color(0xFF00843D)),
               ));
             }),
           ],
@@ -377,10 +415,10 @@ class _CustomerHomeState extends State<CustomerHome> {
             final image=(product['image_url'] as String?)?.trim();
             return Card(elevation:0,child:ListTile(
               leading:Container(width:54,height:54,decoration:BoxDecoration(color:const Color(0xFFF7F8F7),borderRadius:BorderRadius.circular(10)),
-                child:image==null||image.isEmpty?const Icon(Icons.inventory_2_outlined,color:Color(0xFF006B3F)):Image.network(image,fit:BoxFit.contain,errorBuilder:(_,_,_)=>const Icon(Icons.inventory_2_outlined,color:Color(0xFF006B3F)))),
+                child:image==null||image.isEmpty?const Icon(Icons.inventory_2_outlined,color:Color(0xFF00843D)):Image.network(image,fit:BoxFit.contain,errorBuilder:(_,_,_)=>const Icon(Icons.inventory_2_outlined,color:Color(0xFF00843D)))),
               title:Text(product['name'] as String),
               subtitle:Text('${row['price_mad']} درهم'),
-              trailing:IconButton(onPressed:()=>_addToCart(row),icon:const Icon(Icons.add_circle,color:Color(0xFF006B3F))),
+              trailing:IconButton(onPressed:()=>_addToCart(row),icon:const Icon(Icons.add_circle,color:Color(0xFF00843D))),
             ));
           }),
           if (_cart.isNotEmpty) ...[
@@ -444,6 +482,7 @@ class _CustomerHomeState extends State<CustomerHome> {
         TextField(controller:_email,keyboardType:TextInputType.emailAddress,decoration:const InputDecoration(labelText:'البريد الإلكتروني')),
         TextField(controller:_password,obscureText:true,decoration:const InputDecoration(labelText:'كلمة المرور')),
         if (_register) TextField(controller:_phone,keyboardType:TextInputType.phone,decoration:const InputDecoration(labelText:'رقم الهاتف')),
+        if (!_register) Align(alignment:Alignment.centerLeft,child:TextButton(onPressed:_busy?null:()async{await _sendPasswordReset();setSheet(()=>{});},child:const Text('نسيت كلمة المرور؟'))),
         const SizedBox(height:12),
         FilledButton(onPressed:_busy?null:()async{await _authenticate();if(ctx.mounted && _user!=null)Navigator.pop(ctx);setSheet(()=>{});},
           child:Text(_busy?'جارٍ التنفيذ...':_register?'إنشاء الحساب':'دخول')),
