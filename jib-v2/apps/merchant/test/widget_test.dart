@@ -1,11 +1,22 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:jib_merchant/main.dart';
 
 void main() {
-  testWidgets('merchant home renders operational sections', (tester) async {
+  setUpAll(() async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    SharedPreferences.setMockInitialValues({});
+    await Supabase.initialize(
+      url: 'https://ldgbyshgcifheditplnn.supabase.co',
+      publishableKey: 'sb_publishable_wvNMRZTBFX4viI2ypcdWjQ_YBqgi_TV',
+    );
+  });
+
+  testWidgets('merchant app renders secure sign-in entry point', (tester) async {
     await tester.pumpWidget(const JibMerchantApp());
     expect(find.text('JIB Partenaire'), findsOneWidget);
-    expect(find.text('الطلبات الجديدة'), findsOneWidget);
-    expect(find.text('المنتجات والتوفر'), findsOneWidget);
+    expect(find.text('مساحة التاجر'), findsOneWidget);
+    expect(find.text('تسجيل الدخول'), findsOneWidget);
   });
 }
