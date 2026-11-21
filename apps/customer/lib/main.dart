@@ -541,11 +541,11 @@ class _CustomerHomeState extends State<CustomerHome> {
           ]),
           const SizedBox(height: 24),
           Row(children: [
-            const Expanded(child: Text('متاجر متاحة الآن', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900))),
+            const Expanded(child: Text('متاجر الطلب المباشر', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900))),
             const _ServicePill(label: 'طلب مباشر'),
           ]),
           const SizedBox(height: 5),
-          const Text('هذه المتاجر فقط هي التي تتيح الطلب حالياً.', style: TextStyle(color: Color(0xFF77716C), fontSize: 11)),
+          const Text('هذه قائمة المتاجر المرتبطة حالياً بطلب مباشر من التاجر. جميع العلامات والمتاجر الأخرى تظهر في دليل JIB أدناه.', style: TextStyle(color: Color(0xFF77716C), fontSize: 11)),
           const SizedBox(height: 12),
           if (stores.isEmpty)
             Container(
@@ -581,11 +581,11 @@ class _CustomerHomeState extends State<CustomerHome> {
             )),
           const SizedBox(height: 18),
           Row(children: [
-            const Expanded(child: Text('علامات تحبها، في مكان واحد', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900))),
-            const _ServicePill(label: 'دليل JIB'),
+            const Expanded(child: Text('جميع المتاجر والمطاعم والعلامات', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900))),
+            const _ServicePill(label: 'الكل'),
           ]),
           const SizedBox(height: 5),
-          const Text('الفطور والمخابز والمطاعم والمشروبات والبقالة أولاً، ثم بقية العلامات. ظهور العلامة لا يعني أن الطلب منها مفتوح.',
+          const Text('كل العلامات المعتمدة تظهر هنا للزبون، بما فيها المطاعم والمخابز والبقالة والمتاجر العالمية والمحلية. ويمكن تصفحها حتى عندما لا يكون الطلب المباشر مفعلاً.',
             style: TextStyle(color: Color(0xFF77716C), fontSize: 11, height: 1.5)),
           const SizedBox(height: 13),
           FutureBuilder<List<Map<String, dynamic>>>(
@@ -599,7 +599,11 @@ class _CustomerHomeState extends State<CustomerHome> {
               if (brandSnapshot.hasError) return const Card(child: Padding(padding: EdgeInsets.all(16), child: Text('تعذر تحميل دليل العلامات حالياً.')));
               final brands = (brandSnapshot.data ?? []).where((brand) {
                 final value = (brand['name'].toString() + ' ' + brand['category'].toString()).toLowerCase();
-                return value.contains(_search.toLowerCase());
+                final type = brand['category']?.toString() ?? '';
+                final matchesCategory = _category == 0 ||
+                    (_category == 1 && ['bakery', 'prepared-food'].contains(type)) ||
+                    (_category == 2 && ['grocery', 'fresh-produce', 'meat-seafood'].contains(type));
+                return matchesCategory && value.contains(_search.toLowerCase());
               }).toList()..sort((a, b) {
                 const priority = {'bakery': 0, 'prepared-food': 1, 'beverages': 2, 'grocery': 3,
                   'fresh-produce': 4, 'meat-seafood': 5};
