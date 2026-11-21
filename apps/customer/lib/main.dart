@@ -713,109 +713,42 @@ class _CustomerHomeState extends State<CustomerHome> {
   );
 
   Future<void> _openBrand(Map<String, dynamic> brand) async {
-    final brandId = brand['id'];
     final brandName = brand['name']?.toString() ?? 'العلامة التجارية';
+    final category = brand['category']?.toString() ?? '';
     await showModalBottomSheet<void>(
       context: context,
-      isScrollControlled: true,
       useSafeArea: true,
+      isScrollControlled: false,
       builder: (sheetContext) => Directionality(
         textDirection: TextDirection.rtl,
-        child: SizedBox(
-          height: MediaQuery.of(sheetContext).size.height * .82,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(22, 22, 22, 28),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(18, 18, 18, 10),
-                child: Row(children: [
-                  Expanded(child: Text(brandName, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900))),
-                  IconButton(onPressed: () => Navigator.pop(sheetContext), icon: const Icon(Icons.close)),
-                ]),
+              Row(children: [
+                const Icon(Icons.storefront_rounded, color: jibGreen, size: 26),
+                const SizedBox(width: 10),
+                Expanded(child: Text(brandName,
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900))),
+                IconButton(onPressed: () => Navigator.pop(sheetContext),
+                  icon: const Icon(Icons.close)),
+              ]),
+              if (category.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(category, style: const TextStyle(color: Color(0xFF77716C), fontSize: 12)),
+              ],
+              const SizedBox(height: 16),
+              const Text(
+                'هذه العلامة موجودة في دليل JIB. تُدار المنتجات والأسعار والتوفر من طرف JIB، وستظهر للطلب عندما يتم اعتمادها.',
+                style: TextStyle(fontSize: 13, height: 1.6, color: Color(0xFF55514C)),
               ),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 18),
-                child: Text(
-                  'كتالوج منتجات العلامة. المنتجات التي لم تعتمد أسعارها وتوفرها لا يمكن طلبها بعد.',
-                  style: TextStyle(color: Color(0xFF68736B), fontSize: 12),
-                ),
-              ),
-              const SizedBox(height: 10),
-              Expanded(
-                child: FutureBuilder<List<Map<String, dynamic>>>(
-                  future: supabase
-                      .from('commercial_brand_product_templates')
-                      .select('id,name,category,price_mad,status,is_active')
-                      .eq('brand_id', brandId)
-                      .order('name')
-                      .then((rows) => List<Map<String, dynamic>>.from(rows)),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-                    if (snapshot.hasError) {
-                      return const Center(child: Padding(
-                        padding: EdgeInsets.all(20),
-                        child: Text('تعذر تحميل منتجات هذه العلامة حالياً.'),
-                      ));
-                    }
-                    final products = snapshot.data ?? [];
-                    if (products.isEmpty) {
-                      return const Center(child: Padding(
-                        padding: EdgeInsets.all(24),
-                        child: Column(mainAxisSize: MainAxisSize.min, children: [
-                          Icon(Icons.inventory_2_outlined, size: 42, color: Color(0xFF9A928B)),
-                          SizedBox(height: 10),
-                          Text('لم تتم إضافة منتجات لهذه العلامة بعد.', textAlign: TextAlign.center,
-                            style: TextStyle(fontWeight: FontWeight.w800)),
-                          SizedBox(height: 6),
-                          Text('ستظهر المنتجات هنا عندما يضيفها المسؤول إلى كتالوج JIB.',
-                            textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF68736B), fontSize: 12)),
-                        ]),
-                      ));
-                    }
-                    return ListView.separated(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: products.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 8),
-                      itemBuilder: (context, index) {
-                        final product = products[index];
-                        final active = product['is_active'] == true && product['status'] == 'approved';
-                        final price = product['price_mad'];
-                        return Card(
-                          margin: EdgeInsets.zero,
-                          child: ListTile(
-                            leading: Container(
-                              width: 46,
-                              height: 46,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFFE8E8),
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: const Icon(Icons.shopping_bag_outlined, color: jibRed),
-                            ),
-                            title: Text(product['name']?.toString() ?? '',
-                              style: const TextStyle(fontWeight: FontWeight.w800)),
-                            subtitle: Text(price == null ? 'السعر لم يحدد بعد' : '$price درهم'),
-                            trailing: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: active ? const Color(0xFFE8F5EC) : const Color(0xFFFFF3E0),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(active ? 'معتمد' : 'قريباً',
-                                style: TextStyle(
-                                  color: active ? jibGreen : const Color(0xFF946200),
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w800,
-                                )),
-                            ),
-                          ),
-                        );
-                      },
-                    );
-                  },
-                ),
+              const SizedBox(height: 18),
+              FilledButton(
+                onPressed: () => Navigator.pop(sheetContext),
+                style: FilledButton.styleFrom(backgroundColor: jibGreen),
+                child: const Text('حسناً'),
               ),
             ],
           ),
