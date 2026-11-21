@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, type CSSProperties, type FormEvent } from "react";
 import { createClient, type User } from "@supabase/supabase-js";
 
+const OWNER_EMAIL = "hatilswad@gmail.com";
 const supabase = createClient(
   "https://ldgbyshgcifheditplnn.supabase.co",
   "sb_publishable_wvNMRZTBFX4viI2ypcdWjQ_YBqgi_TV",
@@ -14,7 +15,9 @@ type Stats = { orders: number; merchants: number; couriers: number; brands: numb
 export default function AdminHome() {
   const [user, setUser] = useState<User | null>(null);
   const [authorized, setAuthorized] = useState(false);
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(OWNER_EMAIL);
+  const [fullName, setFullName] = useState("");
+  const [registerMode, setRegisterMode] = useState(false);
   const [password, setPassword] = useState("");
   const [stats, setStats] = useState<Stats>({ orders: 0, merchants: 0, couriers: 0, brands: 0, products: 0 });
   const [orders, setOrders] = useState<Row[]>([]);
@@ -38,11 +41,19 @@ export default function AdminHome() {
     setError("");
     try {
       const profile = await supabase.from("profiles").select("role").eq("id", currentUser.id).single();
-      if (profile.error || profile.data?.role !== "admin") {
+      let currentRole = profile.data?.role;
+      if (currentRole !== "admin" && currentUser.email?.toLowerCase() === OWNER_EMAIL) {
+        const { error: bootstrapError } = await supabase.rpc("bootstrap_owner_admin");
+        if (!bootstrapError) {
+          const refreshed = await supabase.from("profiles").select("role").eq("id", currentUser.id).single();
+          currentRole = refreshed.data?.role;
+        }
+      }
+      if (profile.error || currentRole !== "admin") {
         await supabase.auth.signOut();
         setUser(null);
         setAuthorized(false);
-        setError("هذا الحساب ليس حساب مدير JIB معتمداً.");
+        setError("هذا الحساب غير معتمد كمدير JIB. استخدم بريد المالك المعتمد لإنشاء حساب الإدارة لأول مرة.");
         return;
       }
       setAuthorized(true);
@@ -96,6 +107,33 @@ export default function AdminHome() {
     });
     return () => { active = false; listener.subscription.unsubscribe(); };
   }, [loadDashboard]);
+
+  async function registerOwner(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (email.trim().toLowerCase() !== OWNER_EMAIL) {
+      setError("إنشاء حساب الإدارة الأول متاح فقط لبريد مالك JIB المعتمد.");
+      return;
+    }
+    if (password.length < 8) {
+      setError("كلمة المرور يجب أن تتكون من 8 أحرف على الأقل.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    const { data, error: authError } = await supabase.auth.signUp({
+      email: OWNER_EMAIL,
+      password,
+      options: { data: { full_name: fullName.trim() } },
+    });
+    if (authError) {
+      setError(authError.message);
+    } else if (data.session && data.user) {
+      await loadDashboard(data.user);
+    } else {
+      setError("تم إنشاء الحساب. افتح رسالة تأكيد البريد الإلكتروني، ثم ارجع إلى هنا وسجّل الدخول بنفس البريد وكلمة المرور. لن يُمنح دور المدير قبل تأكيد البريد.");
+    }
+    setBusy(false);
+  }
 
   async function signIn(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -185,16 +223,31 @@ export default function AdminHome() {
 
   if (!user || !authorized) {
     return (
-      <main style={{ maxWidth: 440, margin: "8vh auto", padding: 24, background: "white", borderRadius: 18, border: "1px solid #e5e7eb" }}>
-        <p style={{ color: "#64748b" }}>JIB V2 · مساحة تشغيل خاصة</p>
-        <h1 style={{ fontSize: 28 }}>دخول الإدارة</h1>
-        <p style={{ color: "#64748b" }}>الدخول متاح لحسابات الإدارة المعتمدة فقط.</p>
-        <form onSubmit={signIn} style={{ display: "grid", gap: 12 }}>
-          <input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="البريد الإلكتروني" style={fieldStyle} />
-          <input required type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="كلمة المرور" style={fieldStyle} />
-          <button disabled={busy} style={buttonStyle}>{busy ? "جارٍ الدخول..." : "تسجيل الدخول"}</button>
-        </form>
-        {error && <p style={{ color: "#b91c1c" }}>{error}</p>}
+      <main style={loginShellStyle}>
+        <section style={loginCardStyle}>
+          <div style={brandMarkStyle}><span style={{ color: "#D8BC79" }}>J</span><span style={{ color: "#FFFFFF" }}>IB</span></div>
+          <p style={{ color: "#B9C7BE", margin: "0 0 8px", letterSpacing: 2, fontSize: 12 }}>JIB · RABAT · MOROCCO</p>
+          <h1 style={{ fontSize: 28, color: "#FFFFFF", margin: "0 0 8px" }}>{registerMode ? "تفعيل حساب المالك" : "مركز قيادة JIB"}</h1>
+          <p style={{ color: "#D2DAD4", lineHeight: 1.8, marginTop: 0 }}>{registerMode ? "أنشئ حساب الإدارة الأول بالبريد المعتمد. لا يمكن لأي بريد آخر الحصول على صلاحية المالك." : "إدارة الطلبات والتجار والفروع والمنتجات والتوصيل من مكان واحد."}</p>
+          {registerMode ? (
+            <form onSubmit={registerOwner} style={{ display: "grid", gap: 12 }}>
+              <input required value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="الاسم الكامل" style={fieldStyle} />
+              <input required type="email" value={OWNER_EMAIL} readOnly style={{ ...fieldStyle, background: "#F0F0EA", color: "#34463B" }} />
+              <input required minLength={8} type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="أنشئ كلمة مرور جديدة (8 أحرف على الأقل)" style={fieldStyle} />
+              <button disabled={busy} style={buttonStyle}>{busy ? "جارٍ إنشاء الحساب..." : "إنشاء حساب المالك"}</button>
+              <button type="button" onClick={() => { setRegisterMode(false); setError(""); }} style={secondaryButton}>العودة إلى تسجيل الدخول</button>
+            </form>
+          ) : (
+            <form onSubmit={signIn} style={{ display: "grid", gap: 12 }}>
+              <input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="البريد الإلكتروني" style={fieldStyle} />
+              <input required type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="كلمة المرور" style={fieldStyle} />
+              <button disabled={busy} style={buttonStyle}>{busy ? "جارٍ الدخول..." : "تسجيل الدخول"}</button>
+              <button type="button" onClick={() => { setRegisterMode(true); setEmail(OWNER_EMAIL); setError(""); }} style={secondaryButton}>إنشاء / تفعيل حساب المالك لأول مرة</button>
+            </form>
+          )}
+          {error && <p style={authMessageStyle}>{error}</p>}
+          <p style={{ color: "#AEBBB2", fontSize: 12, marginTop: 18 }}>وصول محمي · صلاحية المالك مرتبطة ببريد موثّق محدد</p>
+        </section>
       </main>
     );
   }
@@ -206,10 +259,11 @@ export default function AdminHome() {
 
   return (
     <main style={{ maxWidth: 1180, margin: "0 auto", padding: 24 }}>
-      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+      <header style={dashboardHeaderStyle}>
         <div>
-          <p style={{ color: "#64748b", marginBottom: 6 }}>JIB V2 · مساحة تشغيل داخلية</p>
-          <h1 style={{ margin: 0, fontSize: 30 }}>لوحة الإدارة</h1>
+          <div style={brandMarkSmallStyle}><span style={{ color: "#D8BC79" }}>J</span><span style={{ color: "#FFFFFF" }}>IB</span></div>
+          <p style={{ color: "#D2DAD4", margin: "8px 0 6px" }}>JIB V2 · مساحة تشغيل داخلية</p>
+          <h1 style={{ margin: 0, fontSize: 30, color: "#FFFFFF" }}>لوحة قيادة جيب</h1>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <button onClick={() => user && loadDashboard(user)} style={secondaryButton}>تحديث</button>
@@ -303,8 +357,14 @@ export default function AdminHome() {
   );
 }
 
-const fieldStyle: CSSProperties = { width: "100%", boxSizing: "border-box", padding: 13, border: "1px solid #cbd5e1", borderRadius: 10, fontSize: 16 };
-const buttonStyle: CSSProperties = { padding: "13px 16px", border: 0, borderRadius: 10, background: "#172554", color: "white", fontWeight: 700, cursor: "pointer" };
-const secondaryButton: CSSProperties = { padding: "9px 12px", border: "1px solid #cbd5e1", borderRadius: 9, background: "white", color: "#172554", cursor: "pointer" };
-const tileStyle: CSSProperties = { background: "white", border: "1px solid #e5e7eb", borderRadius: 14, padding: 16 };
-const panelStyle: CSSProperties = { background: "white", border: "1px solid #e5e7eb", borderRadius: 16, padding: 20, marginTop: 18 };
+const fieldStyle: CSSProperties = { width: "100%", boxSizing: "border-box", padding: 13, border: "1px solid #D8D0BC", borderRadius: 10, fontSize: 16, background: "#FFFEFA", color: "#17251D" };
+const buttonStyle: CSSProperties = { padding: "13px 16px", border: "1px solid #D8BC79", borderRadius: 10, background: "#145A3A", color: "#FFFFFF", fontWeight: 800, cursor: "pointer" };
+const secondaryButton: CSSProperties = { padding: "9px 12px", border: "1px solid #B99A55", borderRadius: 9, background: "#FBF8EF", color: "#173B29", cursor: "pointer", fontWeight: 700 };
+const tileStyle: CSSProperties = { background: "#FFFEFA", border: "1px solid #DED3B7", borderTop: "3px solid #B99A55", borderRadius: 14, padding: 16, boxShadow: "0 6px 20px rgba(22,42,30,.05)" };
+const panelStyle: CSSProperties = { background: "#FFFEFA", border: "1px solid #DED3B7", borderRadius: 16, padding: 20, marginTop: 18, boxShadow: "0 8px 24px rgba(22,42,30,.04)" };
+const loginShellStyle: CSSProperties = { minHeight: "100vh", display: "grid", placeItems: "center", padding: 24, boxSizing: "border-box", background: "radial-gradient(circle at 15% 15%, #1D6544 0, #0C261A 36%, #090F0C 100%)" };
+const loginCardStyle: CSSProperties = { width: "100%", maxWidth: 440, boxSizing: "border-box", padding: 30, borderRadius: 22, border: "1px solid rgba(216,188,121,.5)", background: "linear-gradient(160deg, rgba(19,48,33,.98), rgba(10,20,14,.98))", boxShadow: "0 24px 80px rgba(0,0,0,.35)" };
+const brandMarkStyle: CSSProperties = { display: "inline-flex", alignItems: "center", gap: 2, fontSize: 42, fontWeight: 950, letterSpacing: -3, marginBottom: 16, borderBottom: "3px solid #B99A55", paddingBottom: 4 };
+const brandMarkSmallStyle: CSSProperties = { display: "inline-flex", alignItems: "center", gap: 2, fontSize: 28, fontWeight: 950, letterSpacing: -2, borderBottom: "2px solid #D8BC79", paddingBottom: 2 };
+const dashboardHeaderStyle: CSSProperties = { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, flexWrap: "wrap", padding: 24, borderRadius: 20, background: "linear-gradient(110deg, #0D2B1D, #174D34 70%, #101A14)", border: "1px solid #B99A55", boxShadow: "0 12px 30px rgba(12,38,26,.14)" };
+const authMessageStyle: CSSProperties = { color: "#FFE4DF", background: "rgba(155,36,42,.28)", border: "1px solid rgba(230,125,116,.5)", padding: 12, borderRadius: 10, lineHeight: 1.7 };
