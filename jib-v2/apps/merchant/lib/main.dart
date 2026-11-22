@@ -176,6 +176,15 @@ class _MerchantHomeState extends State<MerchantHome> {
     finally { if (mounted) setState(() => _busy = false); }
   }
 
+  String? get _selectedReferencePrice {
+    for (final product in _catalogProducts) {
+      if (product['id'] == _selectedProductId && product['reference_price_mad'] != null) {
+        return product['reference_price_mad'].toString();
+      }
+    }
+    return null;
+  }
+
   Future<void> _saveProduct() async {
     if (_selectedBranchId == null || _selectedProductId == null) return;
     final price = num.tryParse(_productPrice.text.trim());
@@ -307,14 +316,23 @@ class _MerchantHomeState extends State<MerchantHome> {
               _selectedProductId = value;
               final matches = _catalogProducts.where((p) => p['id'] == value);
               final product = matches.isEmpty ? null : matches.first;
-              final reference = product?['reference_price_mad'];
-              _productPrice.text = reference == null ? '' : reference.toString();
+              // Reference catalog prices are informational only. Never prefill
+              // the branch's sale price: the merchant must enter and confirm it.
+              _productPrice.clear();
             });
           },
         ),
         const SizedBox(height: 10),
         TextField(controller: _productPrice, keyboardType: const TextInputType.numberWithOptions(decimal: true),
           decoration: const InputDecoration(labelText: 'سعر الفرع بالدرهم (إلزامي)', border: OutlineInputBorder())),
+        if (_selectedReferencePrice != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 6, bottom: 4),
+            child: Text(
+              'السعر المرجعي في الكتالوج: $_selectedReferencePrice درهم. هذا ليس سعر الفرع؛ أدخل السعر الذي تؤكده فعلياً.',
+              style: const TextStyle(color: Colors.blueGrey, fontSize: 12),
+            ),
+          ),
         SwitchListTile(
           contentPadding: EdgeInsets.zero, title: const Text('المنتج متوفر للبيع'),
           value: _productAvailable, onChanged: (value) => setState(() => _productAvailable = value),
