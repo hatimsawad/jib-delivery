@@ -25,7 +25,14 @@ The GitHub Actions workflow `.github/workflows/jib-v2-build.yml` scaffolds Andro
 
 ## Catalog snapshot
 
-The JIB V2 catalogue currently contains 80 brands and 313 product records. 75 products currently have product images; 52 brands have website favicon marks. Reference prices and catalogue stock are not live branch offers. Merchants must confirm their own branch prices and stock before an item can be ordered.
+The JIB V2 catalogue currently contains **100 approved brands and 343 active product records**. 75 products currently have product images; 52 brands have website favicon marks. Reference prices and catalogue stock are not live branch offers. Merchants must confirm their own branch prices and stock before an item can be ordered.
+
+The current catalogue expansion was sourced from public Marjane catalogue pages. It is not a Glovo import. Do not describe these records as Glovo-sourced. The catalogue is shared reference data; each branch still needs its own confirmed price and availability.
 
 ## Operational readiness
-The V2 apps connect only to the independent JIB V2 Supabase project. Catalog reference data is available, but actual merchant branches, branch-specific prices and stock must be confirmed by the respective merchants. Delivery fee and payment rules remain unconfigured until approved. A real order cannot be accepted until an active merchant branch and confirmed products are onboarded and the full order lifecycle is tested.
+
+The V2 apps connect only to the independent JIB V2 Supabase project. The catalogue reference data is available, but the current database has no onboarded merchants, branches, branch-specific product offers, customer profiles, courier profiles, or orders. Consequently, the catalogue is not yet purchasable and a real order cannot yet complete end-to-end.
+
+The administration web app has a READY staging deployment. This is not a production release. The Android APKs are debug builds, not signed production releases.
+
+Delivery fee, merchant commission, and payment rules remain unconfigured until explicitly approved by the owner. Do not invent or activate commercial values. A real order can be accepted only after merchant branches and their confirmed product prices and stock are onboarded, user accounts are established, and the complete order lifecycle is tested.
