@@ -368,6 +368,7 @@ export default function AdminHome() {
           <h1 style={{ margin: 0, fontSize: 30, color: "#FFFFFF" }}>لوحة قيادة جيب</h1>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
+          <a href="/catalog" style={{ ...secondaryButton, textDecoration: "none" }}>إدارة الكتالوج</a>
           <button onClick={() => user && loadDashboard(user)} style={secondaryButton}>تحديث</button>
           <button onClick={signOut} style={secondaryButton}>خروج</button>
         </div>
