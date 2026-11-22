@@ -49,14 +49,16 @@ export default function AdminHome() {
     try {
       const profile = await supabase.from("profiles").select("role").eq("id", currentUser.id).single();
       let currentRole = profile.data?.role;
+      let profileError = profile.error;
       if (currentRole !== "admin" && currentUser.email?.toLowerCase() === OWNER_EMAIL) {
         const { error: bootstrapError } = await supabase.rpc("bootstrap_owner_admin");
         if (!bootstrapError) {
           const refreshed = await supabase.from("profiles").select("role").eq("id", currentUser.id).single();
           currentRole = refreshed.data?.role;
+          profileError = refreshed.error;
         }
       }
-      if (profile.error || currentRole !== "admin") {
+      if (profileError || currentRole !== "admin") {
         await supabase.auth.signOut();
         setUser(null);
         setAuthorized(false);
