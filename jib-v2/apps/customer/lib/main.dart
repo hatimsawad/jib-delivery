@@ -55,6 +55,13 @@ class CustomerHome extends StatefulWidget {
 }
 
 class _CustomerHomeState extends State<CustomerHome> {
+  static const Set<String> _foodCategories = {
+    'food','grocery','drinks','dairy','meat','produce','bakery','frozen-food',
+    'breakfast','burgers','desserts','prepared-food','fries','sauces','sharing',
+    'wraps','mccafe','happy-meal','menu-mabrouk','duo-mabrouk',
+    'moroccan-breakfast','salads',
+  };
+
   SupabaseClient get _db => Supabase.instance.client;
   User? get _user => _db.auth.currentUser;
   final _email = TextEditingController();
@@ -99,6 +106,18 @@ class _CustomerHomeState extends State<CustomerHome> {
 
   List<String> get _catalogCategories => _catalogProducts.map((p) => p['category'] as String?).whereType<String>().toSet().toList()..sort();
 
+  num? _customerReferencePrice(Map<String,dynamic> product) {
+    final base = product['reference_price_mad'] as num?;
+    if (base == null) return null;
+    final notes = (product['reference_notes'] as String? ?? '').toLowerCase();
+    final alreadyIncludesMarkup = notes.contains('(+2 mad)') ||
+      notes.contains('jib reference price') ||
+      notes.contains('سعر jib المرجعي') ||
+      notes.contains('السعر المرجعي + 2') ||
+      notes.contains('السعر المرجعي التاريخي + 2');
+    return alreadyIncludesMarkup ? base : base + 2;
+  }
+
   List<Map<String,dynamic>> get _filteredCatalogProducts => _catalogProducts.where((p) {
     final brandMatches = _selectedBrand == null || p['brand_id'] == _selectedBrand;
     final categoryMatches = _selectedCategory == null || p['category'] == _selectedCategory;
@@ -139,14 +158,17 @@ class _CustomerHomeState extends State<CustomerHome> {
       final brands = await _db.from('brands').select('id,name,slug,logo_url,category')
         .eq('is_approved',true).eq('is_active',true).order('name');
       final products = await _db.from('products')
-        .select('id,brand_id,name,category,reference_price_mad,official_source_url,image_url')
-        .eq('is_active',true).order('name');
+        .select('id,brand_id,name,category,reference_price_mad,reference_notes,official_source_url,image_url')
+        .eq('is_active',true).inFilter('category',_foodCategories.toList()).order('name');
+      final foodBrandIds = List<Map<String,dynamic>>.from(products)
+        .map((p) => p['brand_id'] as String?).whereType<String>().toSet();
       final branches = await _db.from('branches')
         .select('id,name,address,city,merchant_id,merchants!inner(name,is_active)')
         .eq('is_active',true).eq('merchants.is_active',true).order('name');
       if (!mounted) return;
       setState(() {
-        _brands = List<Map<String,dynamic>>.from(brands);
+        _brands = List<Map<String,dynamic>>.from(brands)
+          .where((b) => foodBrandIds.contains(b['id'])).toList();
         _catalogProducts = List<Map<String,dynamic>>.from(products);
         _branches = List<Map<String,dynamic>>.from(branches);
       });
@@ -200,9 +222,10 @@ class _CustomerHomeState extends State<CustomerHome> {
     });
     try {
       final rows = await _db.from('branch_products')
-        .select('id,price_mad,availability,products!inner(id,name,category,brand_id,image_url)')
+        .select('id,price_mad,availability,products!inner(id,name,category,brand_id,image_url,brands(name))')
         .eq('branch_id',_selectedBranch!).eq('is_active',true)
-        .eq('availability','available').eq('products.is_active',true).order('id');
+        .eq('availability','available').eq('products.is_active',true)
+        .inFilter('products.category',_foodCategories.toList()).order('id');
       if (mounted) setState(() => _branchProducts = List<Map<String,dynamic>>.from(rows));
     } catch (e) {
       if (mounted) setState(() => _error = 'تعذر تحميل منتجات هذا الفرع.');
@@ -347,7 +370,7 @@ class _CustomerHomeState extends State<CustomerHome> {
         if (_catalogProducts.isEmpty) const _InfoPanel('يتم تحميل المنتجات أو لا توجد بيانات متاحة حالياً.'),
         const SizedBox(height:8),
         Wrap(spacing:10,runSpacing:10,children:_filteredCatalogProducts.map((p){
-          final price=p['reference_price_mad'];
+          final price=_customerReferencePrice(p);
           final image=(p['image_url'] as String?)?.trim();
           final brand=_brands.where((b)=>b['id']==p['brand_id']).toList();
           return SizedBox(width:(MediaQuery.of(context).size.width-54)/2,child:Card(
@@ -417,7 +440,7 @@ class _CustomerHomeState extends State<CustomerHome> {
               leading:Container(width:54,height:54,decoration:BoxDecoration(color:const Color(0xFFF7F8F7),borderRadius:BorderRadius.circular(10)),
                 child:image==null||image.isEmpty?const Icon(Icons.inventory_2_outlined,color:Color(0xFF00843D)):Image.network(image,fit:BoxFit.contain,errorBuilder:(_,_,_)=>const Icon(Icons.inventory_2_outlined,color:Color(0xFF00843D)))),
               title:Text(product['name'] as String),
-              subtitle:Text('${row['price_mad']} درهم'),
+              subtitle:Text('${(product['brands'] as Map?)?['name'] ?? 'علامة غير محددة'} • ${row['price_mad']} درهم'),
               trailing:IconButton(onPressed:()=>_addToCart(row),icon:const Icon(Icons.add_circle,color:Color(0xFF00843D))),
             ));
           }),
@@ -443,7 +466,7 @@ class _CustomerHomeState extends State<CustomerHome> {
             TextField(controller:_phone,keyboardType:TextInputType.phone,decoration:const InputDecoration(labelText:'رقم الهاتف',border:OutlineInputBorder())),
             const SizedBox(height:10),
             FilledButton(onPressed:_busy?null:_submitOrder,child:Text(_busy?'جارٍ الإرسال...':'تأكيد الطلب')),
-            const _InfoPanel('يتم احتساب المجموع من سعر الفرع المؤكد. رسوم التوصيل وطريقة الدفع لم يتم تفعيلهما بعد.'),
+            const _InfoPanel('السعر المعروض يتضمن زيادة JIB البالغة 2 درهم لكل منتج. لا يظهر المنتج للشراء إلا بعد تأكيد الفرع لسعره وتوفره. رسوم التوصيل وطريقة الدفع لم يتم تفعيلهما بعد.'),
           ],
         ],
         if (_user!=null) ...[
