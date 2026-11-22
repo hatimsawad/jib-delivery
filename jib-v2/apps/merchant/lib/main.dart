@@ -343,6 +343,7 @@ class _MerchantHomeState extends State<MerchantHome> {
         const SizedBox(height: 10),
         if (_catalogBrands.isNotEmpty) ...[
           DropdownButtonFormField<String>(
+            key: ValueKey('brand-${_selectedBrandId ?? 'none'}'),
             initialValue: _selectedBrandId,
             decoration: const InputDecoration(labelText: 'اختر العلامة التجارية', border: OutlineInputBorder()),
             items: _catalogBrands.map((b) => DropdownMenuItem<String>(
@@ -358,6 +359,7 @@ class _MerchantHomeState extends State<MerchantHome> {
           const SizedBox(height: 10),
         ],
         DropdownButtonFormField<String>(
+          key: ValueKey('product-${_selectedProductId ?? 'none'}'),
           initialValue: _selectedProductId,
           decoration: const InputDecoration(labelText: 'اختر منتجاً من العلامة المختارة', border: OutlineInputBorder()),
           items: _visibleCatalogProducts.map((p) {
