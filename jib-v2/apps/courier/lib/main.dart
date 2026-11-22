@@ -111,7 +111,7 @@ class _CourierHomeState extends State<CourierHome> {
         .eq('user_id', _user!.id).maybeSingle();
       _onDuty = profile?['is_on_duty'] == true;
       final rows = await _db.from('courier_assignments')
-        .select('id,order_id,status,offered_at,orders!inner(id,status,delivery_address,customer_phone,subtotal_mad,submitted_at,branches(name,address))')
+        .select('id,order_id,status,offered_at,orders!inner(id,status,delivery_address,customer_phone,subtotal_mad,submitted_at,branches(name,address),order_items(product_name_snapshot,quantity,unit_price_mad,line_total_mad,branch_products!inner(products!inner(name,brands(name)))))')
         .eq('courier_id', _user!.id)
         .inFilter('status', ['offered','accepted'])
         .order('offered_at', ascending: false);
@@ -211,6 +211,7 @@ class _CourierHomeState extends State<CourierHome> {
         final branch = order['branches'] as Map<String,dynamic>?;
         final assignmentStatus = a['status'] as String;
         final orderId = a['order_id'] as String;
+        final orderItems = order['order_items'] as List<dynamic>? ?? [];
         final actions = <Widget>[];
         if (assignmentStatus == 'offered') {
           actions.add(FilledButton(onPressed: _busy ? null : () => _respond(a['id'] as String,true), child: const Text('قبول العرض')));
@@ -230,6 +231,20 @@ class _CourierHomeState extends State<CourierHome> {
             Text('عنوان التسليم: ${order['delivery_address']}'),
             Text('هاتف الزبون: ${order['customer_phone']}'),
             Text('الحالة: $status'),
+            if (orderItems.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              const Text('العلامة التجارية والمنتجات المطلوبة:', style: TextStyle(fontWeight: FontWeight.bold)),
+              ...orderItems.map((item) {
+                final branchProduct = item['branch_products'] as Map?;
+                final product = branchProduct?['products'] as Map?;
+                final brand = product?['brands'] as Map?;
+                final brandName = brand?['name'] as String? ?? 'علامة غير محددة';
+                return Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text('$brandName — ${item['product_name_snapshot']} × ${item['quantity']} • ${item['line_total_mad']} درهم'),
+                );
+              }),
+            ],
             Text('مضى على الطلب: ${DateTime.now().difference(DateTime.parse(order['submitted_at'] as String)).inMinutes} دقيقة'),
             Wrap(spacing: 8, children: actions),
           ],
