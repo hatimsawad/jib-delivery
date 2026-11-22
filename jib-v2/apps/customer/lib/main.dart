@@ -386,7 +386,7 @@ class _CustomerHomeState extends State<CustomerHome> {
                 const SizedBox(height:5),
                 Text(brand.isEmpty?'JIB':brand.first['name'] as String,maxLines:1,overflow:TextOverflow.ellipsis,style:const TextStyle(fontSize:11,color:Color(0xFF65736A))),
                 const SizedBox(height:6),
-                Text(price==null?'السعر المرجعي غير متوفر':'${(price as num).toStringAsFixed(2)} درهم',style:const TextStyle(color:Color(0xFF00843D),fontWeight:FontWeight.w900)),
+                Text(price==null?'السعر المرجعي غير متوفر':'${price.toStringAsFixed(2)} درهم',style:const TextStyle(color:Color(0xFF00843D),fontWeight:FontWeight.w900)),
                 const Text('السعر النهائي حسب الفرع',style:TextStyle(fontSize:10,color:Color(0xFF7B817B))),
               ])),
             ]),
