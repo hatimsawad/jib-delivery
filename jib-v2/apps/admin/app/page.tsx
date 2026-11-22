@@ -78,7 +78,10 @@ export default function AdminHome() {
         supabase.from("merchants").select("id,name,owner_user_id,is_active").order("name"),
         supabase.from("branches").select("id,name,address,city,is_active,merchant_id,merchants(name)").order("name"),
       ]);
-      const failed = [orderRows, courierRows, profileRows, merchantRows, branchRows].find((result) => result.error);
+      const failed = [
+        orderCount, merchantCount, courierCount, brandCount, productCount,
+        orderRows, courierRows, profileRows, merchantRows, branchRows,
+      ].find((result) => result.error);
       if (failed?.error) throw failed.error;
       setStats({
         orders: orderCount.count ?? 0,
@@ -92,8 +95,14 @@ export default function AdminHome() {
       setProfiles((profileRows.data ?? []) as Row[]);
       setMerchants((merchantRows.data ?? []) as Row[]);
       setBranches((branchRows.data ?? []) as Row[]);
-    } catch {
-      setError("تعذر تحميل لوحة التشغيل. تحقق من إعدادات Data API وصلاحيات المدير.");
+    } catch (loadError) {
+      console.error("[JIB admin] dashboard load failed:", loadError);
+      const detail = loadError instanceof Error
+        ? loadError.message
+        : typeof loadError === "object" && loadError !== null && "message" in loadError
+          ? String((loadError as { message?: unknown }).message ?? "خطأ غير معروف")
+          : String(loadError);
+      setError(`تعذر تحميل لوحة التشغيل: ${detail}`);
     } finally {
       setBusy(false);
     }
