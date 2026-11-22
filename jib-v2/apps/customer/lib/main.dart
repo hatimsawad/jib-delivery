@@ -57,7 +57,7 @@ class CustomerHome extends StatefulWidget {
 class _CustomerHomeState extends State<CustomerHome> {
   static const Set<String> _foodCategories = {
     'food','grocery','drinks','dairy','meat','produce','bakery','frozen-food',
-    'breakfast','burgers','desserts','prepared-food','fries','sauces','sharing',
+    'breakfast','burgers','desserts','prepared-food','menus','fries','sauces','sharing',
     'wraps','mccafe','happy-meal','menu-mabrouk','duo-mabrouk',
     'moroccan-breakfast','salads',
   };
