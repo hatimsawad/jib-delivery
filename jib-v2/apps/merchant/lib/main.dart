@@ -60,6 +60,7 @@ class _MerchantHomeState extends State<MerchantHome> {
   final _productPrice = TextEditingController();
   List<Map<String,dynamic>> _branches = [];
   List<Map<String,dynamic>> _catalogProducts = [];
+  String? _selectedBrandId;
   List<Map<String,dynamic>> _branchProducts = [];
   String? _selectedBranchId;
   String? _selectedProductId;
@@ -71,6 +72,35 @@ class _MerchantHomeState extends State<MerchantHome> {
 
   SupabaseClient get _db => Supabase.instance.client;
   User? get _user => _db.auth.currentUser;
+
+  List<Map<String,dynamic>> get _catalogBrands {
+    final names = <String,String>{};
+    for (final product in _catalogProducts) {
+      final id = product['brand_id'] as String?;
+      final relation = product['brands'];
+      if (id != null && relation is Map && relation['name'] is String) {
+        names[id] = relation['name'] as String;
+      }
+    }
+    final ids = names.keys.toList()..sort((a,b) => names[a]!.compareTo(names[b]!));
+    return ids.map((id) => {'id':id,'name':names[id]}).toList();
+  }
+
+  List<Map<String,dynamic>> get _visibleCatalogProducts => _selectedBrandId == null
+    ? _catalogProducts
+    : _catalogProducts.where((p) => p['brand_id'] == _selectedBrandId).toList();
+
+  num? _customerReferencePrice(Map<String,dynamic> product) {
+    final base = product['reference_price_mad'] as num?;
+    if (base == null) return null;
+    final notes = (product['reference_notes'] as String? ?? '').toLowerCase();
+    final alreadyIncludesMarkup = notes.contains('(+2 mad)') ||
+      notes.contains('jib reference price') ||
+      notes.contains('سعر jib المرجعي') ||
+      notes.contains('السعر المرجعي + 2') ||
+      notes.contains('السعر المرجعي التاريخي + 2');
+    return alreadyIncludesMarkup ? base : base + 2;
+  }
 
   @override
   void initState() {
@@ -132,7 +162,8 @@ class _MerchantHomeState extends State<MerchantHome> {
       }
       final branches = await _db.from('branches').select('id,name,address,is_active')
         .eq('merchant_id', merchant['id']).order('name');
-      final catalog = await _db.from('products').select('id,name,reference_price_mad')
+      final catalog = await _db.from('products')
+        .select('id,name,brand_id,category,reference_price_mad,reference_notes,brands(name)')
         .eq('is_active', true).order('name');
       final ids = (branches as List).map((b) => b['id'] as String).toList();
       List<Map<String, dynamic>> orders = [];
@@ -144,20 +175,25 @@ class _MerchantHomeState extends State<MerchantHome> {
       }
       final branchList = List<Map<String,dynamic>>.from(branches);
       final productList = List<Map<String,dynamic>>.from(catalog);
+      final brandIds = productList.map((p) => p['brand_id'] as String?)
+        .whereType<String>().toSet().toList()..sort();
+      final selectedBrand = _selectedBrandId != null && brandIds.contains(_selectedBrandId)
+        ? _selectedBrandId : (brandIds.isEmpty ? null : brandIds.first);
+      final brandProducts = productList.where((p) => selectedBrand == null || p['brand_id'] == selectedBrand).toList();
+      final selectedProduct = _selectedProductId != null && brandProducts.any((p) => p['id'] == _selectedProductId)
+        ? _selectedProductId : (brandProducts.isEmpty ? null : brandProducts.first['id'] as String);
       final selected = _selectedBranchId ?? (branchList.isEmpty ? null : branchList.first['id'] as String);
       List<Map<String,dynamic>> inventory = [];
       if (selected != null) {
         final rows = await _db.from('branch_products')
-          .select('id,product_id,price_mad,availability,products!inner(name)')
+          .select('id,product_id,price_mad,availability,products!inner(name,brand_id,brands(name))')
           .eq('branch_id', selected).order('updated_at', ascending: false);
         inventory = List<Map<String,dynamic>>.from(rows);
       }
       setState(() {
         _merchant = merchant; _orders = orders; _branches = branchList;
-        _catalogProducts = productList; _selectedBranchId = selected; _branchProducts = inventory;
-        if (_selectedProductId == null && productList.isNotEmpty) {
-          _selectedProductId = productList.first['id'] as String;
-        }
+        _catalogProducts = productList; _selectedBrandId = selectedBrand;
+        _selectedProductId = selectedProduct; _selectedBranchId = selected; _branchProducts = inventory;
       });
     } catch (e) {
       setState(() => _error = 'تعذر تحميل طلبات المتجر. تحقق من صلاحيات الحساب.');
@@ -169,7 +205,7 @@ class _MerchantHomeState extends State<MerchantHome> {
     setState(() { _selectedBranchId = branchId; _busy = true; _error = null; });
     try {
       final rows = await _db.from('branch_products')
-        .select('id,product_id,price_mad,availability,products!inner(name)')
+        .select('id,product_id,price_mad,availability,products!inner(name,brand_id,brands(name))')
         .eq('branch_id', branchId).order('updated_at', ascending: false);
       setState(() => _branchProducts = List<Map<String,dynamic>>.from(rows));
     } catch (_) { setState(() => _error = 'تعذر تحميل قائمة منتجات الفرع.'); }
@@ -178,8 +214,8 @@ class _MerchantHomeState extends State<MerchantHome> {
 
   String? get _selectedReferencePrice {
     for (final product in _catalogProducts) {
-      if (product['id'] == _selectedProductId && product['reference_price_mad'] != null) {
-        return product['reference_price_mad'].toString();
+      if (product['id'] == _selectedProductId) {
+        return _customerReferencePrice(product)?.toStringAsFixed(2);
       }
     }
     return null;
@@ -194,7 +230,7 @@ class _MerchantHomeState extends State<MerchantHome> {
       await _db.rpc('merchant_set_branch_product', params: {
         'p_branch_id': _selectedBranchId,
         'p_product_id': _selectedProductId,
-        'p_price_mad': price,
+        'p_price_mad': price + 2,
         'p_available': _productAvailable,
       });
       await _selectBranch(_selectedBranchId);
@@ -305,31 +341,59 @@ class _MerchantHomeState extends State<MerchantHome> {
           onChanged: _busy ? null : _selectBranch,
         ),
         const SizedBox(height: 10),
+        if (_catalogBrands.isNotEmpty) ...[
+          DropdownButtonFormField<String>(
+            initialValue: _selectedBrandId,
+            decoration: const InputDecoration(labelText: 'اختر العلامة التجارية', border: OutlineInputBorder()),
+            items: _catalogBrands.map((b) => DropdownMenuItem<String>(
+              value: b['id'] as String, child: Text(b['name'] as String),
+            )).toList(),
+            onChanged: (value) => setState(() {
+              _selectedBrandId = value;
+              final matches = _visibleCatalogProducts;
+              _selectedProductId = matches.isEmpty ? null : matches.first['id'] as String;
+              _productPrice.clear();
+            }),
+          ),
+          const SizedBox(height: 10),
+        ],
         DropdownButtonFormField<String>(
           initialValue: _selectedProductId,
-          decoration: const InputDecoration(labelText: 'اختر منتجاً من كتالوج JIB', border: OutlineInputBorder()),
-          items: _catalogProducts.map((p) => DropdownMenuItem<String>(
-            value: p['id'] as String, child: Text(p['name'] as String),
-          )).toList(),
+          decoration: const InputDecoration(labelText: 'اختر منتجاً من العلامة المختارة', border: OutlineInputBorder()),
+          items: _visibleCatalogProducts.map((p) {
+            final relation = p['brands'];
+            final brandName = relation is Map ? relation['name'] as String? : null;
+            return DropdownMenuItem<String>(
+              value: p['id'] as String,
+              child: Text(brandName == null ? p['name'] as String : '$brandName — ${p['name']}'),
+            );
+          }).toList(),
           onChanged: (value) {
             setState(() {
               _selectedProductId = value;
-              final matches = _catalogProducts.where((p) => p['id'] == value);
-              final product = matches.isEmpty ? null : matches.first;
-              // Reference catalog prices are informational only. Never prefill
-              // the branch's sale price: the merchant must enter and confirm it.
+              // The merchant enters the branch price explicitly; the +2 MAD
+              // JIB markup is added once when the offer is saved.
               _productPrice.clear();
             });
           },
         ),
         const SizedBox(height: 10),
         TextField(controller: _productPrice, keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: const InputDecoration(labelText: 'سعر الفرع بالدرهم (إلزامي)', border: OutlineInputBorder())),
+          onChanged: (_) => setState(() {}),
+          decoration: const InputDecoration(labelText: 'سعر الفرع قبل زيادة JIB (درهم)', border: OutlineInputBorder())),
+        if (num.tryParse(_productPrice.text.trim()) != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 6, bottom: 4),
+            child: Text(
+              'السعر الذي سيظهر للزبون بعد إضافة 2 درهم: ${(num.parse(_productPrice.text.trim()) + 2).toStringAsFixed(2)} درهم',
+              style: const TextStyle(color: Color(0xFF00843D), fontSize: 12, fontWeight: FontWeight.w700),
+            ),
+          ),
         if (_selectedReferencePrice != null)
           Padding(
             padding: const EdgeInsets.only(top: 6, bottom: 4),
             child: Text(
-              'السعر المرجعي في الكتالوج: $_selectedReferencePrice درهم. هذا ليس سعر الفرع؛ أدخل السعر الذي تؤكده فعلياً.',
+              'السعر المرجعي المعروض يتضمن زيادة JIB البالغة 2 درهم مرة واحدة إن لم تكن مدرجة بالمصدر. أدخل سعر الفرع الأساسي الذي تؤكده فعلياً.',
               style: const TextStyle(color: Colors.blueGrey, fontSize: 12),
             ),
           ),
