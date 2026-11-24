@@ -418,7 +418,7 @@ class _CustomerHomeState extends State<CustomerHome> {
       const SizedBox(height: 16),
       titleRow('العلامات التجارية'),
       const SizedBox(height: 8),
-      ..._brands.map((b) => Card(elevation: 0, color: _selectedBrand == b['id'] ? const Color(0xFFEAF5ED) : Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)), child: ListTile(onTap: () => setState(() => _selectedBrand = _selectedBrand == b['id'] ? null : b['id'] as String), leading: const CircleAvatar(backgroundColor: Color(0xFFFFEEEE), child: Icon(Icons.storefront_rounded, color: Color(0xFFE31E24))), title: Text(b['name'] as String, style: const TextStyle(fontWeight: FontWeight.w800)), trailing: Icon(_selectedBrand == b['id'] ? Icons.check_circle : Icons.chevron_left, color: const Color(0xFF00843D)))),
+      ..._brands.map((b) => Card(elevation: 0, color: _selectedBrand == b['id'] ? const Color(0xFFEAF5ED) : Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)), child: ListTile(onTap: () => setState(() => _selectedBrand = _selectedBrand == b['id'] ? null : b['id'] as String), leading: const CircleAvatar(backgroundColor: Color(0xFFFFEEEE), child: Icon(Icons.storefront_rounded, color: Color(0xFFE31E24))), title: Text(b['name'] as String, style: const TextStyle(fontWeight: FontWeight.w800)), trailing: Icon(_selectedBrand == b['id'] ? Icons.check_circle : Icons.chevron_left, color: const Color(0xFF00843D))))),
       const SizedBox(height: 15),
       titleRow('المنتجات (' + _filteredCatalogProducts.length.toString() + ')'),
       const SizedBox(height: 10),
