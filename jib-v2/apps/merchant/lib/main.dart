@@ -239,10 +239,28 @@ class _MerchantHomeState extends State<MerchantHome> {
   }
 
   Future<void> _advance(String orderId, String action, [int? etaMinutes]) async {
+    String? reason;
+    if (action == 'reject') {
+      final controller = TextEditingController();
+      reason = await showDialog<String>(context: context, builder: (dialogContext) => AlertDialog(
+        title: const Text('سبب رفض الطلب'),
+        content: TextField(controller: controller, minLines: 2, maxLines: 4,
+          decoration: const InputDecoration(labelText: 'اكتب سبباً واضحاً للزبون', border: OutlineInputBorder())),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء')),
+          FilledButton(onPressed: () {
+            final value = controller.text.trim();
+            if (value.length >= 5) Navigator.pop(dialogContext, value);
+          }, child: const Text('تأكيد الرفض')),
+        ],
+      ));
+      controller.dispose();
+      if (reason == null) return;
+    }
     setState(() { _busy = true; _error = null; });
     try {
       await _db.rpc('merchant_update_order', params: {
-        'p_order_id': orderId, 'p_action': action, 'p_reason': null, 'p_eta_minutes': etaMinutes,
+        'p_order_id': orderId, 'p_action': action, 'p_reason': reason, 'p_eta_minutes': etaMinutes,
       });
       await _loadWorkspace();
     } catch (e) {
