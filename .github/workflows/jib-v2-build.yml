@@ -7,7 +7,7 @@ on:
       - 'jib-v2/**'
       - '.github/workflows/jib-v2-build.yml'
   pull_request:
-    branches: [jib-v2-bootstrap]
+    branches: [main, jib-v2-bootstrap]
     paths:
       - 'jib-v2/**'
       - '.github/workflows/jib-v2-build.yml'
