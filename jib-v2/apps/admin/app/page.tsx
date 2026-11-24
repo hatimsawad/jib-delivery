@@ -466,7 +466,7 @@ export default function AdminHome() {
       </section>
       <section style={panelStyle}>
         <h2 style={{ marginTop: 0 }}>الطلبات ومراحل التنفيذ</h2>
-        {orders.length === 0 && <p style={{ color: "#64748b" }}>لا توجد طلبات حتى الآن.</p>}
+        {orders.length === 0 && <p style={{ color: '#64748b' }}>لا توجد طلبات حتى الآن.</p>}
         {orders.map((order) => {
           const branch = order.branches as { name?: string; address?: string; merchants?: { name?: string; is_direct_purchase?: boolean } } | undefined;
           const merchantName = branch?.merchants?.name ?? branch?.name ?? 'المتجر';
@@ -483,17 +483,13 @@ export default function AdminHome() {
             </div>
             <p style={{ margin: '6px 0', color: '#64748b' }}>{merchantName} · {String(order.customer_phone)} · {String(order.delivery_address)}</p>
             {directPurchase && order.status === 'customer_submitted' && <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', margin: '10px 0' }}>
-              <input
-                aria-label='رسوم التوصيل بالدرهم'
-                inputMode='decimal'
+              <input aria-label='رسوم التوصيل بالدرهم' inputMode='decimal'
                 value={deliveryFeeDrafts[String(order.id)] ?? (deliveryFee == null ? '' : String(deliveryFee))}
                 onChange={(event) => setDeliveryFeeDrafts(current => ({ ...current, [String(order.id)]: event.target.value }))}
-                placeholder='رسوم التوصيل بالدرهم'
-                style={{ ...fieldStyle, width: 190 }}
-              />
+                placeholder='رسوم التوصيل بالدرهم' style={{ ...fieldStyle, width: 190 }} />
               <button disabled={busy} onClick={() => saveDeliveryFee(String(order.id))} style={secondaryButton}>حفظ رسوم التوصيل</button>
             </div>}
-            {deliveryFee != null && <p style={{ margin: '4px 0', color: '#64748b' }}>رسوم التوصيل: {deliveryFee.toFixed(2)} درهم · الإجمالي المستحق من الزبون مبدئياً: {(Number(order.subtotal_mad) + deliveryFee).toFixed(2)} درهم</p>}
+            {deliveryFee != null && <p style={{ margin: '4px 0', color: '#64748b' }}>رسوم التوصيل: {deliveryFee.toFixed(2)} درهم · الإجمالي المبدئي: {(Number(order.subtotal_mad) + deliveryFee).toFixed(2)} درهم</p>}
             {canDispatch && <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
               <span>إسناد إلى مندوب متاح:</span>
               {couriers.length === 0 && <span style={{ color: '#9a3412' }}>لا يوجد مندوب متاح الآن</span>}
@@ -507,13 +503,10 @@ export default function AdminHome() {
             {order.status === 'delivered' && <div style={{ marginTop: 10, padding: 12, borderRadius: 10, background: '#f7f8f7' }}>
               <p style={{ margin: '3px 0' }}>تكلفة الشراء الفعلية: {purchaseTotal == null ? 'غير مسجلة' : purchaseTotal.toFixed(2) + ' درهم'}</p>
               <p style={{ margin: '3px 0' }}>النقد المحصل من الزبون: {cashCollected == null ? 'غير مسجل' : cashCollected.toFixed(2) + ' درهم'}</p>
-              <p style={{ margin: '3px 0', fontWeight: 700 }}>المبلغ المتبقي لصالح JIB بعد تعويض الشراء: {jibDue == null ? 'غير محسوب' : jibDue.toFixed(2) + ' درهم'}</p>
-              <p style={{ margin: '3px 0' }}>رسوم توصيل المندوب المستحقة بعد 15 يوماً: {deliveryFee == null ? 'غير محددة' : deliveryFee.toFixed(2) + ' درهم'}</p>
-              {order.courier_cash_handed_at == null ? <button disabled={busy || jibDue == null} onClick={() => markCourierCash(String(order.id))} style={{ ...secondaryButton, marginTop: 8 }}>تأكيد استلام مبلغ JIB الأسبوعي</button> : <p style={{ color: '#00843D' }}>تم تحصيل حصة JIB من المندوب</p>}
-              {order.courier_fee_paid_at == null ? <button disabled={busy || order.courier_cash_handed_at == null} onClick={() => markCourierFeePaid(String(order.id))} style={{ ...secondaryButton, marginTop: 8 }}>تأكيد دفع مستحقات المندوب (بعد 15 يوماً)</button> : <p style={{ color: '#00843D' }}>تم دفع مستحقات المندوب</p>}
-            </div>}
-          </article>;
-        })}
+              <p style={{ margin: '3px 0', fontWeight: 700 }}>المبلغ الواجب تسليمه إلى JIB بعد خصم الشراء: {jibDue == null ? 'غير محسوب' : jibDue.toFixed(2) + ' درهم'}</p>
+              <p style={{ margin: '3px 0' }}>مستحقات التوصيل للمندوب بعد 15 يوماً: {deliveryFee == null ? 'غير محددة' : deliveryFee.toFixed(2) + ' درهم'}</p>
+              {order.courier_cash_handed_at == null ? <button disabled={busy || jibDue == null} onClick={() => markCourierCash(String(order.id))} style={{ ...secondaryButton, marginTop: 8 }}>تأكيد استلام حصة JIB الأسبوعية</button> : <p style={{ color: '#00843D' }}>تم تحصيل حصة JIB</p>}
+              {order.courier_fee_paid_at == null ? <button disabled={busy || order.courier_cash_handed_at == null} onClick={() => markCourierFeePaid(String(order.id))} style={{ ...secondaryButton, marginTop: 8 }}>تأكيد دفع مستحقات المندوب</button> : <p style={{ color: '#00843D' }}>تم دفع مستحقات المندوب</p>}
             </div>}
           </article>;
         })}
