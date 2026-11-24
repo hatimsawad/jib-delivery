@@ -236,14 +236,18 @@ class _CustomerHomeState extends State<CustomerHome> {
     } finally { if (mounted) setState(() => _busy = false); }
   }
 
-  void _addToCart(Map<String,dynamic> row) {
-    final id = row['id'] as String;
+  void _addToCart(Map<String,dynamic> product) {
+    final id = product['id'] as String;
+    final price = _customerReferencePrice(product);
+    if (price == null) {
+      setState(() => _error = 'لا يمكن إضافة هذا المنتج لأن سعره المرجعي غير متوفر.');
+      return;
+    }
     final existing = _cart[id];
     setState(() {
-      _cart[id] = {
-        ...row,
-        'quantity': ((existing?['quantity'] as int?) ?? 0) + 1,
-      };
+      _error = null;
+      _cart[id] = {'product': product, 'price_mad': price, 'quantity': ((existing?['quantity'] as int?) ?? 0) + 1};
+      _notice = 'تمت إضافة ${product['name']} إلى السلة.';
     });
   }
 
@@ -262,12 +266,18 @@ class _CustomerHomeState extends State<CustomerHome> {
 
   Future<void> _submitOrder() async {
     if (_user == null) { setState(() => _error = 'سجّل الدخول أولاً لإرسال الطلب.'); return; }
-    if (_selectedBranch == null || _cart.isEmpty) { setState(() => _error = 'اختر فرعاً وأضف منتجات متاحة.'); return; }
+    if (_selectedBranch == null || _cart.isEmpty) { setState(() => _error = 'أضف المنتجات إلى السلة ثم اختر فرع الشراء في الرباط.'); return; }
     setState(() { _busy = true; _error = null; _notice = null; });
     try {
-      final items = _cart.entries.map((e) => {
-        'branch_product_id':e.key,'quantity':e.value['quantity'],
-      }).toList();
+      final productIds = _cart.keys.toList();
+      final offers = await _db.from('branch_products').select('id,product_id')
+        .eq('branch_id',_selectedBranch!).eq('is_active',true).eq('availability','available')
+        .inFilter('product_id',productIds);
+      final offerByProduct = {for (final row in List<Map<String,dynamic>>.from(offers)) row['product_id'] as String: row};
+      if (productIds.any((id) => !offerByProduct.containsKey(id))) {
+        throw Exception('أُضيفت المنتجات إلى السلة، لكن ربطها بفرع الشراء لم يكتمل بعد.');
+      }
+      final items = _cart.entries.map((e) => {'branch_product_id':offerByProduct[e.key]!['id'],'quantity':e.value['quantity']}).toList();
       final orderId = await _db.rpc('submit_order',params:{
         'p_branch_id':_selectedBranch,
         'p_delivery_address':_address.text.trim(),
@@ -391,7 +401,12 @@ class _CustomerHomeState extends State<CustomerHome> {
                 Text(brand.isEmpty?'JIB':brand.first['name'] as String,maxLines:1,overflow:TextOverflow.ellipsis,style:const TextStyle(fontSize:11,color:Color(0xFF65736A))),
                 const SizedBox(height:6),
                 Text(price==null?'السعر المرجعي غير متوفر':'${price.toStringAsFixed(2)} درهم',style:const TextStyle(color:Color(0xFF00843D),fontWeight:FontWeight.w900)),
-                const Text('السعر النهائي حسب الفرع',style:TextStyle(fontSize:10,color:Color(0xFF7B817B))),
+                const Text('السعر الموحد في JIB',style:TextStyle(fontSize:10,color:Color(0xFF7B817B))),
+                const SizedBox(height:8),
+                SizedBox(width:double.infinity,child:OutlinedButton.icon(
+                  onPressed:price==null?null:()=>_addToCart(p),
+                  icon:const Icon(Icons.add_shopping_cart,size:18),label:const Text('أضف إلى السلة'),
+                )),
               ])),
             ]),
           ));
@@ -445,7 +460,7 @@ class _CustomerHomeState extends State<CustomerHome> {
                 child:image==null||image.isEmpty?const Icon(Icons.inventory_2_outlined,color:Color(0xFF00843D)):Image.network(image,fit:BoxFit.contain,errorBuilder:(_,_,_)=>const Icon(Icons.inventory_2_outlined,color:Color(0xFF00843D)))),
               title:Text(product['name'] as String),
               subtitle:Text('${(product['brands'] as Map?)?['name'] ?? 'علامة غير محددة'} • ${row['price_mad']} درهم'),
-              trailing:IconButton(onPressed:()=>_addToCart(row),icon:const Icon(Icons.add_circle,color:Color(0xFF00843D))),
+              trailing:IconButton(onPressed:()=>_addToCart(product),tooltip:'أضف إلى السلة',icon:const Icon(Icons.add_circle,color:Color(0xFF00843D))),
             ));
           }),
         ],
