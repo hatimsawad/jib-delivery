@@ -10,7 +10,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     await Supabase.initialize(
       url: 'https://ldgbyshgcifheditplnn.supabase.co',
-      publishableKey: 'sb_publishable_wvNMRZTBFX4viI2ypcdWjQ_Ybqi_TV',
+      publishableKey: 'sb_publishable_wvNMRZTBFX4viI2ypcdWjQ_YBqgi_TV',
     );
   });
 
