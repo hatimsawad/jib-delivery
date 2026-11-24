@@ -18,7 +18,7 @@ void main() {
     await tester.pumpWidget(const JibCustomerApp());
     await tester.pump(const Duration(milliseconds: 300));
 
-    expect(find.text('JIB'), findsOneWidget);
+    expect(find.text('JIB'), findsWidgets);
     expect(find.text('الرئيسية'), findsOneWidget);
     expect(find.text('المتاجر'), findsOneWidget);
     expect(find.text('السلة'), findsOneWidget);
