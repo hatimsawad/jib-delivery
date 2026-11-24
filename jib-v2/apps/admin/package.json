@@ -1,0 +1,19 @@
+{
+  "name": "jib-v2-admin",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "next build",
+    "dev": "next dev"
+  },
+  "dependencies": {
+    "next": "16.4.6",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "@supabase/supabase-js": "2.119.2",
+    "@types/node": "^22.13.10",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "typescript": "^5.8.2"
+  }
+}

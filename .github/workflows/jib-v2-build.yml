@@ -1,0 +1,153 @@
+name: JIB V2 build and static checks
+
+on:
+  push:
+    branches: [jib-v2-bootstrap]
+    paths:
+      - 'jib-v2/**'
+      - '.github/workflows/jib-v2-build.yml'
+  pull_request:
+    branches: [jib-v2-bootstrap]
+    paths:
+      - 'jib-v2/**'
+      - '.github/workflows/jib-v2-build.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: jib-v2-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-isolation:
+    name: Verify legacy paths remain untouched
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Reject changes outside approved V2 paths
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main:refs/remotes/origin/main
+          changed="$(git diff --name-only origin/main...HEAD)"
+          while IFS= read -r path; do
+            [ -z "$path" ] && continue
+            case "$path" in
+              jib-v2/*|jib-v2-team/*|.github/workflows/jib-v2-build.yml) ;;
+              *)
+                echo "::error::Unexpected change outside approved V2 paths: $path"
+                exit 1
+                ;;
+            esac
+          done <<< "$changed"
+          echo "Isolation check passed."
+
+  android:
+    name: Build ${{ matrix.app }} Android APK
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [customer, merchant, courier]
+    steps:
+      - name: Checkout approved branch
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Generate Android platform scaffold in runner only
+        working-directory: jib-v2/apps/${{ matrix.app }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          temp_dir="$(mktemp -d)"
+          app_name="jib_${{ matrix.app }}"
+          flutter create --platforms=android --project-name "$app_name" --org ma.jib "$temp_dir/platform"
+          cp -R "$temp_dir/platform/android" ./android
+      - name: Resolve dependencies
+        working-directory: jib-v2/apps/${{ matrix.app }}
+        run: flutter pub get
+      - name: Analyze Dart source
+        working-directory: jib-v2/apps/${{ matrix.app }}
+        run: flutter analyze --no-pub
+      - name: Run widget smoke tests
+        working-directory: jib-v2/apps/${{ matrix.app }}
+        run: flutter test --no-pub
+      - name: Build debug APK
+        working-directory: jib-v2/apps/${{ matrix.app }}
+        run: flutter build apk --debug --no-pub
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: jib-v2-${{ matrix.app }}-debug-apk
+          path: jib-v2/apps/${{ matrix.app }}/build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7
+
+  admin:
+    name: Build admin web application
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout approved branch
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        working-directory: jib-v2/apps/admin
+        run: npm install
+      - name: Build admin
+        working-directory: jib-v2/apps/admin
+        run: npm run build
+
+  publish-downloads:
+    name: Publish public APK download links
+    if: github.event_name != 'pull_request'
+    needs: [android]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download all tested debug APKs
+        uses: actions/download-artifact@v4
+        with:
+          pattern: jib-v2-*-debug-apk
+          path: downloads
+      - name: Give each APK a stable download filename
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp downloads/jib-v2-customer-debug-apk/app-debug.apk downloads/JIB-Customer-debug.apk
+          cp downloads/jib-v2-merchant-debug-apk/app-debug.apk downloads/JIB-Merchant-debug.apk
+          cp downloads/jib-v2-courier-debug-apk/app-debug.apk downloads/JIB-Courier-debug.apk
+          ls -lh downloads/*.apk
+      - name: Publish latest test APKs as public release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: jib-v2-downloads
+          name: JIB V2 — Latest test APKs
+          body: |
+            Public test builds of the JIB V2 Android applications.
+            These are debug APKs for installation and acceptance testing, not signed production releases.
+            Customer, merchant and courier apps are provided separately.
+          prerelease: true
+          make_latest: false
+          overwrite_files: true
+          fail_on_unmatched_files: true
+          files: |
+            downloads/JIB-Customer-debug.apk
+            downloads/JIB-Merchant-debug.apk
+            downloads/JIB-Courier-debug.apk
