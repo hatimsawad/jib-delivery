@@ -70,6 +70,7 @@ class _CustomerHomeState extends State<CustomerHome> {
   final _phone = TextEditingController();
   final _address = TextEditingController();
   bool _register = false;
+  int _tabIndex = 0;
   bool _busy = false;
   String? _error;
   String? _notice;
@@ -324,182 +325,193 @@ class _CustomerHomeState extends State<CustomerHome> {
   }
 
   @override
-  Widget build(BuildContext context) => Directionality(
-    textDirection:TextDirection.rtl,
-    child:Scaffold(
-      appBar:AppBar(
-        title:const Row(mainAxisSize:MainAxisSize.min,children:[_JibMark(size:38),SizedBox(width:9),Text('جيب JIB',style:TextStyle(fontWeight:FontWeight.w900))]),
-        backgroundColor:Colors.white,surfaceTintColor:Colors.white,
-        actions:[
-          IconButton(onPressed:_loadPublicCatalog,icon:const Icon(Icons.refresh)),
-          IconButton(onPressed:_user==null?_showAuth:_signOut,icon:Icon(_user==null?Icons.person_outline:Icons.logout)),
-        ],
-      ),
-      body:ListView(padding:const EdgeInsets.fromLTRB(16,16,16,30),children:[
-        Container(
-          padding:const EdgeInsets.all(20),
-          decoration:BoxDecoration(gradient:const LinearGradient(colors:[Color(0xFFE31E24),Color(0xFF00843D)]),border:Border.all(color:const Color(0xFF00843D)),borderRadius:BorderRadius.circular(22)),
-          child:const Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-            Row(children:[_JibMark(size:58),SizedBox(width:12),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('JIB',style:TextStyle(color:Colors.white,fontSize:24,fontWeight:FontWeight.w900)),Text('Jib وتكايس على jib',style:TextStyle(color:Colors.white70,fontSize:13,fontWeight:FontWeight.w700))]))]),
-            SizedBox(height:16),
-            Text('كل شي تحبه في مكان واحد',style:TextStyle(color:Colors.white,fontSize:22,fontWeight:FontWeight.w900)),
-            SizedBox(height:8),
-            Text('تسوق من المتاجر والمنتجات المتاحة في الرباط فقط',style:TextStyle(color:Color(0xFFFFF4DC))),
+  Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    final productWidth = width < 390 ? 154.0 : 174.0;
+    Widget titleRow(String title, {String? action, VoidCallback? onAction}) => Row(children: [
+      Expanded(child: Text(title, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900, color: Color(0xFF18231D)))),
+      if (action != null) TextButton(onPressed: onAction, child: Text(action, style: const TextStyle(color: Color(0xFF00843D), fontWeight: FontWeight.w800))),
+    ]);
+    Widget productCard(Map<String,dynamic> p) {
+      final price = _customerReferencePrice(p);
+      final image = (p['image_url'] as String?)?.trim();
+      final brand = _brands.where((b) => b['id'] == p['brand_id']).toList();
+      return SizedBox(width: productWidth, child: Container(
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFE8ECE8)), boxShadow: const [BoxShadow(color: Color(0x08000000), blurRadius: 12, offset: Offset(0, 5))]),
+        clipBehavior: Clip.antiAlias,
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Stack(children: [
+            Container(height: 128, width: double.infinity, color: const Color(0xFFF4F6F2), child: image == null || image.isEmpty
+              ? const Icon(Icons.fastfood_rounded, size: 46, color: Color(0xFFB7C8BA))
+              : Image.network(image, fit: BoxFit.cover, errorBuilder: (_,__,___) => const Icon(Icons.fastfood_rounded, size: 46, color: Color(0xFFB7C8BA)))),
+            Positioned(top: 8, right: 8, child: Container(padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5), decoration: BoxDecoration(color: Colors.white.withOpacity(.94), borderRadius: BorderRadius.circular(30)), child: const Text('JIB', style: TextStyle(color: Color(0xFFE31E24), fontWeight: FontWeight.w900, fontSize: 10)))),
           ]),
-        ),
-        if (_error!=null) _message(_error!,true),
-        if (_notice!=null) _message(_notice!,false),
-        const SizedBox(height:18),
-        TextField(
-          decoration:InputDecoration(hintText:'ابحث عن منتج أو علامة تجارية',prefixIcon:const Icon(Icons.search),filled:true,fillColor:Colors.white,
-            border:OutlineInputBorder(borderRadius:BorderRadius.circular(14),borderSide:BorderSide.none)),
-          onChanged:(v)=>setState(()=>_search=v.trim().toLowerCase()),
-        ),
-        const SizedBox(height:14),
-        const Text('تسوق حسب القسم',style:TextStyle(fontSize:18,fontWeight:FontWeight.w900)),
-        const SizedBox(height:8),
-        Wrap(spacing:8,runSpacing:8,children:[
-          ChoiceChip(label:const Text('الكل'),selected:_selectedCategory==null,onSelected:(_)=>setState(()=>_selectedCategory=null),
-            selectedColor:const Color(0xFFE2F1E7),labelStyle:const TextStyle(fontWeight:FontWeight.bold)),
-          ..._catalogCategories.map((category)=>ChoiceChip(
-            label:Text(_categoryLabel(category)),selected:_selectedCategory==category,
-            onSelected:(selected)=>setState(()=>_selectedCategory=selected?category:null),
-            selectedColor:const Color(0xFFE2F1E7),labelStyle:const TextStyle(fontWeight:FontWeight.bold),
-          )),
-        ]),
-        const SizedBox(height:16),
-        Row(mainAxisAlignment:MainAxisAlignment.spaceBetween,children:[
-          const Text('اكتشف المنتجات',style:TextStyle(fontSize:19,fontWeight:FontWeight.w900)),
-          Text('${_filteredCatalogProducts.length} منتج',style:const TextStyle(color:Color(0xFF65736A))),
-        ]),
-        if (_catalogProducts.isEmpty) const _InfoPanel('يتم تحميل المنتجات أو لا توجد بيانات متاحة حالياً.'),
-        const SizedBox(height:8),
-        Wrap(spacing:10,runSpacing:10,children:_filteredCatalogProducts.map((p){
-          final price=_customerReferencePrice(p);
-          final image=(p['image_url'] as String?)?.trim();
-          final brand=_brands.where((b)=>b['id']==p['brand_id']).toList();
-          return SizedBox(width:(MediaQuery.of(context).size.width-54)/2,child:Card(
-            elevation:0,color:Colors.white,clipBehavior:Clip.antiAlias,
-            shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(15),side:const BorderSide(color:Color(0xFFD7E2DA))),
-            child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-              Container(height:112,width:double.infinity,color:const Color(0xFFF7F8F7),
-                child:image==null||image.isEmpty
-                  ?const Icon(Icons.inventory_2_outlined,size:38,color:Color(0xFF00843D))
-                  :Image.network(image,fit:BoxFit.contain,errorBuilder:(_,_,_)=>const Icon(Icons.inventory_2_outlined,size:38,color:Color(0xFF00843D)))),
-              Padding(padding:const EdgeInsets.all(10),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-                Text(p['name'] as String,maxLines:2,overflow:TextOverflow.ellipsis,style:const TextStyle(fontWeight:FontWeight.w800)),
-                const SizedBox(height:5),
-                Text(brand.isEmpty?'JIB':brand.first['name'] as String,maxLines:1,overflow:TextOverflow.ellipsis,style:const TextStyle(fontSize:11,color:Color(0xFF65736A))),
-                const SizedBox(height:6),
-                Text(price==null?'السعر المرجعي غير متوفر':'${price.toStringAsFixed(2)} درهم',style:const TextStyle(color:Color(0xFF00843D),fontWeight:FontWeight.w900)),
-                const Text('السعر الموحد في JIB',style:TextStyle(fontSize:10,color:Color(0xFF7B817B))),
-                const SizedBox(height:8),
-                SizedBox(width:double.infinity,child:OutlinedButton.icon(
-                  onPressed:price==null?null:()=>_addToCart(p),
-                  icon:const Icon(Icons.add_shopping_cart,size:18),label:const Text('أضف إلى السلة'),
-                )),
-              ])),
+          Padding(padding: const EdgeInsets.all(11), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(p['name'] as String, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, height: 1.2)),
+            const SizedBox(height: 4),
+            Text(brand.isEmpty ? 'JIB' : brand.first['name'] as String, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10, color: Color(0xFF78837B))),
+            const SizedBox(height: 8),
+            Row(children: [
+              Expanded(child: Text(price == null ? 'السعر غير متوفر' : price.toStringAsFixed(2) + ' د.م', style: const TextStyle(color: Color(0xFF00843D), fontWeight: FontWeight.w900, fontSize: 13))),
+              InkWell(onTap: price == null ? null : () => _addToCart(p), borderRadius: BorderRadius.circular(11), child: Container(width: 34, height: 34, decoration: BoxDecoration(color: price == null ? const Color(0xFFE8ECE8) : const Color(0xFFE31E24), borderRadius: BorderRadius.circular(11)), child: const Icon(Icons.add_rounded, color: Colors.white))),
             ]),
-          ));
-        }).toList()),
-        const SizedBox(height:18),
-        ExpansionTile(
-          tilePadding:EdgeInsets.zero,
-          title:Text('تصفح حسب العلامة التجارية (${_brands.length})',style:const TextStyle(fontSize:18,fontWeight:FontWeight.w900)),
-          children:[
-            if (_brands.isEmpty) const _InfoPanel('لا توجد علامات تجارية متاحة حالياً.'),
-            ..._brands.where((b)=>(b['name'] as String).toLowerCase().contains(_search)).map((b){
-              final selected=_selectedBrand==b['id'];
-              final logo=(b['logo_url'] as String?)?.trim();
-              return Card(elevation:0,color:selected?const Color(0xFFE7F0E8):Colors.white,child:ListTile(
-                onTap:()=>setState(()=>_selectedBrand=selected?null:b['id'] as String),
-                leading:CircleAvatar(backgroundColor:const Color(0xFF00843D),child:logo==null||logo.isEmpty
-                  ?Text((b['name'] as String).substring(0,1).toUpperCase(),style:const TextStyle(color:Colors.white,fontWeight:FontWeight.w900))
-                  :Image.network(logo,width:34,height:34,errorBuilder:(_,_,_)=>Text((b['name'] as String).substring(0,1).toUpperCase(),style:const TextStyle(color:Colors.white)))),
-                title:Text(b['name'] as String,style:const TextStyle(fontWeight:FontWeight.bold)),
-                subtitle:Text((b['category']??'') as String),
-                trailing:Icon(selected?Icons.check_circle:Icons.chevron_left,color:const Color(0xFF00843D)),
-              ));
-            }),
-          ],
-        ),
+          ])),
+        ]),
+      ));
+    }
+    Widget branchTile(Map<String,dynamic> b) {
+      final selected = _selectedBranch == b['id'];
+      return Container(margin: const EdgeInsets.only(bottom: 9), decoration: BoxDecoration(color: selected ? const Color(0xFFEAF5ED) : Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: selected ? const Color(0xFF00843D) : const Color(0xFFE7ECE8))), child: ListTile(
+        onTap: _busy ? null : () => _chooseBranch(b),
+        leading: Container(width: 42, height: 42, decoration: BoxDecoration(color: const Color(0xFFFFEEEE), borderRadius: BorderRadius.circular(13)), child: const Icon(Icons.storefront_rounded, color: Color(0xFFE31E24))),
+        title: Text(b['name'] as String, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
+        subtitle: Text((b['address'] ?? '').toString() + ' — ' + (b['city'] ?? '').toString(), maxLines: 2, style: const TextStyle(fontSize: 11)),
+        trailing: Icon(selected ? Icons.check_circle_rounded : Icons.chevron_left_rounded, color: const Color(0xFF00843D)),
+      ));
+    }
+    Widget homePage() => RefreshIndicator(onRefresh: _loadPublicCatalog, child: ListView(padding: const EdgeInsets.fromLTRB(16, 10, 16, 24), children: [
+      Container(padding: const EdgeInsets.fromLTRB(18, 17, 18, 19), decoration: BoxDecoration(gradient: const LinearGradient(begin: Alignment.topRight, end: Alignment.bottomLeft, colors: [Color(0xFFE31E24), Color(0xFFB91720), Color(0xFF00843D)]), borderRadius: BorderRadius.circular(26), boxShadow: const [BoxShadow(color: Color(0x22000000), blurRadius: 18, offset: Offset(0, 8))]), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [const _JibMark(size: 50), const SizedBox(width: 11), const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('JIB', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 22, letterSpacing: 1.2)), Text('Jib وتكايس على jib', style: TextStyle(color: Color(0xFFFFE6E6), fontSize: 11, fontWeight: FontWeight.w700))])), Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7), decoration: BoxDecoration(color: Colors.white.withOpacity(.16), borderRadius: BorderRadius.circular(30)), child: const Row(children: [Icon(Icons.location_on_rounded, color: Colors.white, size: 14), SizedBox(width: 4), Text('الرباط', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 11))]))]),
+        const SizedBox(height: 22),
+        const Text('كل شي تحبه\nفي مكان واحد', style: TextStyle(color: Colors.white, fontSize: 27, height: 1.12, fontWeight: FontWeight.w900)),
+        const SizedBox(height: 8),
+        const Text('اختار اللي بغيتي، وجيبها حتى لباب دارك.', style: TextStyle(color: Color(0xFFFFF1E8), fontSize: 12, fontWeight: FontWeight.w600)),
+        const SizedBox(height: 17),
+        Container(height: 46, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)), child: TextField(decoration: const InputDecoration(hintText: 'شنو باغي اليوم؟', hintStyle: TextStyle(fontSize: 13), prefixIcon: Icon(Icons.search_rounded, color: Color(0xFFE31E24)), border: InputBorder.none, contentPadding: EdgeInsets.symmetric(vertical: 13)), onChanged: (v) => setState(() => _search = v.trim().toLowerCase()))),
+      ])),
+      if (_error != null) _message(_error!, true),
+      if (_notice != null) _message(_notice!, false),
+      const SizedBox(height: 22),
+      titleRow('تسوق حسب القسم'),
+      const SizedBox(height: 12),
+      SizedBox(height: 91, child: ListView(scrollDirection: Axis.horizontal, children: [
+        _categoryBubble('الكل', Icons.grid_view_rounded, _selectedCategory == null, () => setState(() => _selectedCategory = null)),
+        ..._catalogCategories.map((c) => _categoryBubble(_categoryLabel(c), _categoryIcon(c), _selectedCategory == c, () => setState(() => _selectedCategory = _selectedCategory == c ? null : c)),
+      ])),
+      const SizedBox(height: 18),
+      titleRow('علامات تجارية مختارة', action: 'عرض الكل', onAction: () => setState(() => _tabIndex = 1)),
+      const SizedBox(height: 11),
+      SizedBox(height: 91, child: _brands.isEmpty ? const _InfoPanel('ستظهر العلامات التجارية المعتمدة هنا.') : ListView(scrollDirection: Axis.horizontal, children: _brands.take(12).map((b) {
+        final logo = (b['logo_url'] as String?)?.trim();
+        return GestureDetector(onTap: () => setState(() { _selectedBrand = b['id'] as String; _tabIndex = 1; }), child: SizedBox(width: 82, child: Column(children: [
+          Container(width: 58, height: 58, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFE8ECE8))), child: ClipRRect(borderRadius: BorderRadius.circular(17), child: logo == null || logo.isEmpty ? Center(child: Text((b['name'] as String).substring(0,1), style: const TextStyle(color: Color(0xFFE31E24), fontSize: 22, fontWeight: FontWeight.w900))) : Image.network(logo, fit: BoxFit.contain, errorBuilder: (_,__,___) => const Icon(Icons.storefront_rounded, color: Color(0xFF00843D))))),
+          const SizedBox(height: 5), Text(b['name'] as String, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800)),
+        ])));
+      }).toList())),
+      const SizedBox(height: 20),
+      titleRow('الأكثر طلباً', action: 'كل المنتجات', onAction: () => setState(() { _selectedCategory = null; _selectedBrand = null; _tabIndex = 1; })),
+      const SizedBox(height: 12),
+      if (_catalogProducts.isEmpty) const _InfoPanel('يتم تحميل المنتجات أو لا توجد منتجات معتمدة حالياً.'),
+      if (_filteredCatalogProducts.isEmpty && _catalogProducts.isNotEmpty) const _InfoPanel('لا توجد نتائج مطابقة لبحثك.'),
+      if (_filteredCatalogProducts.isNotEmpty) SizedBox(height: 255, child: ListView(scrollDirection: Axis.horizontal, children: _filteredCatalogProducts.take(12).map((p) => Padding(padding: const EdgeInsets.only(left: 11), child: productCard(p))).toList())),
+      const SizedBox(height: 18),
+      Container(padding: const EdgeInsets.all(15), decoration: BoxDecoration(color: const Color(0xFFEAF5ED), borderRadius: BorderRadius.circular(18)), child: const Row(children: [Icon(Icons.delivery_dining_rounded, color: Color(0xFF00843D), size: 34), SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('التوصيل مع JIB', style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF174C2A))), SizedBox(height: 3), Text('المندوب يشتري طلبك بنفسه من الفرع الذي تختاره.', style: TextStyle(fontSize: 11, color: Color(0xFF42634C)))]))])),
+    ]));
 
-        const SizedBox(height:22),
-        const Text('فروع تستقبل الطلبات',style:TextStyle(fontSize:19,fontWeight:FontWeight.w900)),
-        const SizedBox(height:8),
-        if (_branches.isEmpty) const _InfoPanel('لا توجد فروع نشطة ومفعّلة لاستقبال الطلبات حالياً.'),
-        ..._branches.where((b) {
-          if (_selectedBrand == null) return true;
-          final merchant = b['merchants'] as Map?;
-          return merchant?['brand_id'] == _selectedBrand;
-        }).map((b)=>Card(
-          elevation:0,color:_selectedBranch==b['id']?const Color(0xFFE7F0E8):Colors.white,
-          child:ListTile(
-            onTap:_busy?null:()=>_chooseBranch(b),
-            leading:const Icon(Icons.storefront_outlined),
-            title:Text(b['name'] as String,style:const TextStyle(fontWeight:FontWeight.bold)),
-            subtitle:Text('${b['address']} — ${b['city']}'),
-            trailing:Icon(_selectedBranch==b['id']?Icons.check_circle:Icons.chevron_left,color:const Color(0xFF00843D)),
-          ),
-        )),
-        if (_selectedBranch!=null) ...[
-          const SizedBox(height:10),
-          Card(color:const Color(0xFFE8F5E9),child:ListTile(
-            leading:const Icon(Icons.shopping_bag_outlined,color:Color(0xFF00843D)),
-            title:Text('المندوب سيشتري من $_selectedBranchName'),
-            subtitle:const Text('السعر موحد في JIB. تحدد الإدارة التوصيل حسب المسافة قبل إرسال الطلب للمندوب.'),
-          )),
-        ],
-        if (_cart.isNotEmpty) ...[
-          const SizedBox(height:18),
-          Text('سلة الطلب (${_cart.values.fold<int>(0,(n,row)=>n+(row['quantity'] as int))})',style:const TextStyle(fontSize:19,fontWeight:FontWeight.w900)),
-          ..._cart.entries.map((e){
-            final p=Map<String,dynamic>.from(e.value['product'] as Map);
-            return ListTile(
-              title:Text(p['name'] as String),
-              subtitle:Text('${e.value['price_mad']} درهم × ${e.value['quantity']}'),
-              trailing:Row(mainAxisSize:MainAxisSize.min,children:[
-                IconButton(onPressed:()=>_changeQuantity(e.key,-1),icon:const Icon(Icons.remove_circle_outline)),
-                Text('${e.value['quantity']}'),
-                IconButton(onPressed:()=>_changeQuantity(e.key,1),icon:const Icon(Icons.add_circle_outline)),
-              ]),
-            );
-          }),
-          Text('المجموع الفرعي: ${_subtotal.toStringAsFixed(2)} درهم',style:const TextStyle(fontWeight:FontWeight.bold)),
-          const SizedBox(height:10),
-          TextField(controller:_address,decoration:const InputDecoration(labelText:'عنوان التوصيل',border:OutlineInputBorder())),
-          const SizedBox(height:10),
-          TextField(controller:_phone,keyboardType:TextInputType.phone,decoration:const InputDecoration(labelText:'رقم الهاتف',border:OutlineInputBorder())),
-          if (_selectedBranch==null) const _InfoPanel('اختر فرع الشراء من قائمة فروع الرباط قبل تأكيد الطلب.'),
-          FilledButton(onPressed:_busy||_selectedBranch==null?null:_submitOrder,child:Text(_busy?'جارٍ الإرسال...':'تأكيد الطلب')),
-          const _InfoPanel('بعد تأكيد الطلب يتوجه المندوب إلى المتجر ويشتري المنتجات بنفسه. يحدد فريق JIB رسوم التوصيل حسب المسافة قبل إسناد الطلب.'),
-        ],
-        if (_user!=null) ...[
-          const SizedBox(height:24),
-          const Text('طلباتي',style:TextStyle(fontSize:19,fontWeight:FontWeight.w900)),
-          ..._myOrders.map((o)=>Card(elevation:0,child:Padding(
-            padding:const EdgeInsets.all(12),
-            child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-              Text('طلب #${(o['id'] as String).substring(0,8)}',style:const TextStyle(fontWeight:FontWeight.bold)),
-              Text('${_status(o['status'] as String)} • المنتجات: ${o['subtotal_mad']} درهم • التوصيل: ${o['delivery_fee_mad'] == null ? 'قيد التحديد' : '${o['delivery_fee_mad']} درهم'}'),
-              Text('مضى على الطلب: ${DateTime.now().difference(DateTime.parse(o['submitted_at'] as String)).inMinutes} دقيقة'),
-              if(o['eta_minutes']!=null) Text('تقدير المتجر للتحضير: ${o['eta_minutes']} دقيقة'),
-              ...[
-                ['merchant_accepted_at','قبول المتجر'],
-                ['preparation_started_at','بدء التحضير'],
-                ['preparation_completed_at','اكتمال التحضير'],
-                ['courier_offered_at','إرسال عرض للمندوب'],
-                ['courier_accepted_at','قبول المندوب'],
-                ['picked_up_at','استلام الطلب'],
-                ['en_route_at','بدء التوصيل'],
-                ['delivered_at','التسليم'],
-              ].where((stage)=>o[stage[0]]!=null).map((stage)=>Text('${stage[1]}: ${DateTime.parse(o[stage[0]] as String).toLocal()}')),
-            ]),
-          ))),
-        ],
+    Widget storesPage() => ListView(padding: const EdgeInsets.fromLTRB(16, 18, 16, 24), children: [
+      const Text('المتاجر والمنتجات', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
+      const SizedBox(height: 5), const Text('تصفح العلامات التجارية والمنتجات الغذائية المتاحة.', style: TextStyle(color: Color(0xFF78837B), fontSize: 12)),
+      const SizedBox(height: 15),
+      TextField(decoration: InputDecoration(hintText: 'ابحث عن منتج أو متجر', prefixIcon: const Icon(Icons.search), filled: true, fillColor: Colors.white, border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none)), onChanged: (v) => setState(() => _search = v.trim().toLowerCase())),
+      const SizedBox(height: 14),
+      Wrap(spacing: 8, runSpacing: 8, children: [ChoiceChip(label: const Text('كل الأقسام'), selected: _selectedCategory == null, onSelected: (_) => setState(() => _selectedCategory = null)), ..._catalogCategories.map((c) => ChoiceChip(label: Text(_categoryLabel(c)), selected: _selectedCategory == c, onSelected: (_) => setState(() => _selectedCategory = _selectedCategory == c ? null : c))]),
+      const SizedBox(height: 16),
+      titleRow('العلامات التجارية'),
+      const SizedBox(height: 8),
+      ..._brands.map((b) => Card(elevation: 0, color: _selectedBrand == b['id'] ? const Color(0xFFEAF5ED) : Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)), child: ListTile(onTap: () => setState(() => _selectedBrand = _selectedBrand == b['id'] ? null : b['id'] as String), leading: const CircleAvatar(backgroundColor: Color(0xFFFFEEEE), child: Icon(Icons.storefront_rounded, color: Color(0xFFE31E24))), title: Text(b['name'] as String, style: const TextStyle(fontWeight: FontWeight.w800)), trailing: Icon(_selectedBrand == b['id'] ? Icons.check_circle : Icons.chevron_left, color: const Color(0xFF00843D)))),
+      const SizedBox(height: 15),
+      titleRow('المنتجات (' + _filteredCatalogProducts.length.toString() + ')'),
+      const SizedBox(height: 10),
+      Wrap(spacing: 10, runSpacing: 12, children: _filteredCatalogProducts.map(productCard).toList()),
+      const SizedBox(height: 18),
+      titleRow('اختر فرع الشراء'),
+      const SizedBox(height: 8),
+      if (_branches.isEmpty) const _InfoPanel('لا توجد فروع نشطة تستقبل الطلبات حالياً.'),
+      ..._branches.map(branchTile),
+    ]);
+
+    Widget cartPage() => ListView(padding: const EdgeInsets.fromLTRB(16, 18, 16, 28), children: [
+      const Text('سلة مشترياتك', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
+      const SizedBox(height: 5), const Text('راجع اختياراتك قبل إرسال الطلب.', style: TextStyle(color: Color(0xFF78837B), fontSize: 12)),
+      const SizedBox(height: 18),
+      if (_cart.isEmpty) Container(padding: const EdgeInsets.symmetric(vertical: 38, horizontal: 20), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(22)), child: const Column(children: [Icon(Icons.shopping_bag_outlined, size: 54, color: Color(0xFFB8C6BC)), SizedBox(height: 12), Text('السلة فارغة', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)), SizedBox(height: 5), Text('أضف المنتجات التي تريدها وسنضعها هنا.', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF78837B), fontSize: 12))])),
+      ..._cart.entries.map((e) {
+        final p = Map<String,dynamic>.from(e.value['product'] as Map);
+        final img = (p['image_url'] as String?)?.trim();
+        return Container(margin: const EdgeInsets.only(bottom: 9), padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(17), border: Border.all(color: const Color(0xFFE8ECE8))), child: Row(children: [
+          ClipRRect(borderRadius: BorderRadius.circular(12), child: SizedBox(width: 64, height: 64, child: img == null || img.isEmpty ? const ColoredBox(color: Color(0xFFF3F5F2), child: Icon(Icons.fastfood, color: Color(0xFF9EAD9F))) : Image.network(img, fit: BoxFit.cover, errorBuilder: (_,__,___) => const ColoredBox(color: Color(0xFFF3F5F2), child: Icon(Icons.fastfood, color: Color(0xFF9EAD9F)))))),
+          const SizedBox(width: 10),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(p['name'] as String, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12)), const SizedBox(height: 5), Text(e.value['price_mad'].toString() + ' د.م', style: const TextStyle(color: Color(0xFF00843D), fontWeight: FontWeight.w900))])),
+          Row(mainAxisSize: MainAxisSize.min, children: [IconButton(visualDensity: VisualDensity.compact, onPressed: () => _changeQuantity(e.key, -1), icon: const Icon(Icons.remove_circle_outline, size: 20)), Text(e.value['quantity'].toString(), style: const TextStyle(fontWeight: FontWeight.w900)), IconButton(visualDensity: VisualDensity.compact, onPressed: () => _changeQuantity(e.key, 1), icon: const Icon(Icons.add_circle, color: Color(0xFFE31E24), size: 20))]),
+        ]));
+      }),
+      if (_cart.isNotEmpty) ...[
+        Container(padding: const EdgeInsets.all(15), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)), child: Column(children: [
+          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('المجموع الفرعي', style: TextStyle(color: Color(0xFF68756C))), Text(_subtotal.toStringAsFixed(2) + ' د.م', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 17))]),
+          const SizedBox(height: 7), const Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('رسوم التوصيل', style: TextStyle(color: Color(0xFF68756C))), Text('تحدد حسب المسافة', style: TextStyle(color: Color(0xFF9A6B20), fontWeight: FontWeight.w800, fontSize: 11))]),
+        ])),
+        const SizedBox(height: 14),
+        const Text('فرع الشراء', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
+        const SizedBox(height: 7),
+        if (_selectedBranch == null) const _InfoPanel('اختر فرع الشراء قبل إرسال الطلب.'),
+        ..._branches.where((b) { final m = b['merchants'] as Map?; return _cart.values.every((r) => (r['product'] as Map)['brand_id'] == m?['brand_id']); }).map(branchTile),
+        const SizedBox(height: 12),
+        TextField(controller: _address, maxLines: 2, decoration: InputDecoration(labelText: 'عنوان التوصيل بالتفصيل', prefixIcon: const Icon(Icons.location_on_outlined), filled: true, fillColor: Colors.white, border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none))),
+        const SizedBox(height: 10),
+        TextField(controller: _phone, keyboardType: TextInputType.phone, decoration: InputDecoration(labelText: 'رقم الهاتف', prefixIcon: const Icon(Icons.phone_outlined), filled: true, fillColor: Colors.white, border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none))),
+        const SizedBox(height: 13),
+        SizedBox(height: 52, child: FilledButton.icon(onPressed: _busy || _selectedBranch == null ? null : _submitOrder, icon: const Icon(Icons.check_circle_outline), label: Text(_busy ? 'جارٍ إرسال الطلب...' : 'إرسال طلب الشراء'), style: FilledButton.styleFrom(backgroundColor: const Color(0xFFE31E24), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))))),
+        const SizedBox(height: 8), const Text('رسوم التوصيل تُحدد حسب المسافة؛ لا يظهر الإجمالي النهائي قبل اعتمادها.', style: TextStyle(fontSize: 10, color: Color(0xFF78837B))),
+      ],
+    ]);
+
+    Widget ordersPage() => ListView(padding: const EdgeInsets.fromLTRB(16, 18, 16, 28), children: [
+      const Text('طلباتي', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
+      const SizedBox(height: 5), const Text('تابع حالة مشترياتك خطوة بخطوة.', style: TextStyle(color: Color(0xFF78837B), fontSize: 12)),
+      const SizedBox(height: 15),
+      if (_user == null) Container(padding: const EdgeInsets.all(22), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)), child: Column(children: [const Icon(Icons.person_outline, size: 45, color: Color(0xFF00843D)), const SizedBox(height: 10), const Text('سجل الدخول لمتابعة طلباتك', style: TextStyle(fontWeight: FontWeight.w900)), const SizedBox(height: 10), FilledButton(onPressed: _showAuth, child: const Text('تسجيل الدخول'))])),
+      if (_user != null && _myOrders.isEmpty) const _InfoPanel('لا توجد طلبات بعد. ابدأ التسوق واكتشف منتجات JIB.'),
+      ..._myOrders.map((o) => Container(margin: const EdgeInsets.only(bottom: 11), padding: const EdgeInsets.all(15), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFE8ECE8))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [Expanded(child: Text('طلب #' + (o['id'] as String).substring(0,8), style: const TextStyle(fontWeight: FontWeight.w900))), Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), decoration: BoxDecoration(color: const Color(0xFFEAF5ED), borderRadius: BorderRadius.circular(30)), child: Text(_status(o['status'] as String), style: const TextStyle(color: Color(0xFF00843D), fontSize: 10, fontWeight: FontWeight.w900)))]),
+        const Divider(height: 20),
+        Text('المنتجات: ' + o['subtotal_mad'].toString() + ' د.م', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
+        Text('التوصيل: ' + (o['delivery_fee_mad'] == null ? 'قيد التحديد' : o['delivery_fee_mad'].toString() + ' د.م'), style: const TextStyle(fontSize: 12, color: Color(0xFF68756C))),
+        Text('مضى على الطلب ' + DateTime.now().difference(DateTime.parse(o['submitted_at'] as String)).inMinutes.toString() + ' دقيقة', style: const TextStyle(fontSize: 11, color: Color(0xFF78837B))),
+        const SizedBox(height: 10),
+        ...[['merchant_accepted_at','قبول المتجر'],['preparation_started_at','بدء التحضير'],['preparation_completed_at','اكتمال التحضير'],['courier_offered_at','البحث عن مندوب'],['courier_accepted_at','قبول المندوب'],['picked_up_at','استلام الطلب'],['en_route_at','بدء التوصيل'],['delivered_at','التسليم']].where((s) => o[s[0]] != null).map((s) => Padding(padding: const EdgeInsets.only(bottom: 4), child: Row(children: [const Icon(Icons.check_circle, color: Color(0xFF00843D), size: 14), const SizedBox(width: 7), Text(s[1] + ' • ' + DateTime.parse(o[s[0]] as String).toLocal().toString(), style: const TextStyle(fontSize: 10, color: Color(0xFF68756C)))]))),
+      ]))),
+    ]);
+
+    return Directionality(textDirection: TextDirection.rtl, child: Scaffold(
+      backgroundColor: const Color(0xFFF6F7F4),
+      appBar: AppBar(backgroundColor: const Color(0xFFF6F7F4), surfaceTintColor: Colors.transparent, elevation: 0, title: Row(children: [const _JibMark(size: 38), const SizedBox(width: 9), const Text('JIB', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)), const Spacer(), IconButton(onPressed: _loadPublicCatalog, icon: const Icon(Icons.refresh_rounded)), IconButton(onPressed: _user == null ? _showAuth : _signOut, icon: Icon(_user == null ? Icons.person_outline_rounded : Icons.logout_rounded))])),
+      body: IndexedStack(index: _tabIndex, children: [homePage(), storesPage(), cartPage(), ordersPage()]),
+      bottomNavigationBar: NavigationBar(height: 68, backgroundColor: Colors.white, indicatorColor: const Color(0xFFFFE8E8), selectedIndex: _tabIndex, onDestinationSelected: (i) => setState(() => _tabIndex = i), destinations: [
+        const NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home_rounded, color: Color(0xFFE31E24)), label: 'الرئيسية'),
+        const NavigationDestination(icon: Icon(Icons.storefront_outlined), selectedIcon: Icon(Icons.storefront_rounded, color: Color(0xFFE31E24)), label: 'المتاجر'),
+        NavigationDestination(icon: Badge(isLabelVisible: _cart.isNotEmpty, label: Text(_cart.length.toString()), child: const Icon(Icons.shopping_bag_outlined)), selectedIcon: const Icon(Icons.shopping_bag_rounded, color: Color(0xFFE31E24)), label: 'السلة'),
+        const NavigationDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long_rounded, color: Color(0xFFE31E24)), label: 'طلباتي'),
       ]),
-    ),
-  );
+    ));
+  }
+
+  Widget _categoryBubble(String label, IconData icon, bool selected, VoidCallback onTap) => GestureDetector(onTap: onTap, child: Container(width: 76, margin: const EdgeInsets.only(left: 9), child: Column(children: [
+    Container(width: 58, height: 58, decoration: BoxDecoration(color: selected ? const Color(0xFFE31E24) : Colors.white, borderRadius: BorderRadius.circular(19), border: Border.all(color: selected ? const Color(0xFFE31E24) : const Color(0xFFE8ECE8))), child: Icon(icon, color: selected ? Colors.white : const Color(0xFF00843D), size: 25)),
+    const SizedBox(height: 6), Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: selected ? const Color(0xFFE31E24) : const Color(0xFF536057))),
+  ])));
+
+  IconData _categoryIcon(String c) => switch(c) {
+    'burgers' => Icons.lunch_dining_rounded,
+    'breakfast' || 'moroccan-breakfast' => Icons.egg_alt_rounded,
+    'desserts' => Icons.cake_rounded,
+    'drinks' => Icons.local_cafe_rounded,
+    'bakery' => Icons.bakery_dining_rounded,
+    'meat' => Icons.set_meal_rounded,
+    'produce' => Icons.eco_rounded,
+    'menus' || 'prepared-food' => Icons.restaurant_menu_rounded,
+    'fries' => Icons.fastfood_rounded,
+    _ => Icons.restaurant_rounded,
+  };
 
   void _showAuth() => showModalBottomSheet(
     context:context,isScrollControlled:true,builder:(ctx)=>StatefulBuilder(builder:(ctx,setSheet)=>Padding(
