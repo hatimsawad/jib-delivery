@@ -162,14 +162,18 @@ class _CustomerHomeState extends State<CustomerHome> {
         .eq('is_active',true).inFilter('category',_foodCategories.toList()).order('name');
       final foodBrandIds = List<Map<String,dynamic>>.from(products)
         .map((p) => p['brand_id'] as String?).whereType<String>().toSet();
+      final activeApprovedBrandIds = List<Map<String,dynamic>>.from(brands)
+        .map((b) => b['id'] as String).toSet();
+      final visibleFoodBrandIds = foodBrandIds.intersection(activeApprovedBrandIds);
       final branches = await _db.from('branches')
         .select('id,name,address,city,merchant_id,merchants!inner(name,is_active)')
-        .eq('is_active',true).eq('merchants.is_active',true).order('name');
+        .eq('is_active',true).eq('city','Rabat').eq('merchants.is_active',true).order('name');
       if (!mounted) return;
       setState(() {
         _brands = List<Map<String,dynamic>>.from(brands)
-          .where((b) => foodBrandIds.contains(b['id'])).toList();
-        _catalogProducts = List<Map<String,dynamic>>.from(products);
+          .where((b) => visibleFoodBrandIds.contains(b['id'])).toList();
+        _catalogProducts = List<Map<String,dynamic>>.from(products)
+          .where((p) => visibleFoodBrandIds.contains(p['brand_id'])).toList();
         _branches = List<Map<String,dynamic>>.from(branches);
       });
     } catch (e) {
@@ -339,7 +343,7 @@ class _CustomerHomeState extends State<CustomerHome> {
             SizedBox(height:16),
             Text('كل شي تحبه في مكان واحد',style:TextStyle(color:Colors.white,fontSize:22,fontWeight:FontWeight.w900)),
             SizedBox(height:8),
-            Text('تسوق من العلامات والمتاجر القريبة منك في الرباط وتمارة',style:TextStyle(color:Color(0xFFFFF4DC))),
+            Text('تسوق من المتاجر والمنتجات المتاحة في الرباط فقط',style:TextStyle(color:Color(0xFFFFF4DC))),
           ]),
         ),
         if (_error!=null) _message(_error!,true),
