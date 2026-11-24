@@ -226,7 +226,7 @@ class _CustomerHomeState extends State<CustomerHome> {
     });
     try {
       final rows = await _db.from('branch_products')
-        .select('id,price_mad,availability,products!inner(id,name,category,brand_id,image_url,brands(name))')
+        .select('id,price_mad,availability,products!inner(id,name,category,brand_id,image_url,reference_price_mad,reference_notes,brands(name))')
         .eq('branch_id',_selectedBranch!).eq('is_active',true)
         .eq('availability','available').eq('products.is_active',true)
         .inFilter('products.category',_foodCategories.toList()).order('id');
@@ -448,30 +448,30 @@ class _CustomerHomeState extends State<CustomerHome> {
               trailing:IconButton(onPressed:()=>_addToCart(row),icon:const Icon(Icons.add_circle,color:Color(0xFF00843D))),
             ));
           }),
-          if (_cart.isNotEmpty) ...[
-            const SizedBox(height:14),
-            const Text('سلة الطلب',style:TextStyle(fontSize:18,fontWeight:FontWeight.bold)),
-            ..._cart.entries.map((e){
-              final p=Map<String,dynamic>.from(e.value['products'] as Map);
-              return ListTile(
-                title:Text(p['name'] as String),
-                subtitle:Text('${e.value['price_mad']} درهم × ${e.value['quantity']}'),
-                trailing:Row(mainAxisSize:MainAxisSize.min,children:[
-                  IconButton(onPressed:()=>_changeQuantity(e.key,-1),icon:const Icon(Icons.remove_circle_outline)),
-                  Text('${e.value['quantity']}'),
-                  IconButton(onPressed:()=>_changeQuantity(e.key,1),icon:const Icon(Icons.add_circle_outline)),
-                ]),
-              );
-            }),
-            Text('المجموع الفرعي: ${_subtotal.toStringAsFixed(2)} درهم',style:const TextStyle(fontWeight:FontWeight.bold)),
-            const SizedBox(height:10),
-            TextField(controller:_address,decoration:const InputDecoration(labelText:'عنوان التوصيل',border:OutlineInputBorder())),
-            const SizedBox(height:10),
-            TextField(controller:_phone,keyboardType:TextInputType.phone,decoration:const InputDecoration(labelText:'رقم الهاتف',border:OutlineInputBorder())),
-            const SizedBox(height:10),
-            FilledButton(onPressed:_busy?null:_submitOrder,child:Text(_busy?'جارٍ الإرسال...':'تأكيد الطلب')),
-            const _InfoPanel('السعر المعروض يتضمن زيادة JIB البالغة 2 درهم لكل منتج. لا يظهر المنتج للشراء إلا بعد تأكيد الفرع لسعره وتوفره. رسوم التوصيل وطريقة الدفع لم يتم تفعيلهما بعد.'),
-          ],
+        ],
+        if (_cart.isNotEmpty) ...[
+          const SizedBox(height:18),
+          Text('سلة الطلب (${_cart.values.fold<int>(0,(n,row)=>n+(row['quantity'] as int))})',style:const TextStyle(fontSize:19,fontWeight:FontWeight.w900)),
+          ..._cart.entries.map((e){
+            final p=Map<String,dynamic>.from(e.value['product'] as Map);
+            return ListTile(
+              title:Text(p['name'] as String),
+              subtitle:Text('${e.value['price_mad']} درهم × ${e.value['quantity']}'),
+              trailing:Row(mainAxisSize:MainAxisSize.min,children:[
+                IconButton(onPressed:()=>_changeQuantity(e.key,-1),icon:const Icon(Icons.remove_circle_outline)),
+                Text('${e.value['quantity']}'),
+                IconButton(onPressed:()=>_changeQuantity(e.key,1),icon:const Icon(Icons.add_circle_outline)),
+              ]),
+            );
+          }),
+          Text('المجموع الفرعي: ${_subtotal.toStringAsFixed(2)} درهم',style:const TextStyle(fontWeight:FontWeight.bold)),
+          const SizedBox(height:10),
+          TextField(controller:_address,decoration:const InputDecoration(labelText:'عنوان التوصيل',border:OutlineInputBorder())),
+          const SizedBox(height:10),
+          TextField(controller:_phone,keyboardType:TextInputType.phone,decoration:const InputDecoration(labelText:'رقم الهاتف',border:OutlineInputBorder())),
+          if (_selectedBranch==null) const _InfoPanel('اختر فرع الشراء من قائمة فروع الرباط قبل تأكيد الطلب.'),
+          FilledButton(onPressed:_busy||_selectedBranch==null?null:_submitOrder,child:Text(_busy?'جارٍ الإرسال...':'تأكيد الطلب')),
+          const _InfoPanel('يمكنك إضافة المنتجات إلى السلة الآن. إرسال الطلب الفعلي ينتظر ربط المنتجات بعروض فرع الشراء في النظام الحالي.'),
         ],
         if (_user!=null) ...[
           const SizedBox(height:24),
