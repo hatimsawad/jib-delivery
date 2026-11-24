@@ -111,7 +111,7 @@ class _CourierHomeState extends State<CourierHome> {
         .eq('user_id', _user!.id).maybeSingle();
       _onDuty = profile?['is_on_duty'] == true;
       final rows = await _db.from('courier_assignments')
-        .select('id,order_id,status,offered_at,orders!inner(id,status,delivery_address,customer_phone,subtotal_mad,submitted_at,branches(name,address),order_items(product_name_snapshot,quantity,unit_price_mad,line_total_mad,branch_products!inner(products!inner(name,brands(name)))))')
+        .select('id,order_id,status,offered_at,orders!inner(id,status,delivery_address,customer_phone,subtotal_mad,delivery_fee_mad,courier_purchase_total_mad,submitted_at,branches(name,address,merchants(name)),order_items(product_name_snapshot,quantity,unit_price_mad,line_total_mad,products(name,brands(name))))')
         .eq('courier_id', _user!.id)
         .inFilter('status', ['offered','accepted'])
         .order('offered_at', ascending: false);
@@ -138,6 +138,55 @@ class _CourierHomeState extends State<CourierHome> {
     finally { if (mounted) setState(() => _busy = false); }
   }
 
+  Future<void> _confirmPurchase(String orderId) async {
+    final controller = TextEditingController();
+    final value = await showDialog<String>(context: context, builder: (dialogContext) => AlertDialog(
+      title: const Text('تأكيد شراء المنتجات'),
+      content: Column(mainAxisSize: MainAxisSize.min, children: [
+        const Text('أدخل المبلغ الإجمالي الذي دفعته فعلياً في المتجر، حسب الفاتورة.'),
+        const SizedBox(height: 10),
+        TextField(controller: controller, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'تكلفة الشراء بالدرهم', border: OutlineInputBorder())),
+      ]),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء')),
+        FilledButton(onPressed: () => Navigator.pop(dialogContext, controller.text.trim()), child: const Text('تأكيد الشراء')),
+      ],
+    ));
+    final amount = num.tryParse(value ?? '');
+    controller.dispose();
+    if (amount == null || amount < 0) { if (value != null) setState(() => _error = 'أدخل تكلفة شراء صحيحة.'); return; }
+    setState(() { _busy = true; _error = null; });
+    try {
+      await _db.rpc('courier_confirm_purchase', params: {'p_order_id': orderId, 'p_purchase_total_mad': amount});
+      await _loadTasks();
+    } catch (e) { setState(() => _error = 'تعذر تسجيل شراء المنتجات. تحقق من حالة الطلب والمبلغ.'); }
+    finally { if (mounted) setState(() => _busy = false); }
+  }
+
+  Future<void> _confirmDelivery(String orderId) async {
+    final controller = TextEditingController();
+    final value = await showDialog<String>(context: context, builder: (dialogContext) => AlertDialog(
+      title: const Text('تأكيد التسليم والتحصيل'),
+      content: Column(mainAxisSize: MainAxisSize.min, children: [
+        const Text('أدخل كامل المبلغ النقدي الذي استلمته من الزبون.'),
+        const SizedBox(height: 10),
+        TextField(controller: controller, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'المبلغ المحصل بالدرهم', border: OutlineInputBorder())),
+      ]),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء')),
+        FilledButton(onPressed: () => Navigator.pop(dialogContext, controller.text.trim()), child: const Text('تأكيد التسليم')),
+      ],
+    ));
+    final amount = num.tryParse(value ?? '');
+    controller.dispose();
+    if (amount == null || amount < 0) { if (value != null) setState(() => _error = 'أدخل المبلغ المحصل بشكل صحيح.'); return; }
+    setState(() { _busy = true; _error = null; });
+    try {
+      await _db.rpc('courier_complete_delivery', params: {'p_order_id': orderId, 'p_cash_collected_mad': amount});
+      await _loadTasks();
+    } catch (e) { setState(() => _error = 'تعذر تأكيد التسليم والتحصيل. تحقق من تسجيل تكلفة الشراء أولاً.'); }
+    finally { if (mounted) setState(() => _busy = false); }
+  }
   Future<void> _advance(String orderId, String action) async {
     setState(() { _busy = true; _error = null; });
     try {
@@ -217,26 +266,27 @@ class _CourierHomeState extends State<CourierHome> {
           actions.add(FilledButton(onPressed: _busy ? null : () => _respond(a['id'] as String,true), child: const Text('قبول العرض')));
           actions.add(OutlinedButton(onPressed: _busy ? null : () => _respond(a['id'] as String,false), child: const Text('رفض')));
         } else if (status == 'courier_accepted') {
-          actions.add(FilledButton(onPressed: _busy ? null : () => _advance(orderId,'pickup'), child: const Text('تأكيد الاستلام')));
+          actions.add(FilledButton(onPressed: _busy ? null : () => _confirmPurchase(orderId), child: const Text('تأكيد الشراء وتسجيل التكلفة')));
         } else if (status == 'picked_up') {
           actions.add(FilledButton(onPressed: _busy ? null : () => _advance(orderId,'en_route'), child: const Text('بدء التوصيل')));
         } else if (status == 'en_route') {
-          actions.add(FilledButton(onPressed: _busy ? null : () => _advance(orderId,'delivered'), child: const Text('تأكيد التسليم')));
+          actions.add(FilledButton(onPressed: _busy ? null : () => _confirmDelivery(orderId), child: const Text('تأكيد التسليم والتحصيل')));
         }
         return Card(child: Padding(padding: const EdgeInsets.all(14), child: Column(
           crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('طلب #${orderId.substring(0,8)}', style: const TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 6),
-            Text('المتجر: ${branch?['name'] ?? 'الفرع'} — ${branch?['address'] ?? ''}'),
+            Text('المتجر: ${(branch?['merchants'] as Map?)?['name'] ?? branch?['name'] ?? 'الفرع'} — ${branch?['address'] ?? ''}'),
             Text('عنوان التسليم: ${order['delivery_address']}'),
             Text('هاتف الزبون: ${order['customer_phone']}'),
+            Text('قيمة المنتجات في JIB: ${order['subtotal_mad']} درهم'),
+            Text('رسوم التوصيل: ${order['delivery_fee_mad'] ?? 'بانتظار تحديد الإدارة'} درهم'),
             Text('الحالة: $status'),
             if (orderItems.isNotEmpty) ...[
               const SizedBox(height: 8),
               const Text('العلامة التجارية والمنتجات المطلوبة:', style: TextStyle(fontWeight: FontWeight.bold)),
               ...orderItems.map((item) {
-                final branchProduct = item['branch_products'] as Map?;
-                final product = branchProduct?['products'] as Map?;
+                final product = item['products'] as Map?;
                 final brand = product?['brands'] as Map?;
                 final brandName = brand?['name'] as String? ?? 'علامة غير محددة';
                 return Padding(
@@ -245,6 +295,7 @@ class _CourierHomeState extends State<CourierHome> {
                 );
               }),
             ],
+            if (order['courier_purchase_total_mad'] != null) Text('تكلفة الشراء المسجلة: ${order['courier_purchase_total_mad']} درهم'),
             Text('مضى على الطلب: ${DateTime.now().difference(DateTime.parse(order['submitted_at'] as String)).inMinutes} دقيقة'),
             Wrap(spacing: 8, children: actions),
           ],
