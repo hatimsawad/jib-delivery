@@ -79,6 +79,7 @@ class _CustomerHomeState extends State<CustomerHome> {
   List<Map<String,dynamic>> _brands = [];
   List<Map<String,dynamic>> _branches = [];
   List<Map<String,dynamic>> _catalogProducts = [];
+  Map<String,Map<String,dynamic>> _branchOffers = {};
   List<Map<String,dynamic>> _myOrders = [];
   String? _selectedBrand;
   String? _selectedBranch;
@@ -222,34 +223,68 @@ class _CustomerHomeState extends State<CustomerHome> {
     if (storeBrandId == null) { setState(() => _error = 'هذا الفرع غير مرتبط بعلامة تجارية في JIB.'); return; }
     final hasOtherBrand = _cart.values.any((row) => (row['product'] as Map)['brand_id'] != storeBrandId);
     if (hasOtherBrand) { setState(() => _error = 'الطلب الواحد يكون من متجر واحد. أفرغ السلة قبل تغيير المتجر.'); return; }
-    setState(() {
-      _selectedBranch = branch['id'] as String;
-      _selectedBranchName = branch['name'] as String;
-      _selectedBrand = storeBrandId;
-      _error = null;
-      _notice = 'تم اختيار $_selectedBranchName. المندوب سيشتري المنتجات من هذا الفرع.';
-    });
+    setState(() { _busy = true; _error = null; });
+    try {
+      final rows = await _db.from('branch_products')
+        .select('id,product_id,price_mad,availability,is_active,confirmed_at')
+        .eq('branch_id', branch['id'] as String);
+      final offers = <String,Map<String,dynamic>>{};
+      for (final row in List<Map<String,dynamic>>.from(rows)) {
+        if (row['is_active'] == true && row['availability'] == 'available' &&
+            row['confirmed_at'] != null && row['price_mad'] != null) {
+          offers[row['product_id'] as String] = row;
+        }
+      }
+      final cartProductIds = _cart.keys.toList();
+      final unavailable = cartProductIds.where((id) => !offers.containsKey(id)).toList();
+      if (unavailable.isNotEmpty) {
+        if (mounted) setState(() => _error = 'بعض منتجات السلة غير مؤكدة التوفر في هذا الفرع. احتفظنا بالفرع والسلة الحاليين.');
+        return;
+      }
+      if (!mounted) return;
+      setState(() {
+        _selectedBranch = branch['id'] as String;
+        _selectedBranchName = branch['name'] as String;
+        _selectedBrand = storeBrandId;
+        _branchOffers = offers;
+        for (final id in cartProductIds) {
+          final current = _cart[id]!;
+          final offer = offers[id]!;
+          _cart[id] = {...current, 'price_mad': offer['price_mad'], 'branch_product_id': offer['id']};
+        }
+        _notice = 'تم اختيار $_selectedBranchName. الأسعار والتوفر مأخوذان من تأكيد هذا الفرع.';
+      });
+    } catch (_) {
+      if (mounted) setState(() => _error = 'تعذر تحميل أسعار وتوفر منتجات الفرع. حاول مجدداً.');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Map<String,dynamic>? _availableOffer(Map<String,dynamic> product) {
+    if (_selectedBranch == null) return null;
+    final offer = _branchOffers[product['id']];
+    if (offer == null || offer['is_active'] != true || offer['availability'] != 'available' ||
+        offer['confirmed_at'] == null || offer['price_mad'] == null) return null;
+    return offer;
   }
 
   void _addToCart(Map<String,dynamic> product) {
     final id = product['id'] as String;
-    final price = _customerReferencePrice(product);
-    if (price == null) { setState(() => _error = 'لا يمكن إضافة المنتج لأن سعره المرجعي غير متوفر.'); return; }
+    final offer = _availableOffer(product);
+    if (offer == null) { setState(() => _error = 'اختر فرعاً أولاً، ولا يمكن طلب منتج قبل تأكيد سعره وتوفره من الفرع.'); return; }
+    final price = offer['price_mad'] as num;
     final brandId = product['brand_id'] as String?;
     if (brandId == null) { setState(() => _error = 'هذا المنتج غير مرتبط بمتجر معتمد.'); return; }
     final hasOtherBrand = _cart.values.any((row) => (row['product'] as Map)['brand_id'] != brandId);
     if (hasOtherBrand) { setState(() => _error = 'الطلب الواحد يكون من متجر واحد. أفرغ السلة قبل إضافة منتجات متجر آخر.'); return; }
-    if (_selectedBranch != null) {
-      final selected = _branches.where((b) => b['id'] == _selectedBranch).toList();
-      final selectedBrandId = selected.isEmpty ? null : (selected.first['merchants'] as Map?)?['brand_id'];
-      if (selectedBrandId != brandId) { setState(() => _error = 'المنتج لا ينتمي إلى فرع الشراء المحدد.'); return; }
-    }
     final existing = _cart[id];
     setState(() {
       _selectedBrand = brandId;
       _error = null;
-      _cart[id] = {'product': product, 'price_mad': price, 'quantity': ((existing?['quantity'] as int?) ?? 0) + 1};
-      _notice = 'تمت إضافة ${product['name']} إلى السلة.';
+      _cart[id] = {'product': product, 'price_mad': price, 'branch_product_id': offer['id'],
+        'quantity': ((existing?['quantity'] as int?) ?? 0) + 1};
+      _notice = 'تمت إضافة ${product['name']} بالسعر المؤكد من الفرع.';
     });
   }
 
@@ -272,7 +307,7 @@ class _CustomerHomeState extends State<CustomerHome> {
     if (_address.text.trim().length < 5 || _phone.text.trim().length < 8) { setState(() => _error = 'أدخل عنوان التوصيل ورقم هاتف صحيحاً.'); return; }
     setState(() { _busy = true; _error = null; _notice = null; });
     try {
-      final items = _cart.entries.map((e) => {'product_id': e.key, 'quantity': e.value['quantity']}).toList();
+      final items = _cart.entries.map((e) => {'product_id': e.key, 'quantity': e.value['quantity'], 'expected_unit_price_mad': e.value['price_mad']}).toList();
       final orderId = await _db.rpc('submit_purchase_order',params:{
         'p_branch_id':_selectedBranch,
         'p_delivery_address':_address.text.trim(),
@@ -333,7 +368,9 @@ class _CustomerHomeState extends State<CustomerHome> {
       if (action != null) TextButton(onPressed: onAction, child: Text(action, style: const TextStyle(color: Color(0xFF00843D), fontWeight: FontWeight.w800))),
     ]);
     Widget productCard(Map<String,dynamic> p) {
-      final price = _customerReferencePrice(p);
+      final offer = _availableOffer(p);
+      final confirmedPrice = offer?['price_mad'] as num?;
+      final referencePrice = _customerReferencePrice(p);
       final image = (p['image_url'] as String?)?.trim();
       final brand = _brands.where((b) => b['id'] == p['brand_id']).toList();
       return SizedBox(width: productWidth, child: Container(
@@ -352,8 +389,14 @@ class _CustomerHomeState extends State<CustomerHome> {
             Text(brand.isEmpty ? 'JIB' : brand.first['name'] as String, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10, color: Color(0xFF78837B))),
             const SizedBox(height: 8),
             Row(children: [
-              Expanded(child: Text(price == null ? 'السعر غير متوفر' : '${price.toStringAsFixed(2)} د.م', style: const TextStyle(color: Color(0xFF00843D), fontWeight: FontWeight.w900, fontSize: 13))),
-              InkWell(onTap: price == null ? null : () => _addToCart(p), borderRadius: BorderRadius.circular(11), child: Container(width: 34, height: 34, decoration: BoxDecoration(color: price == null ? const Color(0xFFE8ECE8) : const Color(0xFFE31E24), borderRadius: BorderRadius.circular(11)), child: const Icon(Icons.add_rounded, color: Colors.white))),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(confirmedPrice == null
+                  ? (referencePrice == null ? 'بانتظار تأكيد السعر' : 'مرجعي: ${referencePrice.toStringAsFixed(2)} د.م')
+                  : '${confirmedPrice.toStringAsFixed(2)} د.م',
+                  style: TextStyle(color: confirmedPrice == null ? const Color(0xFF9A6B20) : const Color(0xFF00843D), fontWeight: FontWeight.w900, fontSize: 12)),
+                if (confirmedPrice == null) const Text('غير قابل للطلب بعد', style: TextStyle(fontSize: 9, color: Color(0xFF78837B))),
+              ])),
+              InkWell(onTap: offer == null ? null : () => _addToCart(p), borderRadius: BorderRadius.circular(11), child: Container(width: 34, height: 34, decoration: BoxDecoration(color: offer == null ? const Color(0xFFE8ECE8) : const Color(0xFFE31E24), borderRadius: BorderRadius.circular(11)), child: Icon(Icons.add_rounded, color: offer == null ? const Color(0xFF9AA69C) : Colors.white))),
             ]),
           ])),
         ]),
