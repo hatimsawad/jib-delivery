@@ -92,6 +92,19 @@ export default function CatalogAdminPage() {
     setSourceUrl(p.official_source_url ?? ""); setProductActive(p.is_active); setNotice("");
   }
 
+  async function toggleBrandVisibility(brand: Brand) {
+    setBusy(true); setError(""); setNotice("");
+    const nextActive = !brand.is_active;
+    const { error: updateError } = await supabase.from("brands")
+      .update({ is_active: nextActive }).eq("id", brand.id);
+    if (updateError) setError("تعذر تغيير ظهور المتجر. تحقق من صلاحيات المدير.");
+    else {
+      setBrands(current => current.map(item => item.id === brand.id ? { ...item, is_active: nextActive } : item));
+      setNotice(nextActive ? `تم تشغيل ظهور ${brand.name} في تطبيق الزبون.` : `تم إيقاف ظهور ${brand.name} في تطبيق الزبون.`);
+    }
+    setBusy(false);
+  }
+
   async function saveBrand(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!brandName.trim() || !brandSlug.trim()) { setError("اسم العلامة والمعرّف المختصر مطلوبان."); return; }
@@ -131,7 +144,7 @@ export default function CatalogAdminPage() {
 
   return <main style={{ maxWidth: 1180, margin: "0 auto", padding: 22, direction: "rtl", background: "#F7F8F7", minHeight: "100vh", color: "#17231b" }}>
     <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, background: "linear-gradient(110deg,#101612,#00843D)", padding: 22, borderRadius: 16, color: "#fff" }}>
-      <div><div style={{ fontSize: 26, fontWeight: 950 }}>★ JIB</div><h1 style={{ margin: "8px 0 0" }}>إدارة العلامات والمنتجات</h1></div>
+      <div><div style={{ fontSize: 26, fontWeight: 950 }}>★ JIB</div><h1 style={{ margin: "8px 0 0" }}>إدارة المتاجر والمنتجات</h1></div>
       <a href="/" style={{ color: "#fff", fontWeight: 800 }}>العودة إلى لوحة القيادة</a>
     </header>
     {error && <p role="alert" style={{ background: "#FEE2E2", color: "#991B1B", padding: 12, borderRadius: 9 }}>{error}</p>}
@@ -168,20 +181,21 @@ export default function CatalogAdminPage() {
       </div>}
       {!loading && tab === "brands" && <div style={{ display: "grid", gridTemplateColumns: "minmax(280px,1fr) minmax(300px,1fr)", gap: 18, marginTop: 16 }}>
         <form onSubmit={saveBrand} style={{ display: "grid", gap: 9, alignContent: "start" }}>
-          <h2>{brandId ? "تعديل علامة" : "إضافة علامة"}</h2>
+          <h2>{brandId ? "تعديل متجر" : "إضافة متجر"}</h2>
           <input required value={brandName} onChange={e => setBrandName(e.target.value)} placeholder="اسم العلامة" style={inputStyle} />
           <input required value={brandSlug} onChange={e => setBrandSlug(e.target.value)} placeholder="المعرّف المختصر (slug)" style={inputStyle} />
           <input value={brandCategory} onChange={e => setBrandCategory(e.target.value)} placeholder="القسم" style={inputStyle} />
           <input value={brandLogo} onChange={e => setBrandLogo(e.target.value)} placeholder="رابط شعار العلامة (HTTPS)" style={inputStyle} />
           <input value={brandWebsite} onChange={e => setBrandWebsite(e.target.value)} placeholder="الموقع الرسمي" style={inputStyle} />
           <label><input type="checkbox" checked={brandApproved} onChange={e => setBrandApproved(e.target.checked)} /> اعتماد العلامة</label>
-          <label><input type="checkbox" checked={brandActive} onChange={e => setBrandActive(e.target.checked)} /> إظهار العلامة</label>
+          <label><input type="checkbox" checked={brandActive} onChange={e => setBrandActive(e.target.checked)} /> إظهار المتجر</label>
           <div style={{ display: "flex", gap: 8 }}><button disabled={busy} style={buttonStyle}>{busy ? "جارٍ الحفظ..." : "حفظ العلامة"}</button><button type="button" onClick={resetBrand} style={{ ...buttonStyle, background: "#64748B" }}>مسح</button></div>
         </form>
         <div style={{ maxHeight: 650, overflow: "auto" }}>
           {filteredBrands.map(b => <article key={b.id} style={{ borderBottom: "1px solid #E5E7EB", padding: "10px 0", display: "flex", gap: 10, alignItems: "center" }}>
             {b.logo_url && <img src={b.logo_url} alt="" width={44} height={44} style={{ objectFit: "contain", background: "#F7F8F7", borderRadius: 8 }} />}
             <div style={{ flex: 1 }}><strong>{b.name}</strong><div style={{ fontSize: 12, color: "#64748B" }}>{b.is_approved ? "معتمدة" : "بانتظار الاعتماد"} · {b.is_active ? "ظاهرة" : "مخفية"}</div></div>
+            <button type="button" disabled={busy} onClick={() => toggleBrandVisibility(b)} style={{ ...buttonStyle, padding: "7px 10px", background: b.is_active ? "#64748B" : "#00843D" }}>{b.is_active ? "إيقاف المتجر" : "تشغيل المتجر"}</button>
             <button type="button" onClick={() => editBrand(b)} style={{ ...buttonStyle, padding: "7px 10px" }}>تعديل</button>
           </article>)}
         </div>
