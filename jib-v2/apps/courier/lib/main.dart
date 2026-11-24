@@ -111,7 +111,7 @@ class _CourierHomeState extends State<CourierHome> {
         .eq('user_id', _user!.id).maybeSingle();
       _onDuty = profile?['is_on_duty'] == true;
       final rows = await _db.from('courier_assignments')
-        .select('id,order_id,status,offered_at,orders!inner(id,status,delivery_address,customer_phone,subtotal_mad,delivery_fee_mad,courier_purchase_total_mad,submitted_at,branches(name,address,merchants(name)),order_items(product_name_snapshot,quantity,unit_price_mad,line_total_mad,products(name,brands(name))))')
+        .select('id,order_id,status,offered_at,orders!inner(id,status,delivery_address,customer_phone,subtotal_mad,delivery_fee_mad,courier_purchase_total_mad,submitted_at,branches(name,address,merchants(name)),order_items(product_name_snapshot,quantity,unit_price_mad,line_total_mad,products(name,brands(name)),branch_products(products(name,brands(name)))))')
         .eq('courier_id', _user!.id)
         .inFilter('status', ['offered','accepted'])
         .order('offered_at', ascending: false);
@@ -286,7 +286,8 @@ class _CourierHomeState extends State<CourierHome> {
               const SizedBox(height: 8),
               const Text('العلامة التجارية والمنتجات المطلوبة:', style: TextStyle(fontWeight: FontWeight.bold)),
               ...orderItems.map((item) {
-                final product = item['products'] as Map?;
+                final branchProduct = item['branch_products'] as Map?;
+                final product = (item['products'] as Map?) ?? (branchProduct?['products'] as Map?);
                 final brand = product?['brands'] as Map?;
                 final brandName = brand?['name'] as String? ?? 'علامة غير محددة';
                 return Padding(
