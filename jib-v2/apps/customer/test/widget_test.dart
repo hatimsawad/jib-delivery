@@ -10,20 +10,24 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     await Supabase.initialize(
       url: 'https://ldgbyshgcifheditplnn.supabase.co',
-      publishableKey: 'sb_publishable_wvNMRZTBFX4viI2ypcdWjQ_YBqgi_TV',
+      publishableKey: 'sb_publishable_wvNMRZTBFX4viI2ypcdWjQ_Ybqi_TV',
     );
   });
 
-  testWidgets('customer app renders catalog and ordering entry points', (tester) async {
+  testWidgets('customer app renders premium navigation and shopping entry points', (tester) async {
     await tester.pumpWidget(const JibCustomerApp());
-    expect(find.text('جيب JIB'), findsOneWidget);
-    expect(find.text('اكتشف المنتجات'), findsOneWidget);
-    expect(find.textContaining('تصفح حسب العلامة التجارية'), findsOneWidget);
-    await tester.scrollUntilVisible(
-      find.text('فروع تستقبل الطلبات'),
-      400,
-      scrollable: find.byType(Scrollable).first,
-    );
-    expect(find.text('فروع تستقبل الطلبات'), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.text('JIB'), findsOneWidget);
+    expect(find.text('الرئيسية'), findsOneWidget);
+    expect(find.text('المتاجر'), findsOneWidget);
+    expect(find.text('السلة'), findsOneWidget);
+    expect(find.text('طلباتي'), findsOneWidget);
+    expect(find.text('كل شي تحبه\nفي مكان واحد'), findsOneWidget);
+
+    await tester.tap(find.text('المتاجر'));
+    await tester.pump();
+    expect(find.text('المتاجر والمنتجات'), findsOneWidget);
+    expect(find.text('اختر فرع الشراء'), findsOneWidget);
   });
 }
