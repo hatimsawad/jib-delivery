@@ -2,7 +2,7 @@ name: JIB V2 build and static checks
 
 on:
   push:
-    branches: [jib-v2-bootstrap]
+    branches: [main, jib-v2-bootstrap]
     paths:
       - 'jib-v2/**'
       - '.github/workflows/jib-v2-build.yml'
