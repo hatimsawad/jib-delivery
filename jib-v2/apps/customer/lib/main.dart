@@ -343,8 +343,8 @@ class _CustomerHomeState extends State<CustomerHome> {
           Stack(children: [
             Container(height: 128, width: double.infinity, color: const Color(0xFFF4F6F2), child: image == null || image.isEmpty
               ? const Icon(Icons.fastfood_rounded, size: 46, color: Color(0xFFB7C8BA))
-              : Image.network(image, fit: BoxFit.cover, errorBuilder: (_,__,___) => const Icon(Icons.fastfood_rounded, size: 46, color: Color(0xFFB7C8BA)))),
-            Positioned(top: 8, right: 8, child: Container(padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5), decoration: BoxDecoration(color: Colors.white.withOpacity(.94), borderRadius: BorderRadius.circular(30)), child: const Text('JIB', style: TextStyle(color: Color(0xFFE31E24), fontWeight: FontWeight.w900, fontSize: 10)))),
+              : Image.network(image, fit: BoxFit.cover, errorBuilder: (_, _, _) => const Icon(Icons.fastfood_rounded, size: 46, color: Color(0xFFB7C8BA)))),
+            Positioned(top: 8, right: 8, child: Container(padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5), decoration: BoxDecoration(color: Colors.white.withValues(alpha: .94), borderRadius: BorderRadius.circular(30)), child: const Text('JIB', style: TextStyle(color: Color(0xFFE31E24), fontWeight: FontWeight.w900, fontSize: 10)))),
           ]),
           Padding(padding: const EdgeInsets.all(11), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(p['name'] as String, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, height: 1.2)),
@@ -352,7 +352,7 @@ class _CustomerHomeState extends State<CustomerHome> {
             Text(brand.isEmpty ? 'JIB' : brand.first['name'] as String, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10, color: Color(0xFF78837B))),
             const SizedBox(height: 8),
             Row(children: [
-              Expanded(child: Text(price == null ? 'السعر غير متوفر' : price.toStringAsFixed(2) + ' د.م', style: const TextStyle(color: Color(0xFF00843D), fontWeight: FontWeight.w900, fontSize: 13))),
+              Expanded(child: Text(price == null ? 'السعر غير متوفر' : '${price.toStringAsFixed(2)} د.م', style: const TextStyle(color: Color(0xFF00843D), fontWeight: FontWeight.w900, fontSize: 13))),
               InkWell(onTap: price == null ? null : () => _addToCart(p), borderRadius: BorderRadius.circular(11), child: Container(width: 34, height: 34, decoration: BoxDecoration(color: price == null ? const Color(0xFFE8ECE8) : const Color(0xFFE31E24), borderRadius: BorderRadius.circular(11)), child: const Icon(Icons.add_rounded, color: Colors.white))),
             ]),
           ])),
@@ -365,13 +365,13 @@ class _CustomerHomeState extends State<CustomerHome> {
         onTap: _busy ? null : () => _chooseBranch(b),
         leading: Container(width: 42, height: 42, decoration: BoxDecoration(color: const Color(0xFFFFEEEE), borderRadius: BorderRadius.circular(13)), child: const Icon(Icons.storefront_rounded, color: Color(0xFFE31E24))),
         title: Text(b['name'] as String, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
-        subtitle: Text((b['address'] ?? '').toString() + ' — ' + (b['city'] ?? '').toString(), maxLines: 2, style: const TextStyle(fontSize: 11)),
+        subtitle: Text('${(b['address'] ?? '').toString()} — ${(b['city'] ?? '').toString()}', maxLines: 2, style: const TextStyle(fontSize: 11)),
         trailing: Icon(selected ? Icons.check_circle_rounded : Icons.chevron_left_rounded, color: const Color(0xFF00843D)),
       ));
     }
     Widget homePage() => RefreshIndicator(onRefresh: _loadPublicCatalog, child: ListView(padding: const EdgeInsets.fromLTRB(16, 10, 16, 24), children: [
       Container(padding: const EdgeInsets.fromLTRB(18, 17, 18, 19), decoration: BoxDecoration(gradient: const LinearGradient(begin: Alignment.topRight, end: Alignment.bottomLeft, colors: [Color(0xFFE31E24), Color(0xFFB91720), Color(0xFF00843D)]), borderRadius: BorderRadius.circular(26), boxShadow: const [BoxShadow(color: Color(0x22000000), blurRadius: 18, offset: Offset(0, 8))]), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [const _JibMark(size: 50), const SizedBox(width: 11), const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('JIB', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 22, letterSpacing: 1.2)), Text('Jib وتكايس على jib', style: TextStyle(color: Color(0xFFFFE6E6), fontSize: 11, fontWeight: FontWeight.w700))])), Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7), decoration: BoxDecoration(color: Colors.white.withOpacity(.16), borderRadius: BorderRadius.circular(30)), child: const Row(children: [Icon(Icons.location_on_rounded, color: Colors.white, size: 14), SizedBox(width: 4), Text('الرباط', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 11))]))]),
+        Row(children: [const _JibMark(size: 50), const SizedBox(width: 11), const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('JIB', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 22, letterSpacing: 1.2)), Text('Jib وتكايس على jib', style: TextStyle(color: Color(0xFFFFE6E6), fontSize: 11, fontWeight: FontWeight.w700))])), Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7), decoration: BoxDecoration(color: Colors.white.withValues(alpha: .16), borderRadius: BorderRadius.circular(30)), child: const Row(children: [Icon(Icons.location_on_rounded, color: Colors.white, size: 14), SizedBox(width: 4), Text('الرباط', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 11))]))]),
         const SizedBox(height: 22),
         const Text('كل شي تحبه\nفي مكان واحد', style: TextStyle(color: Colors.white, fontSize: 27, height: 1.12, fontWeight: FontWeight.w900)),
         const SizedBox(height: 8),
@@ -394,7 +394,7 @@ class _CustomerHomeState extends State<CustomerHome> {
       SizedBox(height: 91, child: _brands.isEmpty ? const _InfoPanel('ستظهر العلامات التجارية المعتمدة هنا.') : ListView(scrollDirection: Axis.horizontal, children: _brands.take(12).map((b) {
         final logo = (b['logo_url'] as String?)?.trim();
         return GestureDetector(onTap: () => setState(() { _selectedBrand = b['id'] as String; _tabIndex = 1; }), child: SizedBox(width: 82, child: Column(children: [
-          Container(width: 58, height: 58, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFE8ECE8))), child: ClipRRect(borderRadius: BorderRadius.circular(17), child: logo == null || logo.isEmpty ? Center(child: Text((b['name'] as String).substring(0,1), style: const TextStyle(color: Color(0xFFE31E24), fontSize: 22, fontWeight: FontWeight.w900))) : Image.network(logo, fit: BoxFit.contain, errorBuilder: (_,__,___) => const Icon(Icons.storefront_rounded, color: Color(0xFF00843D))))),
+          Container(width: 58, height: 58, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFE8ECE8))), child: ClipRRect(borderRadius: BorderRadius.circular(17), child: logo == null || logo.isEmpty ? Center(child: Text((b['name'] as String).substring(0,1), style: const TextStyle(color: Color(0xFFE31E24), fontSize: 22, fontWeight: FontWeight.w900))) : Image.network(logo, fit: BoxFit.contain, errorBuilder: (_, _, _) => const Icon(Icons.storefront_rounded, color: Color(0xFF00843D))))),
           const SizedBox(height: 5), Text(b['name'] as String, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800)),
         ])));
       }).toList())),
@@ -420,7 +420,7 @@ class _CustomerHomeState extends State<CustomerHome> {
       const SizedBox(height: 8),
       ..._brands.map((b) => Card(elevation: 0, color: _selectedBrand == b['id'] ? const Color(0xFFEAF5ED) : Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)), child: ListTile(onTap: () => setState(() => _selectedBrand = _selectedBrand == b['id'] ? null : b['id'] as String), leading: const CircleAvatar(backgroundColor: Color(0xFFFFEEEE), child: Icon(Icons.storefront_rounded, color: Color(0xFFE31E24))), title: Text(b['name'] as String, style: const TextStyle(fontWeight: FontWeight.w800)), trailing: Icon(_selectedBrand == b['id'] ? Icons.check_circle : Icons.chevron_left, color: const Color(0xFF00843D))))),
       const SizedBox(height: 15),
-      titleRow('المنتجات (' + _filteredCatalogProducts.length.toString() + ')'),
+      titleRow('المنتجات (${_filteredCatalogProducts.length})'),
       const SizedBox(height: 10),
       Wrap(spacing: 10, runSpacing: 12, children: _filteredCatalogProducts.map(productCard).toList()),
       const SizedBox(height: 18),
@@ -439,15 +439,15 @@ class _CustomerHomeState extends State<CustomerHome> {
         final p = Map<String,dynamic>.from(e.value['product'] as Map);
         final img = (p['image_url'] as String?)?.trim();
         return Container(margin: const EdgeInsets.only(bottom: 9), padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(17), border: Border.all(color: const Color(0xFFE8ECE8))), child: Row(children: [
-          ClipRRect(borderRadius: BorderRadius.circular(12), child: SizedBox(width: 64, height: 64, child: img == null || img.isEmpty ? const ColoredBox(color: Color(0xFFF3F5F2), child: Icon(Icons.fastfood, color: Color(0xFF9EAD9F))) : Image.network(img, fit: BoxFit.cover, errorBuilder: (_,__,___) => const ColoredBox(color: Color(0xFFF3F5F2), child: Icon(Icons.fastfood, color: Color(0xFF9EAD9F)))))),
+          ClipRRect(borderRadius: BorderRadius.circular(12), child: SizedBox(width: 64, height: 64, child: img == null || img.isEmpty ? const ColoredBox(color: Color(0xFFF3F5F2), child: Icon(Icons.fastfood, color: Color(0xFF9EAD9F))) : Image.network(img, fit: BoxFit.cover, errorBuilder: (_, _, _) => const ColoredBox(color: Color(0xFFF3F5F2), child: Icon(Icons.fastfood, color: Color(0xFF9EAD9F)))))),
           const SizedBox(width: 10),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(p['name'] as String, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12)), const SizedBox(height: 5), Text(e.value['price_mad'].toString() + ' د.م', style: const TextStyle(color: Color(0xFF00843D), fontWeight: FontWeight.w900))])),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(p['name'] as String, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12)), const SizedBox(height: 5), Text('${e.value['price_mad']} د.م', style: const TextStyle(color: Color(0xFF00843D), fontWeight: FontWeight.w900))])),
           Row(mainAxisSize: MainAxisSize.min, children: [IconButton(visualDensity: VisualDensity.compact, onPressed: () => _changeQuantity(e.key, -1), icon: const Icon(Icons.remove_circle_outline, size: 20)), Text(e.value['quantity'].toString(), style: const TextStyle(fontWeight: FontWeight.w900)), IconButton(visualDensity: VisualDensity.compact, onPressed: () => _changeQuantity(e.key, 1), icon: const Icon(Icons.add_circle, color: Color(0xFFE31E24), size: 20))]),
         ]));
       }),
       if (_cart.isNotEmpty) ...[
         Container(padding: const EdgeInsets.all(15), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)), child: Column(children: [
-          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('المجموع الفرعي', style: TextStyle(color: Color(0xFF68756C))), Text(_subtotal.toStringAsFixed(2) + ' د.م', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 17))]),
+          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('المجموع الفرعي', style: TextStyle(color: Color(0xFF68756C))), Text('${_subtotal.toStringAsFixed(2)} د.م', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 17))]),
           const SizedBox(height: 7), const Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('رسوم التوصيل', style: TextStyle(color: Color(0xFF68756C))), Text('تحدد حسب المسافة', style: TextStyle(color: Color(0xFF9A6B20), fontWeight: FontWeight.w800, fontSize: 11))]),
         ])),
         const SizedBox(height: 14),
@@ -472,13 +472,13 @@ class _CustomerHomeState extends State<CustomerHome> {
       if (_user == null) Container(padding: const EdgeInsets.all(22), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)), child: Column(children: [const Icon(Icons.person_outline, size: 45, color: Color(0xFF00843D)), const SizedBox(height: 10), const Text('سجل الدخول لمتابعة طلباتك', style: TextStyle(fontWeight: FontWeight.w900)), const SizedBox(height: 10), FilledButton(onPressed: _showAuth, child: const Text('تسجيل الدخول'))])),
       if (_user != null && _myOrders.isEmpty) const _InfoPanel('لا توجد طلبات بعد. ابدأ التسوق واكتشف منتجات JIB.'),
       ..._myOrders.map((o) => Container(margin: const EdgeInsets.only(bottom: 11), padding: const EdgeInsets.all(15), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFE8ECE8))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [Expanded(child: Text('طلب #' + (o['id'] as String).substring(0,8), style: const TextStyle(fontWeight: FontWeight.w900))), Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), decoration: BoxDecoration(color: const Color(0xFFEAF5ED), borderRadius: BorderRadius.circular(30)), child: Text(_status(o['status'] as String), style: const TextStyle(color: Color(0xFF00843D), fontSize: 10, fontWeight: FontWeight.w900)))]),
+        Row(children: [Expanded(child: Text('طلب #${(o['id'] as String).substring(0,8)}', style: const TextStyle(fontWeight: FontWeight.w900))), Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), decoration: BoxDecoration(color: const Color(0xFFEAF5ED), borderRadius: BorderRadius.circular(30)), child: Text(_status(o['status'] as String), style: const TextStyle(color: Color(0xFF00843D), fontSize: 10, fontWeight: FontWeight.w900)))]),
         const Divider(height: 20),
-        Text('المنتجات: ' + o['subtotal_mad'].toString() + ' د.م', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
-        Text('التوصيل: ' + (o['delivery_fee_mad'] == null ? 'قيد التحديد' : o['delivery_fee_mad'].toString() + ' د.م'), style: const TextStyle(fontSize: 12, color: Color(0xFF68756C))),
-        Text('مضى على الطلب ' + DateTime.now().difference(DateTime.parse(o['submitted_at'] as String)).inMinutes.toString() + ' دقيقة', style: const TextStyle(fontSize: 11, color: Color(0xFF78837B))),
+        Text('المنتجات: ${o['subtotal_mad']} د.م', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
+        Text('التوصيل: ${o['delivery_fee_mad'] == null ? 'قيد التحديد' : '${o['delivery_fee_mad']} د.م'}', style: const TextStyle(fontSize: 12, color: Color(0xFF68756C))),
+        Text('مضى على الطلب ${DateTime.now().difference(DateTime.parse(o['submitted_at'] as String)).inMinutes} دقيقة', style: const TextStyle(fontSize: 11, color: Color(0xFF78837B))),
         const SizedBox(height: 10),
-        ...[['merchant_accepted_at','قبول المتجر'],['preparation_started_at','بدء التحضير'],['preparation_completed_at','اكتمال التحضير'],['courier_offered_at','البحث عن مندوب'],['courier_accepted_at','قبول المندوب'],['picked_up_at','استلام الطلب'],['en_route_at','بدء التوصيل'],['delivered_at','التسليم']].where((s) => o[s[0]] != null).map((s) => Padding(padding: const EdgeInsets.only(bottom: 4), child: Row(children: [const Icon(Icons.check_circle, color: Color(0xFF00843D), size: 14), const SizedBox(width: 7), Text(s[1] + ' • ' + DateTime.parse(o[s[0]] as String).toLocal().toString(), style: const TextStyle(fontSize: 10, color: Color(0xFF68756C)))]))),
+        ...[['merchant_accepted_at','قبول المتجر'],['preparation_started_at','بدء التحضير'],['preparation_completed_at','اكتمال التحضير'],['courier_offered_at','البحث عن مندوب'],['courier_accepted_at','قبول المندوب'],['picked_up_at','استلام الطلب'],['en_route_at','بدء التوصيل'],['delivered_at','التسليم']].where((s) => o[s[0]] != null).map((s) => Padding(padding: const EdgeInsets.only(bottom: 4), child: Row(children: [const Icon(Icons.check_circle, color: Color(0xFF00843D), size: 14), const SizedBox(width: 7), Text('${s[1]} • ${DateTime.parse(o[s[0]] as String).toLocal()}', style: const TextStyle(fontSize: 10, color: Color(0xFF68756C)))]))),
       ]))),
     ]);
 
