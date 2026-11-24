@@ -42,6 +42,7 @@ export default function AdminHome() {
   const [branchCity, setBranchCity] = useState("Rabat");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [deliveryFeeDrafts, setDeliveryFeeDrafts] = useState<Record<string, string>>({});
 
   const loadDashboard = useCallback(async (currentUser: User) => {
     setBusy(true);
@@ -72,7 +73,7 @@ export default function AdminHome() {
         supabase.from("courier_profiles").select("user_id", { count: "exact", head: true }),
         supabase.from("brands").select("id", { count: "exact", head: true }),
         supabase.from("products").select("id", { count: "exact", head: true }),
-        supabase.from("orders").select("id,status,submitted_at,subtotal_mad,customer_phone,delivery_address,branches!inner(name)").order("submitted_at", { ascending: false }).limit(50),
+        supabase.from("orders").select("id,status,submitted_at,subtotal_mad,delivery_fee_mad,courier_purchase_total_mad,customer_cash_collected_mad,courier_cash_handed_at,courier_fee_paid_at,delivered_at,customer_phone,delivery_address,branches!inner(name,address,merchants(name,is_direct_purchase))").order("submitted_at", { ascending: false }).limit(50),
         supabase.from("courier_profiles").select("user_id,is_on_duty,profiles!inner(full_name,phone)").eq("is_on_duty", true),
         supabase.from("profiles").select("id,email,full_name,phone,role").order("created_at", { ascending: false }).limit(100),
         supabase.from("merchants").select("id,name,owner_user_id,is_active").order("name"),
@@ -263,6 +264,34 @@ export default function AdminHome() {
     setBusy(false);
   }
 
+  async function saveDeliveryFee(orderId: string) {
+    if (!user) return;
+    const fee = Number(deliveryFeeDrafts[orderId]);
+    if (!Number.isFinite(fee) || fee < 0) { setError('أدخل رسوم توصيل صحيحة وغير سالبة.'); return; }
+    setBusy(true); setError('');
+    const { error: rpcError } = await supabase.rpc('admin_set_order_delivery_fee', { p_order_id: orderId, p_fee_mad: fee });
+    if (rpcError) setError('تعذر حفظ رسوم التوصيل. تأكد أن الطلب ما زال جديداً.');
+    if (user) await loadDashboard(user);
+    setBusy(false);
+  }
+
+  async function markCourierCash(orderId: string) {
+    if (!user) return;
+    setBusy(true); setError('');
+    const { error: rpcError } = await supabase.rpc('admin_mark_courier_cash_handed', { p_order_id: orderId });
+    if (rpcError) setError('تعذر تسجيل استلام حصة JIB من المندوب.');
+    if (user) await loadDashboard(user);
+    setBusy(false);
+  }
+
+  async function markCourierFeePaid(orderId: string) {
+    if (!user) return;
+    setBusy(true); setError('');
+    const { error: rpcError } = await supabase.rpc('admin_mark_courier_fee_paid', { p_order_id: orderId });
+    if (rpcError) setError('لم يحل موعد دفع مستحقات المندوب أو لم يكتمل التحصيل الأسبوعي.');
+    if (user) await loadDashboard(user);
+    setBusy(false);
+  }
   async function onboardUser() {
     if (!user || !selectedProfileId) { setError("اختر حساباً أولاً."); return; }
     setBusy(true); setError("");
@@ -439,22 +468,52 @@ export default function AdminHome() {
         <h2 style={{ marginTop: 0 }}>الطلبات ومراحل التنفيذ</h2>
         {orders.length === 0 && <p style={{ color: "#64748b" }}>لا توجد طلبات حتى الآن.</p>}
         {orders.map((order) => {
-          const branch = order.branches as { name?: string } | undefined;
-          return <article key={String(order.id)} style={{ borderTop: "1px solid #e5e7eb", padding: "14px 0" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+          const branch = order.branches as { name?: string; address?: string; merchants?: { name?: string; is_direct_purchase?: boolean } } | undefined;
+          const merchantName = branch?.merchants?.name ?? branch?.name ?? 'المتجر';
+          const directPurchase = branch?.merchants?.is_direct_purchase === true;
+          const deliveryFee = order.delivery_fee_mad == null ? null : Number(order.delivery_fee_mad);
+          const purchaseTotal = order.courier_purchase_total_mad == null ? null : Number(order.courier_purchase_total_mad);
+          const cashCollected = order.customer_cash_collected_mad == null ? null : Number(order.customer_cash_collected_mad);
+          const jibDue = cashCollected != null && purchaseTotal != null ? cashCollected - purchaseTotal : null;
+          const canDispatch = (directPurchase && order.status === 'customer_submitted' && deliveryFee != null) || order.status === 'ready_for_pickup';
+          return <article key={String(order.id)} style={{ borderTop: '1px solid #e5e7eb', padding: '14px 0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
               <strong>طلب #{String(order.id).slice(0, 8)} · {statusLabel(order.status)}</strong>
-              <span>{String(order.subtotal_mad)} درهم</span>
+              <span>{String(order.subtotal_mad)} درهم للمنتجات</span>
             </div>
-            <p style={{ margin: "6px 0", color: "#64748b" }}>{branch?.name ?? "الفرع"} · {String(order.customer_phone)} · {String(order.delivery_address)}</p>
-            {order.status === "ready_for_pickup" && <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <p style={{ margin: '6px 0', color: '#64748b' }}>{merchantName} · {String(order.customer_phone)} · {String(order.delivery_address)}</p>
+            {directPurchase && order.status === 'customer_submitted' && <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', margin: '10px 0' }}>
+              <input
+                aria-label='رسوم التوصيل بالدرهم'
+                inputMode='decimal'
+                value={deliveryFeeDrafts[String(order.id)] ?? (deliveryFee == null ? '' : String(deliveryFee))}
+                onChange={(event) => setDeliveryFeeDrafts(current => ({ ...current, [String(order.id)]: event.target.value }))}
+                placeholder='رسوم التوصيل بالدرهم'
+                style={{ ...fieldStyle, width: 190 }}
+              />
+              <button disabled={busy} onClick={() => saveDeliveryFee(String(order.id))} style={secondaryButton}>حفظ رسوم التوصيل</button>
+            </div>}
+            {deliveryFee != null && <p style={{ margin: '4px 0', color: '#64748b' }}>رسوم التوصيل: {deliveryFee.toFixed(2)} درهم · الإجمالي المستحق من الزبون مبدئياً: {(Number(order.subtotal_mad) + deliveryFee).toFixed(2)} درهم</p>}
+            {canDispatch && <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
               <span>إسناد إلى مندوب متاح:</span>
-              {couriers.length === 0 && <span style={{ color: "#9a3412" }}>لا يوجد مندوب متاح الآن</span>}
+              {couriers.length === 0 && <span style={{ color: '#9a3412' }}>لا يوجد مندوب متاح الآن</span>}
               {couriers.map((courier) => {
                 const profile = courier.profiles as { full_name?: string; phone?: string } | undefined;
                 return <button key={String(courier.user_id)} disabled={busy} onClick={() => dispatch(String(order.id), String(courier.user_id))} style={secondaryButton}>
-                  {profile?.full_name || profile?.phone || "مندوب"}
+                  {profile?.full_name || profile?.phone || 'مندوب'}
                 </button>;
               })}
+            </div>}
+            {order.status === 'delivered' && <div style={{ marginTop: 10, padding: 12, borderRadius: 10, background: '#f7f8f7' }}>
+              <p style={{ margin: '3px 0' }}>تكلفة الشراء الفعلية: {purchaseTotal == null ? 'غير مسجلة' : purchaseTotal.toFixed(2) + ' درهم'}</p>
+              <p style={{ margin: '3px 0' }}>النقد المحصل من الزبون: {cashCollected == null ? 'غير مسجل' : cashCollected.toFixed(2) + ' درهم'}</p>
+              <p style={{ margin: '3px 0', fontWeight: 700 }}>المبلغ المتبقي لصالح JIB بعد تعويض الشراء: {jibDue == null ? 'غير محسوب' : jibDue.toFixed(2) + ' درهم'}</p>
+              <p style={{ margin: '3px 0' }}>رسوم توصيل المندوب المستحقة بعد 15 يوماً: {deliveryFee == null ? 'غير محددة' : deliveryFee.toFixed(2) + ' درهم'}</p>
+              {order.courier_cash_handed_at == null ? <button disabled={busy || jibDue == null} onClick={() => markCourierCash(String(order.id))} style={{ ...secondaryButton, marginTop: 8 }}>تأكيد استلام مبلغ JIB الأسبوعي</button> : <p style={{ color: '#00843D' }}>تم تحصيل حصة JIB من المندوب</p>}
+              {order.courier_fee_paid_at == null ? <button disabled={busy || order.courier_cash_handed_at == null} onClick={() => markCourierFeePaid(String(order.id))} style={{ ...secondaryButton, marginTop: 8 }}>تأكيد دفع مستحقات المندوب (بعد 15 يوماً)</button> : <p style={{ color: '#00843D' }}>تم دفع مستحقات المندوب</p>}
+            </div>}
+          </article>;
+        })}
             </div>}
           </article>;
         })}
