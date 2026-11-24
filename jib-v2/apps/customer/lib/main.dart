@@ -265,7 +265,9 @@ class _CustomerHomeState extends State<CustomerHome> {
     if (_selectedBranch == null) return null;
     final offer = _branchOffers[product['id']];
     if (offer == null || offer['is_active'] != true || offer['availability'] != 'available' ||
-        offer['confirmed_at'] == null || offer['price_mad'] == null) return null;
+        offer['confirmed_at'] == null || offer['price_mad'] == null) {
+      return null;
+    }
     return offer;
   }
 
