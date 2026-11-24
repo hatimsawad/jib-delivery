@@ -78,7 +78,6 @@ class _CustomerHomeState extends State<CustomerHome> {
   List<Map<String,dynamic>> _brands = [];
   List<Map<String,dynamic>> _branches = [];
   List<Map<String,dynamic>> _catalogProducts = [];
-  List<Map<String,dynamic>> _branchProducts = [];
   List<Map<String,dynamic>> _myOrders = [];
   String? _selectedBrand;
   String? _selectedBranch;
@@ -226,7 +225,6 @@ class _CustomerHomeState extends State<CustomerHome> {
       _selectedBranch = branch['id'] as String;
       _selectedBranchName = branch['name'] as String;
       _selectedBrand = storeBrandId;
-      _branchProducts = [];
       _error = null;
       _notice = 'تم اختيار $_selectedBranchName. المندوب سيشتري المنتجات من هذا الفرع.';
     });
