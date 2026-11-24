@@ -386,7 +386,7 @@ class _CustomerHomeState extends State<CustomerHome> {
       const SizedBox(height: 12),
       SizedBox(height: 91, child: ListView(scrollDirection: Axis.horizontal, children: [
         _categoryBubble('الكل', Icons.grid_view_rounded, _selectedCategory == null, () => setState(() => _selectedCategory = null)),
-        ..._catalogCategories.map((c) => _categoryBubble(_categoryLabel(c), _categoryIcon(c), _selectedCategory == c, () => setState(() => _selectedCategory = _selectedCategory == c ? null : c)),
+        ..._catalogCategories.map((c) => _categoryBubble(_categoryLabel(c), _categoryIcon(c), _selectedCategory == c, () => setState(() => _selectedCategory = _selectedCategory == c ? null : c))),
       ])),
       const SizedBox(height: 18),
       titleRow('علامات تجارية مختارة', action: 'عرض الكل', onAction: () => setState(() => _tabIndex = 1)),
@@ -414,7 +414,7 @@ class _CustomerHomeState extends State<CustomerHome> {
       const SizedBox(height: 15),
       TextField(decoration: InputDecoration(hintText: 'ابحث عن منتج أو متجر', prefixIcon: const Icon(Icons.search), filled: true, fillColor: Colors.white, border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none)), onChanged: (v) => setState(() => _search = v.trim().toLowerCase())),
       const SizedBox(height: 14),
-      Wrap(spacing: 8, runSpacing: 8, children: [ChoiceChip(label: const Text('كل الأقسام'), selected: _selectedCategory == null, onSelected: (_) => setState(() => _selectedCategory = null)), ..._catalogCategories.map((c) => ChoiceChip(label: Text(_categoryLabel(c)), selected: _selectedCategory == c, onSelected: (_) => setState(() => _selectedCategory = _selectedCategory == c ? null : c))]),
+      Wrap(spacing: 8, runSpacing: 8, children: [ChoiceChip(label: const Text('كل الأقسام'), selected: _selectedCategory == null, onSelected: (_) => setState(() => _selectedCategory = null)), ..._catalogCategories.map((c) => ChoiceChip(label: Text(_categoryLabel(c)), selected: _selectedCategory == c, onSelected: (_) => setState(() => _selectedCategory = _selectedCategory == c ? null : c)))]),
       const SizedBox(height: 16),
       titleRow('العلامات التجارية'),
       const SizedBox(height: 8),
