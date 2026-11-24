@@ -166,8 +166,9 @@ class _CustomerHomeState extends State<CustomerHome> {
         .map((b) => b['id'] as String).toSet();
       final visibleFoodBrandIds = foodBrandIds.intersection(activeApprovedBrandIds);
       final branches = await _db.from('branches')
-        .select('id,name,address,city,merchant_id,merchants!inner(name,is_active)')
-        .eq('is_active',true).eq('city','Rabat').eq('merchants.is_active',true).order('name');
+        .select('id,name,address,city,merchant_id,merchants!inner(name,is_active,brand_id,is_direct_purchase)')
+        .eq('is_active',true).eq('city','Rabat').eq('merchants.is_active',true)
+        .eq('merchants.is_direct_purchase',true).order('name');
       if (!mounted) return;
       setState(() {
         _brands = List<Map<String,dynamic>>.from(brands)
@@ -185,7 +186,7 @@ class _CustomerHomeState extends State<CustomerHome> {
     if (_user == null) return;
     try {
       final rows = await _db.from('orders')
-        .select('id,status,submitted_at,subtotal_mad,delivery_address,eta_minutes,merchant_accepted_at,preparation_started_at,preparation_completed_at,courier_offered_at,courier_accepted_at,picked_up_at,en_route_at,delivered_at')
+        .select('id,status,submitted_at,subtotal_mad,delivery_fee_mad,delivery_address,eta_minutes,courier_offered_at,courier_accepted_at,picked_up_at,en_route_at,delivered_at')
         .eq('customer_id',_user!.id).order('submitted_at',ascending:false).limit(20);
       if (mounted) setState(() => _myOrders = List<Map<String,dynamic>>.from(rows));
     } catch (_) {}
@@ -216,34 +217,37 @@ class _CustomerHomeState extends State<CustomerHome> {
   }
 
   Future<void> _chooseBranch(Map<String,dynamic> branch) async {
+    final merchant = branch['merchants'] as Map?;
+    final storeBrandId = merchant?['brand_id'] as String?;
+    if (storeBrandId == null) { setState(() => _error = 'هذا الفرع غير مرتبط بعلامة تجارية في JIB.'); return; }
+    final hasOtherBrand = _cart.values.any((row) => (row['product'] as Map)['brand_id'] != storeBrandId);
+    if (hasOtherBrand) { setState(() => _error = 'الطلب الواحد يكون من متجر واحد. أفرغ السلة قبل تغيير المتجر.'); return; }
     setState(() {
       _selectedBranch = branch['id'] as String;
       _selectedBranchName = branch['name'] as String;
+      _selectedBrand = storeBrandId;
       _branchProducts = [];
-      _busy = true;
       _error = null;
+      _notice = 'تم اختيار $_selectedBranchName. المندوب سيشتري المنتجات من هذا الفرع.';
     });
-    try {
-      final rows = await _db.from('branch_products')
-        .select('id,price_mad,availability,products!inner(id,name,category,brand_id,image_url,reference_price_mad,reference_notes,brands(name))')
-        .eq('branch_id',_selectedBranch!).eq('is_active',true)
-        .eq('availability','available').eq('products.is_active',true)
-        .inFilter('products.category',_foodCategories.toList()).order('id');
-      if (mounted) setState(() => _branchProducts = List<Map<String,dynamic>>.from(rows));
-    } catch (e) {
-      if (mounted) setState(() => _error = 'تعذر تحميل منتجات هذا الفرع.');
-    } finally { if (mounted) setState(() => _busy = false); }
   }
 
   void _addToCart(Map<String,dynamic> product) {
     final id = product['id'] as String;
     final price = _customerReferencePrice(product);
-    if (price == null) {
-      setState(() => _error = 'لا يمكن إضافة هذا المنتج لأن سعره المرجعي غير متوفر.');
-      return;
+    if (price == null) { setState(() => _error = 'لا يمكن إضافة المنتج لأن سعره المرجعي غير متوفر.'); return; }
+    final brandId = product['brand_id'] as String?;
+    if (brandId == null) { setState(() => _error = 'هذا المنتج غير مرتبط بمتجر معتمد.'); return; }
+    final hasOtherBrand = _cart.values.any((row) => (row['product'] as Map)['brand_id'] != brandId);
+    if (hasOtherBrand) { setState(() => _error = 'الطلب الواحد يكون من متجر واحد. أفرغ السلة قبل إضافة منتجات متجر آخر.'); return; }
+    if (_selectedBranch != null) {
+      final selected = _branches.where((b) => b['id'] == _selectedBranch).toList();
+      final selectedBrandId = selected.isEmpty ? null : (selected.first['merchants'] as Map?)?['brand_id'];
+      if (selectedBrandId != brandId) { setState(() => _error = 'المنتج لا ينتمي إلى فرع الشراء المحدد.'); return; }
     }
     final existing = _cart[id];
     setState(() {
+      _selectedBrand = brandId;
       _error = null;
       _cart[id] = {'product': product, 'price_mad': price, 'quantity': ((existing?['quantity'] as int?) ?? 0) + 1};
       _notice = 'تمت إضافة ${product['name']} إلى السلة.';
@@ -265,19 +269,12 @@ class _CustomerHomeState extends State<CustomerHome> {
 
   Future<void> _submitOrder() async {
     if (_user == null) { setState(() => _error = 'سجّل الدخول أولاً لإرسال الطلب.'); return; }
-    if (_selectedBranch == null || _cart.isEmpty) { setState(() => _error = 'أضف المنتجات إلى السلة ثم اختر فرع الشراء في الرباط.'); return; }
+    if (_selectedBranch == null || _cart.isEmpty) { setState(() => _error = 'أضف المنتجات واختر فرع الشراء في الرباط.'); return; }
+    if (_address.text.trim().length < 5 || _phone.text.trim().length < 8) { setState(() => _error = 'أدخل عنوان التوصيل ورقم هاتف صحيحاً.'); return; }
     setState(() { _busy = true; _error = null; _notice = null; });
     try {
-      final productIds = _cart.keys.toList();
-      final offers = await _db.from('branch_products').select('id,product_id')
-        .eq('branch_id',_selectedBranch!).eq('is_active',true).eq('availability','available')
-        .inFilter('product_id',productIds);
-      final offerByProduct = {for (final row in List<Map<String,dynamic>>.from(offers)) row['product_id'] as String: row};
-      if (productIds.any((id) => !offerByProduct.containsKey(id))) {
-        throw Exception('أُضيفت المنتجات إلى السلة، لكن ربطها بفرع الشراء لم يكتمل بعد.');
-      }
-      final items = _cart.entries.map((e) => {'branch_product_id':offerByProduct[e.key]!['id'],'quantity':e.value['quantity']}).toList();
-      final orderId = await _db.rpc('submit_order',params:{
+      final items = _cart.entries.map((e) => {'product_id': e.key, 'quantity': e.value['quantity']}).toList();
+      final orderId = await _db.rpc('submit_purchase_order',params:{
         'p_branch_id':_selectedBranch,
         'p_delivery_address':_address.text.trim(),
         'p_customer_phone':_phone.text.trim(),
@@ -286,10 +283,7 @@ class _CustomerHomeState extends State<CustomerHome> {
         'p_delivery_latitude':null,
         'p_delivery_longitude':null,
       });
-      setState(() {
-        _cart.clear();
-        _notice = 'تم إرسال الطلب بنجاح. رقم الطلب: ${orderId.toString().substring(0,8)}';
-      });
+      setState(() { _cart.clear(); _notice = 'تم إرسال طلب الشراء بنجاح. رقم الطلب: ${orderId.toString().substring(0,8)}'; });
       await _loadCustomerData();
     } on PostgrestException catch (e) { setState(() => _error = e.message); }
     catch (e) { setState(() => _error = e.toString().replaceFirst('Exception: ', '')); }
@@ -436,32 +430,27 @@ class _CustomerHomeState extends State<CustomerHome> {
         const Text('فروع تستقبل الطلبات',style:TextStyle(fontSize:19,fontWeight:FontWeight.w900)),
         const SizedBox(height:8),
         if (_branches.isEmpty) const _InfoPanel('لا توجد فروع نشطة ومفعّلة لاستقبال الطلبات حالياً.'),
-        ..._branches.map((b)=>Card(
+        ..._branches.where((b) {
+          if (_selectedBrand == null) return true;
+          final merchant = b['merchants'] as Map?;
+          return merchant?['brand_id'] == _selectedBrand;
+        }).map((b)=>Card(
           elevation:0,color:_selectedBranch==b['id']?const Color(0xFFE7F0E8):Colors.white,
           child:ListTile(
             onTap:_busy?null:()=>_chooseBranch(b),
             leading:const Icon(Icons.storefront_outlined),
             title:Text(b['name'] as String,style:const TextStyle(fontWeight:FontWeight.bold)),
             subtitle:Text('${b['address']} — ${b['city']}'),
-            trailing:const Icon(Icons.chevron_left),
+            trailing:Icon(_selectedBranch==b['id']?Icons.check_circle:Icons.chevron_left,color:const Color(0xFF00843D)),
           ),
         )),
         if (_selectedBranch!=null) ...[
           const SizedBox(height:10),
-          Text('منتجات متاحة لدى $_selectedBranchName',style:const TextStyle(fontSize:17,fontWeight:FontWeight.bold)),
-          if (_busy) const Center(child:CircularProgressIndicator()),
-          if (!_busy && _branchProducts.isEmpty) const _InfoPanel('هذا الفرع لم يؤكد توفر منتجات للبيع بعد.'),
-          ..._branchProducts.map((row){
-            final product=Map<String,dynamic>.from(row['products'] as Map);
-            final image=(product['image_url'] as String?)?.trim();
-            return Card(elevation:0,child:ListTile(
-              leading:Container(width:54,height:54,decoration:BoxDecoration(color:const Color(0xFFF7F8F7),borderRadius:BorderRadius.circular(10)),
-                child:image==null||image.isEmpty?const Icon(Icons.inventory_2_outlined,color:Color(0xFF00843D)):Image.network(image,fit:BoxFit.contain,errorBuilder:(_,_,_)=>const Icon(Icons.inventory_2_outlined,color:Color(0xFF00843D)))),
-              title:Text(product['name'] as String),
-              subtitle:Text('${(product['brands'] as Map?)?['name'] ?? 'علامة غير محددة'} • ${row['price_mad']} درهم'),
-              trailing:IconButton(onPressed:()=>_addToCart(product),tooltip:'أضف إلى السلة',icon:const Icon(Icons.add_circle,color:Color(0xFF00843D))),
-            ));
-          }),
+          Card(color:const Color(0xFFE8F5E9),child:ListTile(
+            leading:const Icon(Icons.shopping_bag_outlined,color:Color(0xFF00843D)),
+            title:Text('المندوب سيشتري من $_selectedBranchName'),
+            subtitle:const Text('السعر موحد في JIB. تحدد الإدارة التوصيل حسب المسافة قبل إرسال الطلب للمندوب.'),
+          )),
         ],
         if (_cart.isNotEmpty) ...[
           const SizedBox(height:18),
@@ -485,7 +474,7 @@ class _CustomerHomeState extends State<CustomerHome> {
           TextField(controller:_phone,keyboardType:TextInputType.phone,decoration:const InputDecoration(labelText:'رقم الهاتف',border:OutlineInputBorder())),
           if (_selectedBranch==null) const _InfoPanel('اختر فرع الشراء من قائمة فروع الرباط قبل تأكيد الطلب.'),
           FilledButton(onPressed:_busy||_selectedBranch==null?null:_submitOrder,child:Text(_busy?'جارٍ الإرسال...':'تأكيد الطلب')),
-          const _InfoPanel('يمكنك إضافة المنتجات إلى السلة الآن. إرسال الطلب الفعلي ينتظر ربط المنتجات بعروض فرع الشراء في النظام الحالي.'),
+          const _InfoPanel('بعد تأكيد الطلب يتوجه المندوب إلى المتجر ويشتري المنتجات بنفسه. يحدد فريق JIB رسوم التوصيل حسب المسافة قبل إسناد الطلب.'),
         ],
         if (_user!=null) ...[
           const SizedBox(height:24),
@@ -494,7 +483,7 @@ class _CustomerHomeState extends State<CustomerHome> {
             padding:const EdgeInsets.all(12),
             child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
               Text('طلب #${(o['id'] as String).substring(0,8)}',style:const TextStyle(fontWeight:FontWeight.bold)),
-              Text('${_status(o['status'] as String)} • ${o['subtotal_mad']} درهم'),
+              Text('${_status(o['status'] as String)} • المنتجات: ${o['subtotal_mad']} درهم • التوصيل: ${o['delivery_fee_mad'] == null ? 'قيد التحديد' : '${o['delivery_fee_mad']} درهم'}'),
               Text('مضى على الطلب: ${DateTime.now().difference(DateTime.parse(o['submitted_at'] as String)).inMinutes} دقيقة'),
               if(o['eta_minutes']!=null) Text('تقدير المتجر للتحضير: ${o['eta_minutes']} دقيقة'),
               ...[
