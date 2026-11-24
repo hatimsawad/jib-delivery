@@ -220,7 +220,6 @@ class _CustomerHomeState extends State<CustomerHome> {
       _selectedBranch = branch['id'] as String;
       _selectedBranchName = branch['name'] as String;
       _branchProducts = [];
-      _cart.clear();
       _busy = true;
       _error = null;
     });
@@ -293,7 +292,7 @@ class _CustomerHomeState extends State<CustomerHome> {
       });
       await _loadCustomerData();
     } on PostgrestException catch (e) { setState(() => _error = e.message); }
-    catch (e) { setState(() => _error = 'لم يتم إرسال الطلب. تحقق من توفر الفرع والمنتجات.'); }
+    catch (e) { setState(() => _error = e.toString().replaceFirst('Exception: ', '')); }
     finally { if (mounted) setState(() => _busy = false); }
   }
 
