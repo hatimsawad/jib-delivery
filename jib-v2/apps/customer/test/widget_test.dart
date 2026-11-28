@@ -1,4 +1,3 @@
-import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -14,16 +13,20 @@ void main() {
     );
   });
 
-  testWidgets('customer app renders catalog and ordering entry points', (tester) async {
+  testWidgets('customer app renders premium navigation and shopping entry points', (tester) async {
     await tester.pumpWidget(const JibCustomerApp());
-    expect(find.text('جيب JIB'), findsOneWidget);
-    expect(find.text('اكتشف المنتجات'), findsOneWidget);
-    expect(find.textContaining('تصفح حسب العلامة التجارية'), findsOneWidget);
-    await tester.scrollUntilVisible(
-      find.text('فروع تستقبل الطلبات'),
-      400,
-      scrollable: find.byType(Scrollable).first,
-    );
-    expect(find.text('فروع تستقبل الطلبات'), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.text('JIB'), findsWidgets);
+    expect(find.text('الرئيسية'), findsOneWidget);
+    expect(find.text('المتاجر'), findsOneWidget);
+    expect(find.text('السلة'), findsOneWidget);
+    expect(find.text('طلباتي'), findsOneWidget);
+    expect(find.text('كل شي تحبه\nفي مكان واحد'), findsOneWidget);
+
+    await tester.tap(find.text('المتاجر'));
+    await tester.pump();
+    expect(find.text('المتاجر والمنتجات'), findsOneWidget);
+    expect(find.text('اختر فرع الشراء'), findsOneWidget);
   });
 }
